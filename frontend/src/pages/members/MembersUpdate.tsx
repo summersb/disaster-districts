@@ -7,7 +7,28 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { Changed } from '@/type'
+type Changed = {
+  old: {
+    id: number
+    familyName: string
+    name: string
+    address1?: string
+    address2?: string
+    city?: string
+    state?: string
+    phone?: string
+  }
+  updated: {
+    id?: number
+    familyName: string
+    name: string
+    address1?: string
+    address2?: string
+    city?: string
+    state?: string
+    phone?: string
+  }
+}
 
 interface Props {
   children: React.ReactNode

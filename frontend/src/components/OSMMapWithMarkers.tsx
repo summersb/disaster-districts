@@ -2,8 +2,8 @@ import React from 'react'
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import type { DistrictDbType, Member } from '@/type'
-import { useNavigate } from 'react-router-dom'
+import type { District, Member } from '@/type'
+import { useNavigate } from '@tanstack/react-router'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 import { deClutter } from '@/components/mapUtils.ts'
 
@@ -19,7 +19,7 @@ function ChangeView(center: Position) {
 }
 
 type MapWithMarkersProps = {
-  districts: DistrictDbType[]
+  districts: District[]
   members: Member[]
   center?: Position
   markerClicked?: (member: Member) => void
@@ -34,20 +34,18 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
     }
   }
 
-  const districtClicked = (district?: DistrictDbType) => {
+  const districtClicked = (district?: District) => {
     if (district) {
-      navigate(`/district/${district.id}`)
+      navigate({ to: `/district/${district.id}` })
     }
   }
 
-  const getMemberColor = (memberId: string): string => {
+  const getMemberColor = (memberId: number): string => {
     // check if member is leader
     const leaderColor = props.districts?.find(
-      (d) => d.leaderId === memberId,
+      (d) => d.leader.id === memberId,
     )?.color
-    const color = props.districts?.find((d) =>
-      d.members?.includes(memberId),
-    )?.color
+    const color = 'Blue'
     return leaderColor ?? color ?? 'Blue'
   }
 
@@ -120,8 +118,7 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
       {props.districts?.map((d) => {
         // get average lat/lng for a district
         const distMembers = d.members
-          ?.map((mem) => props.members?.find((m) => m.id === mem))
-          .filter((m) => m != null)
+          .filter((m: Member | undefined): m is Member => m != null)
         if (distMembers == null || distMembers?.length == 0) return null
         const center = findCenter(distMembers)
         return (

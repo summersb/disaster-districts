@@ -8,9 +8,9 @@ import {
   FormMessage,
 } from '@/components/ui/form.tsx'
 import { Input } from '@/components/ui/input.tsx'
-import { WardConfig } from '@/type/Ward.ts'
-import { createWard, getWardList, saveWardList } from '@/api/wardApi.ts'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Ward } from '@/type/Ward.ts'
+import { useQueryClient } from '@tanstack/react-query'
+import { useWards } from '@/hooks/useWards'
 import { useForm } from 'react-hook-form'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
 import useAuth from '@/hooks/useAuth.tsx'
@@ -18,19 +18,36 @@ import StyledButton from '@/components/styled/StyledButton.tsx'
 
 const CreateWard = (): React.ReactElement => {
   const { user } = useAuth()
-  const [, setActiveWard] = useLocalStorageState<WardConfig>('ward', undefined)
-  const { data } = useQuery({ queryKey: ['wardList'], queryFn: getWardList })
+  const [, setActiveWard] = useLocalStorageState<Ward>('ward', undefined)
+  const { data } = useWards()
   const queryClient = useQueryClient()
-  const form = useForm<WardConfig>({
+  const form = useForm<Ward>({
     defaultValues: {
       wardName: '',
     },
   })
-  const onSubmit = async (wardConfig: WardConfig) => {
-    await createWard(wardConfig.wardName, user)
-    await saveWardList([...(data || []), wardConfig])
-    queryClient.invalidateQueries({ queryKey: ['wardList'] })
-    setActiveWard(wardConfig)
+  const onSubmit = async (ward: Ward) => {
+    try {
+      await fetch('/api/wards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wardName: ward.wardName, user }),
+      })
+      // attempt best-effort save of ward list if backend supports it
+      try {
+        await fetch('/api/wards/list', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify([...((data as any) || []), ward]),
+        })
+      } catch (e) {
+        // non-fatal
+        console.warn('Failed to save ward list', e)
+      }
+    } finally {
+      queryClient.invalidateQueries({ queryKey: ['wardList'] })
+      setActiveWard(ward)
+    }
   }
   return (
     <div>

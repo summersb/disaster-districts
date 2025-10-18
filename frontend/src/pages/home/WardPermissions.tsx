@@ -1,5 +1,4 @@
 import React from 'react'
-import { getPerms } from '@/api/wardApi.ts'
 import { useQuery } from '@tanstack/react-query'
 import { UserRoles } from '@/type/User.ts'
 import {
@@ -15,7 +14,10 @@ import {
 const WardPermissions = (): React.ReactElement => {
   const { data: permissions } = useQuery<UserRoles>({
     queryKey: ['wardPermissions'],
-    queryFn: getPerms,
+    queryFn: async () => {
+      const res = await fetch('/api/wards/permissions')
+      return res.json()
+    },
   })
   return (
     <Table>
@@ -30,8 +32,8 @@ const WardPermissions = (): React.ReactElement => {
       </TableHeader>
       <TableBody>
         {permissions &&
-          Object.entries(permissions.users).map(
-            ([id, { role, email, name }]) => (
+          Object.entries((permissions as any).users || {}).map(
+            ([id, { role, email, name }]: any) => (
               <TableRow
                 key={id}
                 className="odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800 border-b dark:border-gray-700"

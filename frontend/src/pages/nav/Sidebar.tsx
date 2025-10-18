@@ -9,16 +9,16 @@ import {
   User,
   Users,
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link } from '@tanstack/react-router'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx'
 import useAuth from '@/hooks/useAuth.tsx'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
-import { WardConfig } from '@/type/Ward.ts'
+import { Ward } from '@/type/Ward.ts'
 import { Button } from '@/components/ui/button'
 
 const Sidebar = (): React.ReactElement => {
   const auth = useAuth()
-  const [wardDoc] = useLocalStorageState<WardConfig>('ward', undefined)
+  const [wardDoc] = useLocalStorageState<Ward>('ward', undefined)
 
   const logout = async () => {
     auth.setUser({})

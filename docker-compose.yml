@@ -31,7 +31,7 @@ services:
       context: ./frontend
     volumes:
       - ./frontend:/app
-      - dd-vite-node-modules:/app/node_modules 
+#      - dd-vite-node-modules:/app/node_modules 
     user: "${UID:-1000}:${GID:-1000}"  
     container_name: dd-vite
     ports:

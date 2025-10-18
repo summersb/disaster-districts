@@ -1,3 +1,3 @@
 export type BaseObject = {
-  id: string
+  id: number
 }

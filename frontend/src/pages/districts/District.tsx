@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { DistrictDbType } from '@/type'
+import type { District } from '@/type'
 import { TableCell, TableRow } from '@/components/ui/table'
 import {
   Dialog,
@@ -10,42 +10,33 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog.tsx'
-import { deleteDistrict, getMemberList } from '@/api'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { FilePenLine, Trash2 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link } from '@tanstack/react-router'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
+import { useDeleteDistrict, useDistrict } from '@/hooks/useDistricts'
 
 type DistrictProps = {
-  district: DistrictDbType
+  district: District
 }
 
 export default function District(props: DistrictProps) {
+  const { data } = useDistrict(0, props.district.id)
+  const deleteDistrict = useDeleteDistrict()
   const { district: d } = props
   const [open, setOpen] = useState<boolean>(false)
-  const queryClient = useQueryClient()
-
-  const { data } = useQuery({
-    queryKey: ['members'],
-    queryFn: getMemberList,
-  })
 
   const delDistrict = () => {
     setOpen(true)
   }
 
   const doDelete = () => {
-    deleteDistrict(d.id).then(() => {
-      queryClient
-        .invalidateQueries({ queryKey: ['districts'] })
-        .catch((e) => console.log('Error ' + e))
-    })
+    deleteDistrict.mutate({ wardId: 0, districtId: d.id })
     setOpen(false)
   }
 
-  const leader = data?.find((m) => m.id == d.leaderId)
-  const assistant = data?.find((m) => m.id == d.assistantId)
+  const leader = data?.leader
+  const assistant = data?.assistant
   return (
     <TableRow>
       <TableCell>

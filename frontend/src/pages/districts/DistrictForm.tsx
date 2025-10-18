@@ -25,14 +25,14 @@ import { useFormContext, useFieldArray } from 'react-hook-form'
 import { cn } from '@/lib/utils'
 import { Check, ChevronsUpDown } from 'lucide-react'
 import MapDisplay from '@/pages/map/MapDisplay'
-import { useQuery } from '@tanstack/react-query'
-import { getDistrictList, getMemberList } from '@/api'
+import { useMembers } from '@/hooks/useMembers'
+import { useDistricts } from '@/hooks/useDistricts'
 import type { District, Member } from '@/type'
 import { ColorPicker } from '@/components/ColorPicker.tsx'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 
 type DistrictFormProps = {
-  districtId: string
+  districtId: number
 }
 
 const DistrictForm = ({ districtId }: DistrictFormProps) => {
@@ -51,15 +51,9 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
     keyName: '_id',
   })
 
-  const { data } = useQuery({
-    queryKey: ['members'],
-    queryFn: getMemberList,
-  })
+  const { data } = useMembers(0 as any)
 
-  const { data: districts } = useQuery({
-    queryKey: ['districts'],
-    queryFn: getDistrictList,
-  })
+  const { data: districts } = useDistricts(0 as any)
   const color = form.watch('color')
   const leader = form.watch('leader')
   const assistant = form.watch('assistant')
@@ -175,7 +169,7 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
                       {leaderList?.map((member) => (
                         <CommandItem
                           key={member.id}
-                          value={member.id}
+                          value={String(member.id)}
                           keywords={[
                             member.familyName,
                             member.name,
@@ -236,7 +230,7 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
                       {assistantList?.map((member) => (
                         <CommandItem
                           key={member.id}
-                          value={member.id}
+                          value={String(member.id)}
                           keywords={[
                             member.familyName,
                             member.name,

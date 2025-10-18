@@ -1,36 +1,15 @@
-import { db } from '@/api'
 import { UserRequest } from '@/type/User'
-import { collection, doc, getDocs, updateDoc } from 'firebase/firestore'
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 
 const ManageRequests = (): React.ReactElement => {
-  const [requests, setRequests] = useState<UserRequest[]>([])
+  const [requests] = useState<UserRequest[]>([])
 
-  useEffect(() => {
-    const fetchRequests = async () => {
-      const querySnapshot = await getDocs(collection(db, 'accessRequests'))
-      const data = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as UserRequest[]
-      setRequests(data)
-    }
-
-    fetchRequests()
-  }, [])
-
-  const handleApprove = async (id: string) => {
-    const requestRef = doc(db, 'accessRequests', id)
-    await updateDoc(requestRef, {
-      status: 'approved',
-    })
+  const handleApprove = async (_id: number) => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
   }
 
-  const handleReject = async (id: string) => {
-    const requestRef = doc(db, 'accessRequests', id)
-    await updateDoc(requestRef, {
-      status: 'rejected',
-    })
+  const handleReject = async (_id: number) => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
   }
 
   return (

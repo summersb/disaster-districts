@@ -1,13 +1,13 @@
-import { useQuery } from '@tanstack/react-query'
 import React from 'react'
-import { getDistrictList, getMemberList } from '@/api'
-import { DistrictDbType, Member } from '@/type'
+import { useMembers } from '@/hooks/useMembers'
+import { useDistricts } from '@/hooks/useDistricts'
+import { District, Member } from '@/type'
 import OSMMapWithMarkers from '@/components/OSMMapWithMarkers.tsx'
 
 type MapDisplayProps = {
   lat?: number
   lng?: number
-  districts?: DistrictDbType[]
+  districts?: District[]
   members?: Member[]
   leader?: Member
   markerClicked?: (member: Member) => void
@@ -21,15 +21,8 @@ const MapDisplay = ({
   markerClicked,
   showLabel,
 }: MapDisplayProps): React.ReactElement => {
-  const { data, isError, error } = useQuery({
-    queryKey: ['members'],
-    queryFn: getMemberList,
-    retry: false,
-  })
-  const { data: districts } = useQuery({
-    queryKey: ['districts'],
-    queryFn: getDistrictList,
-  })
+  const { data, isError, error } = useMembers(0 as any)
+  const { data: districts } = useDistricts(0 as any)
 
   if (isError) {
     alert(error)

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { DistrictDbType } from '@/type'
-import { deleteDistrict } from '@/api'
+import { District } from '@/type'
+import { useDeleteDistrict } from '@/hooks/useDistricts'
 import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Trash2 } from 'lucide-react'
@@ -11,24 +11,27 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
 } from '@/components/ui/dialog.tsx'
 
 type DeleteDistrictButtonProps = {
-  district: DistrictDbType
+  district: District
 }
-const DeleteDistrictButton = ({ district }: DeleteDistrictButtonProps): React.ReactElement => {
+const DeleteDistrictButton = ({
+  district,
+}: DeleteDistrictButtonProps): React.ReactElement => {
   const [open, setOpen] = useState<boolean>(false)
   const queryClient = useQueryClient()
-  const delDistrict = () => {
-    setOpen(true)
-  }
-  const doDelete = () => {
-    deleteDistrict(district.id).then(() => {
-      queryClient
-        .invalidateQueries({ queryKey: ['districts'] })
-        .catch((e) => console.log('Error ' + e))
-    })
+  const delDistrict = () => setOpen(true)
+  const deleteMutation = useDeleteDistrict()
+
+  const doDelete = async () => {
+    try {
+      await deleteMutation.mutateAsync({ wardId: 0, districtId: district.id })
+      await queryClient.invalidateQueries({ queryKey: ['districts'] })
+    } catch (e) {
+      console.log('Error ' + e)
+    }
     setOpen(false)
   }
   return (

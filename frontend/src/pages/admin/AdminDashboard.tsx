@@ -1,10 +1,10 @@
 import React from 'react'
-import { getWardList } from '@/api/wardApi.ts'
+import { useWards } from '@/hooks/useWards'
 import DownloadWard from '@/pages/home/DownloadWard.tsx'
 import CreateWard from '@/pages/home/CreateWard.tsx'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
-import { WardConfig } from '@/type/Ward.ts'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Ward } from '@/type/Ward.ts'
+import { useQueryClient } from '@tanstack/react-query'
 import UploadWard from '@/pages/admin/UploadWard.tsx'
 import {
   Tabs,
@@ -16,8 +16,8 @@ import StyledButton from '@/components/styled/StyledButton.tsx'
 
 const AdminDashboard = (): React.ReactElement => {
   const queryClient = useQueryClient()
-  const [, setActiveWard] = useLocalStorageState<WardConfig>('ward', undefined)
-  const { data } = useQuery({ queryKey: ['wardList'], queryFn: getWardList })
+  const [, setActiveWard] = useLocalStorageState<Ward>('ward', undefined)
+  const { data } = useWards()
   const select = (name: string) => {
     setActiveWard({ wardName: name })
     queryClient.invalidateQueries()

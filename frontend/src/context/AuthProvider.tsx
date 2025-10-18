@@ -25,6 +25,9 @@ export const AuthProvider = ({
   const [user, setUser] = useState<User>({})
 
   const signup = (email: string, password: string): void => {
+    // mark params as used to avoid unused variable TS errors
+    void email
+    void password
     console.log('signup', user)
   }
 

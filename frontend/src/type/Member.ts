@@ -1,35 +1,19 @@
-import { z } from 'zod'
-import { BaseObject } from '@/type/SharedTypes.ts'
+import * as z from 'zod'
 
 export const MemberSchema = z.object({
-  id: z.string().uuid(),
-  familyName: z.string().min(1),
-  formattedAddress: z.string().optional(),
-  name: z.string().min(1),
-  address1: z.string().min(1).optional(),
+  id: z.number(),
+  familyName: z.string(),
+  formattedAddress: z.string().optional().or(z.literal('')),
+  name: z.string(),
+  address1: z.string().optional(),
   address2: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
-  postalCode: z.preprocess((val) => String(val), z.string().optional()),
+  postalCode: z.string().optional(),
   phone: z.string().optional(),
-  lat: z
-    .preprocess(
-      (val) => (val === '' ? undefined : Number(val)),
-      z.number().optional(),
-    )
-    .optional(),
-  lng: z
-    .preprocess(
-      (val) => (val === '' ? undefined : Number(val)),
-      z.number().optional(),
-    )
-    .optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
   notes: z.string().optional(),
 })
 
-export type Member = z.infer<typeof MemberSchema> & BaseObject
-
-export type Changed = {
-  old: Member
-  updated: Member
-}
+export type Member = z.infer<typeof MemberSchema>

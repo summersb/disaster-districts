@@ -1,47 +1,51 @@
-import { useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import React, { useState } from 'react'
+import { Link, useNavigate, useMatch } from '@tanstack/react-router'
+import { editMemberRoute } from '@/routes'
+// no direct useQuery here; we use useMember hook
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Form } from '@/components/ui/form'
 import { SubmitHandler, useForm } from 'react-hook-form'
-import { getMember, saveMember } from '@/api'
-import { MemberSchema } from '@/type'
+import { useMember, useSaveMember } from '@/hooks/useMembers'
 import type { Member } from '@/type'
+import { MemberSchema } from '@/type'
 import MemberForm from './MemberForm'
 import { getGeo } from '@/pages/members/process.ts'
 import StyledButton from '@/components/styled/StyledButton.tsx'
 
 const EditMember = () => {
-  const { memberId } = useParams()
+  const match = useMatch({ from: editMemberRoute })
+  const memberId = match?.params?.memberId
   const navigate = useNavigate()
-  const { data } = useQuery({
-    queryKey: ['member', memberId],
-    queryFn: () => getMember(memberId as string),
-    enabled: memberId !== undefined,
-    retry: false,
+  const { data } = useMember(0 as any, Number(memberId))
+
+  const form = useForm<Member>({
+    resolver: zodResolver(MemberSchema) as unknown as
+      | import('react-hook-form').Resolver<Member, any>
+      | undefined,
+    defaultValues: (data ?? ({} as Member)) as Member,
   })
 
-  const form = useForm({
-    resolver: zodResolver(MemberSchema),
-    values: data || {},
-  })
+  // keep form in sync when data is loaded
+  React.useEffect(() => {
+    if (data) form.reset(data)
+  }, [data, form])
 
   const [error, setError] = useState<string>()
 
-  const onSubmit: SubmitHandler<Partial<Member>> = async (
-    data: Partial<Member>,
-  ) => {
+  const saveMemberHook = useSaveMember()
+
+  const onSubmit: SubmitHandler<Member> = async (data: Member) => {
     const m = await getGeo(data)
-    saveMember(m as Member)
-      .then(() => {
-        navigate('/members')
+    try {
+      await saveMemberHook.mutateAsync({
+        wardId: 0,
+        memberId: Number(data.id),
+        member: m as any,
       })
-      .catch((e: Error) => {
-        saveMember(data).then(() => {
-          navigate('/members')
-        })
-        setError(e.message)
-      })
+      navigate({ to: '/members' })
+    } catch (e: any) {
+      setError(e.message)
+    }
   }
 
   return (

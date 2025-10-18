@@ -1,9 +1,15 @@
-import { WardConfig } from '@/type/Ward.ts'
+import { Ward } from '@/type/Ward.ts'
 
-export const getActiveWard = (): WardConfig => {
-  return JSON.parse(localStorage.getItem('ward') ?? '{}')
+export const getActiveWard = (): Ward | undefined => {
+  try {
+    const raw = localStorage.getItem('ward')
+    if (!raw) return undefined
+    return JSON.parse(raw) as Ward
+  } catch (e) {
+    return undefined
+  }
 }
 
-export const saveActiveWard = async (ward: WardConfig): Promise<void> => {
+export const saveActiveWard = async (ward: Ward): Promise<void> => {
   localStorage.setItem('ward', JSON.stringify(ward))
 }

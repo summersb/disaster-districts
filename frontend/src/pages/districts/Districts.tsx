@@ -1,5 +1,5 @@
-import { getDistrictList, getMemberList } from '@/api'
-import { useQuery } from '@tanstack/react-query'
+import { useDistricts } from '@/hooks/useDistricts'
+import { useMembers } from '@/hooks/useMembers'
 import {
   Table,
   TableBody,
@@ -15,15 +15,15 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { DistrictDbType, Member } from '@/type'
-import { Link } from 'react-router-dom'
+import { District, Member } from '@/type'
+import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { FilePenLine, View } from 'lucide-react'
 import DeleteDistrictButton from './DeleteDistrictButton'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 
-const columns: (memberList: Member[]) => ColumnDef<DistrictDbType>[] = (
-  memberList: Member[],
+const columns: (memberList: Member[]) => ColumnDef<District>[] = (
+  _memberList: Member[],
 ) => [
   {
     accessorKey: 'view',
@@ -55,9 +55,7 @@ const columns: (memberList: Member[]) => ColumnDef<DistrictDbType>[] = (
     accessorKey: 'leader',
     header: 'Leader',
     cell: (info) => {
-      const leader = memberList?.find(
-        (m: Member) => m.id == info.row.original.leaderId,
-      )
+      const leader = info.row.original.leader
       return <MemberDisplayName member={leader} />
     },
   },
@@ -65,9 +63,7 @@ const columns: (memberList: Member[]) => ColumnDef<DistrictDbType>[] = (
     accessorKey: 'assistant',
     header: 'Assistant',
     cell: (info) => {
-      const assistant = memberList?.find(
-        (m: Member) => m.id == info.row.original.assistantId,
-      )
+      const assistant = info.row.original.assistant
       return <MemberDisplayName member={assistant} />
     },
   },
@@ -86,21 +82,9 @@ const columns: (memberList: Member[]) => ColumnDef<DistrictDbType>[] = (
 ]
 
 export default function Districts() {
-  const { data: districts } = useQuery({
-    queryKey: ['districts'],
-    queryFn: () =>
-      getDistrictList().then((data) =>
-        data.sort((s1, s2) => s1.name.localeCompare(s2.name)),
-      ),
-  })
+  const { data: districts } = useDistricts(0 as any)
 
-  const { data: memberList } = useQuery({
-    queryKey: ['members'],
-    queryFn: () =>
-      getMemberList().then((data) =>
-        data.sort((s1, s2) => s1.familyName.localeCompare(s2.familyName)),
-      ),
-  })
+  const { data: memberList } = useMembers(0 as any)
 
   const table = useReactTable({
     data: districts || [],

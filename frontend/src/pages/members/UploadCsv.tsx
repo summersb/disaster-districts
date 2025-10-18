@@ -20,7 +20,7 @@ const UploadCsv = ({ setMembers }: UploadCsvProps): React.ReactElement => {
     const array: Member[] = csvRows.map((i) => {
       const values = i.split(';')
       const member: Member = {
-        id: '0',
+        id: 0,
         familyName: values[0],
         name: values[1],
         formattedAddress: values[2],

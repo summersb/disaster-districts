@@ -1,17 +1,23 @@
-import { Form } from '@/components/ui/form'
-import { getMemberList, saveMember, saveMemberList } from '@/api'
-import type { Member } from '@/type'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import React, { useState } from 'react'
-import UploadMembersDetail from './UploadMembersDetail'
-import MembersUpdate from './MembersUpdate'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import ImportDirectoryList from './ImportDirectoryList'
-import { useForm } from 'react-hook-form'
-import { parseData } from './process.ts'
-import UploadPdf from '@/pages/members/UploadPdf.tsx'
-import UploadCsv from '@/pages/members/UploadCsv.tsx'
+import {
+  useMembers,
+  useAddMember,
+  useSaveMember,
+  useDeleteMember,
+} from '@/hooks/useMembers'
 import StyledButton from '@/components/styled/StyledButton.tsx'
+import { Form } from '@/components/ui/form'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import UploadCsv from '@/pages/members/UploadCsv.tsx'
+import UploadPdf from '@/pages/members/UploadPdf.tsx'
+import type { Member } from '@/type'
+import { useQueryClient } from '@tanstack/react-query'
+import React, { useState } from 'react'
+import { genId } from '@/lib/utils'
+import { useForm } from 'react-hook-form'
+import ImportDirectoryList from './ImportDirectoryList'
+import MembersUpdate from './MembersUpdate'
+import { parseData } from './process.ts'
+import UploadMembersDetail from './UploadMembersDetail'
 
 type FormType = {
   data: string
@@ -23,10 +29,10 @@ const UploadMembers = (): React.ReactElement => {
   const form = useForm<FormType>()
   const [members, setMembers] = useState<Member[]>()
 
-  const { data: dbMemberList } = useQuery({
-    queryKey: ['members'],
-    queryFn: getMemberList,
-  })
+  const { data: dbMemberList } = useMembers(0 as any)
+
+  const addMember = useAddMember()
+  const saveMemberHook = useSaveMember()
 
   const onSubmit = (data: FormType) => {
     const parsedPersons = parseData(data.data)
@@ -49,8 +55,10 @@ const UploadMembers = (): React.ReactElement => {
   if (members && members.length > 0 && dbMemberList) {
     members.forEach((m: Member) => {
       const found = dbMemberList.find((old) => {
-        return (old.familyName === m.familyName && old.name === m.name)
-          || (old.familyName === m.familyName && old.address1 === m.address1)
+        return (
+          (old.familyName === m.familyName && old.name === m.name) ||
+          (old.familyName === m.familyName && old.address1 === m.address1)
+        )
       })
       if (found) {
         if (found.address1 === m.address1) {
@@ -60,7 +68,8 @@ const UploadMembers = (): React.ReactElement => {
         }
       } else {
         console.log('Did not match member', m.familyName, m.name)
-        m.id = crypto.randomUUID()
+        // id type is being normalized elsewhere; cast to any for now
+        ;(m as any).id = genId()
         newMembers.push(m)
       }
     })
@@ -76,12 +85,15 @@ const UploadMembers = (): React.ReactElement => {
     })
   }
 
+  const deleteMemberHook = useDeleteMember()
+
   const updateMembers = () => {
     changedMembers?.forEach((m) => {
       const updatedMember: Member = {
         id: m.old.id,
         familyName: m.updated.familyName,
         name: m.updated.name,
+        formattedAddress: m.old.formattedAddress,
         address1: m.updated.address1,
         address2: m.updated.address2,
         city: m.updated.city,
@@ -91,35 +103,43 @@ const UploadMembers = (): React.ReactElement => {
         lng: m.updated.lng,
         postalCode: m.updated.postalCode,
       }
-      saveMember(updatedMember)
+
+      saveMemberHook
+        .mutateAsync({
+          wardId: 0,
+          memberId: Number(updatedMember.id),
+          member: updatedMember as any,
+        })
         .catch((err) => {
-        console.error(err, m)
-      })
+          console.error(err, m)
+        })
     })
     queryClient.invalidateQueries({ queryKey: ['members'] })
     changedMembers = []
   }
 
-  const insertNewMembers = () => {
-    const updateList = dbMemberList ?? []
-    newMembers?.forEach((m) => {
-      updateList.push(m)
-      saveMemberList(updateList).catch((err) => {
-        console.error(err, m)
-      })
-    })
+  const insertNewMembers = async () => {
+    if (newMembers?.length) {
+      // create each new member via hook so cache invalidation is handled
+      await Promise.all(
+        newMembers.map((m) =>
+          addMember.mutateAsync({ wardId: 0, member: m as any }),
+        ),
+      ).catch((err) => console.error('Error creating new members', err))
+    }
     queryClient.invalidateQueries({ queryKey: ['members'] })
     newMembers = []
   }
 
-  const deleteMembers = () => {
-    const updateList: Member[] = dbMemberList ?? []
+  const deleteMembers = async () => {
     const ids = removedMembers.map((m) => m.id)
-    saveMemberList(updateList.filter((m: Member) => !ids.includes(m.id))).catch(
-      (err) => {
-        console.error(err, updateList, ids)
-      },
-    )
+    for (const id of ids) {
+      try {
+        await deleteMemberHook.mutateAsync({ wardId: 0, memberId: Number(id) })
+      } catch (err) {
+        console.error('Failed to delete member', id, err)
+      }
+    }
     queryClient.invalidateQueries({ queryKey: ['members'] })
     removedMembers = []
   }

@@ -8,8 +8,12 @@ export type UserRoles = {
   }
 }
 
-export type UserRequest = {
-  id: string
-  email: string
-  status: string
-}
+import * as z from 'zod'
+
+export const UserRequestSchema = z.object({
+  id: z.number(),
+  email: z.string(),
+  status: z.string(),
+})
+
+export type UserRequest = z.infer<typeof UserRequestSchema>

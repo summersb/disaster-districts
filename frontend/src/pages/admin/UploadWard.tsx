@@ -1,24 +1,62 @@
 import React, { useState } from 'react'
-import {
-  createWard,
-  getWardList,
-  savePermissions,
-  saveWardList,
-} from '@/api/wardApi.ts'
-import { saveMemberList } from '@/api'
-import { saveDistrictList } from '@/api/districtApi.ts'
+// fallback to direct fetch calls for ward admin operations
+const wardApi = {
+  getWardList: async () => {
+    try {
+      const res = await fetch('/api/wards/list')
+      return res.ok ? (await res.json()) : []
+    } catch (e) {
+      return []
+    }
+  },
+  saveWardList: async (list: any[]) => {
+    try {
+      await fetch('/api/wards/list', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(list),
+      })
+    } catch (e) {
+      console.warn('saveWardList failed', e)
+    }
+  },
+  createWard: async (name: string, user: any) => {
+    try {
+      await fetch('/api/wards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wardName: name, user }),
+      })
+    } catch (e) {
+      console.warn('createWard failed', e)
+    }
+  },
+  savePermissions: async (name: string, perms: any) => {
+    try {
+      await fetch(`/api/wards/${name}/permissions`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(perms),
+      })
+    } catch (e) {
+      console.warn('savePermissions failed', e)
+    }
+  },
+}
+import { useAddMember } from '@/hooks/useMembers'
+import { useAddDistrict } from '@/hooks/useDistricts'
 import useAuth from '@/hooks/useAuth.tsx'
-import { DistrictDbType, Member } from '@/type'
+import { District, Member } from '@/type'
 import { UserRoles } from '@/type/User.ts'
 import StyledButton from '@/components/styled/StyledButton.tsx'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
-import { WardConfig } from '@/type/Ward.ts'
+import { Ward } from '@/type/Ward.ts'
 
 type WardDoc = {
-  id: string
+  id: number
   name: string
   members: Member[]
-  districts: DistrictDbType[]
+  districts: District[]
   permissions: UserRoles
 }
 
@@ -26,7 +64,7 @@ const UploadWard = (): React.ReactElement => {
   const [file, setFile] = useState<File | null>()
   const { user } = useAuth()
   const fileReader = new FileReader()
-  const [, setActiveWard] = useLocalStorageState<WardConfig>('ward', undefined)
+  const [, setActiveWard] = useLocalStorageState<Ward>('ward', undefined)
 
   const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFile(e.target.files?.[0])
@@ -43,20 +81,40 @@ const UploadWard = (): React.ReactElement => {
         if (text) {
           try {
             const wardData: WardDoc = JSON.parse(text as string)
-            const wardList = await getWardList()
-            await saveWardList([
+            const wardList = await ((wardApi as any).getWardList as any)()
+            await (wardApi as any).saveWardList([
               ...(wardList || []),
               { wardName: wardData.name },
             ])
-            await createWard(wardData.name, user)
+            await (wardApi as any).createWard(wardData.name, user as any)
             setActiveWard({ wardName: wardData.name })
             console.log('Created ward', wardData.name)
-            await savePermissions(wardData.name, wardData.permissions)
+            await (wardApi as any).savePermissions(
+              wardData.name,
+              wardData.permissions,
+            )
             console.log('Added permissions', wardData.permissions)
-            const members = await saveMemberList(wardData.members)
-            console.log('Added members', wardData.members, members)
-            const dist = await saveDistrictList(wardData.districts)
-            console.log('Added districts', wardData.districts, dist)
+            const addMember = useAddMember()
+            const addDistrict = useAddDistrict()
+
+            // create members sequentially to avoid overwhelming the backend
+            for (const m of wardData.members) {
+              try {
+                await addMember.mutateAsync({ wardId: 0, member: m as any })
+              } catch (err) {
+                console.error('Failed to add member', m, err)
+              }
+            }
+            console.log('Added members', wardData.members)
+
+            for (const d of wardData.districts) {
+              try {
+                await addDistrict.mutateAsync({ wardId: 0, district: d as any })
+              } catch (err) {
+                console.error('Failed to add district', d, err)
+              }
+            }
+            console.log('Added districts', wardData.districts)
           } catch (e) {
             console.error(e)
           }

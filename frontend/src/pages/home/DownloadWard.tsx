@@ -1,13 +1,19 @@
 import React from 'react'
-import { getPerms } from '@/api/wardApi.ts'
-import { getDistrictList, getMemberList } from '@/api'
+import { useMembers } from '@/hooks/useMembers'
+import { useDistricts } from '@/hooks/useDistricts'
 import StyledButton from '@/components/styled/StyledButton.tsx'
 
+const fetchPerms = async () => {
+  const res = await fetch('/api/wards/permissions')
+  return res.json()
+}
+
 export const DownloadWard = (): React.ReactElement => {
+  const { data: members } = useMembers(0 as any)
+  const { data: districts } = useDistricts(0 as any)
+
   const downloadWard = async () => {
-    const members = await getMemberList()
-    const districts = await getDistrictList()
-    const permissions = await getPerms()
+    const permissions = await fetchPerms()
 
     const jsonString = JSON.stringify(
       { members: members, districts: districts, permissions: permissions },

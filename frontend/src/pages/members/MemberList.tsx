@@ -1,9 +1,6 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  getMemberList,
-  deleteMember as deleteMemberFromDb,
-  getDistrictList, saveMember,
-} from '@/api'
+import { useQueryClient } from '@tanstack/react-query'
+import { useMembers, useDeleteMember, useSaveMember } from '@/hooks/useMembers'
+import { useDistricts } from '@/hooks/useDistricts'
 import {
   Table,
   TableBody,
@@ -13,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { FilePenLine, Trash2, Globe } from 'lucide-react'
 import {
   Dialog,
@@ -26,7 +23,7 @@ import {
 } from '@/components/ui/dialog.tsx'
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button.tsx'
-import type { DistrictDbType, Member } from '@/type'
+import type { District, Member } from '@/type'
 import { Input } from '@/components/ui/input.tsx'
 import StyledButton from '@/components/styled/StyledButton.tsx'
 import { getGeo } from '@/pages/members/process.ts'
@@ -36,36 +33,33 @@ const MemberList = () => {
   const [showNoDistrict, setshowNoDistrict] = useState<boolean>(false)
   const [showNoPos, setShowNoPos] = useState<boolean>(false)
   const [open, setOpen] = useState(false)
-  const [id, setId] = useState<string>()
+  const [id, setId] = useState<number | undefined>()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const { data } = useQuery({
-    queryKey: ['members'],
-    queryFn: getMemberList,
-  })
+  const { data } = useMembers(0 as any)
 
-  const { data: districts } = useQuery({
-    queryKey: ['districts'],
-    queryFn: getDistrictList,
-  })
+  const { data: districts } = useDistricts(0 as any)
 
-  const deleteMember = () => {
-    if (id) {
-      deleteMemberFromDb(id)
-        .then(() => {
-          setOpen(false)
-          queryClient.invalidateQueries({ queryKey: ['members'] })
-        })
-        .catch((e) => {
-          setOpen(false)
-          alert(e.message)
-        })
+  const deleteMemberMutation = useDeleteMember()
+  const saveMemberHook = useSaveMember()
+
+  const deleteMember = async () => {
+    if (id !== undefined) {
+      try {
+        await deleteMemberMutation.mutateAsync({ wardId: 0, memberId: id })
+        setOpen(false)
+        // ensure members query is refreshed
+        queryClient.invalidateQueries({ queryKey: ['members'] })
+      } catch (e: any) {
+        setOpen(false)
+        alert(e.message)
+      }
     }
   }
 
-  const districtClicked = (district?: DistrictDbType) => {
+  const districtClicked = (district?: District) => {
     if (district) {
-      navigate(`/district/${district.id}`)
+      navigate({ to: `/district/${district.id}` })
     }
   }
 
@@ -78,10 +72,18 @@ const MemberList = () => {
     if (m.lat !== undefined) {
       member.lat = m.lat
       member.lng = m.lng
-      await saveMember(member)
-      await queryClient.invalidateQueries({ queryKey: ['members'] })
+      try {
+        await saveMemberHook.mutateAsync({
+          wardId: 0,
+          memberId: Number(member.id),
+          member: member as any,
+        })
+        await queryClient.invalidateQueries({ queryKey: ['members'] })
+      } catch (e) {
+        console.log('Unable to save member lat/lng', e)
+      }
     } else {
-      console.log("Unable to get lat/lng")
+      console.log('Unable to get lat/lng')
     }
   }
 
@@ -136,7 +138,11 @@ const MemberList = () => {
               .filter((m) => (showNoPos ? m.lat == null : true))
               .filter((m) =>
                 showNoDistrict
-                  ? districts?.find((d) => d.members?.includes(m.id)) == null
+                  ? districts?.find((d) =>
+                      (d.members as any)?.some((mm: any) =>
+                        typeof mm === 'number' ? mm === m.id : mm?.id === m.id,
+                      ),
+                    ) == null
                   : true,
               )
               .sort((m1, m2) => {
@@ -154,7 +160,9 @@ const MemberList = () => {
               })
               .map((m) => {
                 const district = districts?.find((d) =>
-                  d.members?.includes(m.id),
+                  (d.members as any)?.some((mm: any) =>
+                    typeof mm === 'number' ? mm === m.id : mm?.id === m.id,
+                  ),
                 )
                 const districtName = district?.name ?? ''
                 return (
@@ -163,12 +171,12 @@ const MemberList = () => {
                     className="odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800 border-b dark:border-gray-700"
                   >
                     <TableCell>
-                      <Link to={`/editmember/${m.id}`}>
+                      <Link to={`/editmember/${String(m.id)}`}>
                         <FilePenLine />
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Globe onClick={() => updateLatLng(m)}/>
+                      <Globe onClick={() => updateLatLng(m)} />
                     </TableCell>
                     <TableCell onClick={() => districtClicked(district)}>
                       {districtName}

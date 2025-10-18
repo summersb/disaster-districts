@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import {
   Card,
   CardHeader,
@@ -38,12 +38,13 @@ export function LoginForm() {
     defaultValues: { email: '', password: '' },
   })
 
-  const from = location.state?.from?.pathname || '/home'
+  // location.state.from is a pathname string set by RequireAuth
+  const from = (location.state as any)?.from || '/home'
 
   const onSubmit = (values: LoginFormValues) => {
     console.log('Login attempt:', values)
-    auth.setUser({ uid: "0", email: values.email })
-    setTimeout(() => navigate(from, { replace: true }), 2000)
+    auth.setUser({ uid: '0', email: values.email })
+    setTimeout(() => navigate({ to: from, replace: true }), 2000)
     // TODO: Replace with your auth logic (e.g., Firebase, Supabase, API)
   }
 

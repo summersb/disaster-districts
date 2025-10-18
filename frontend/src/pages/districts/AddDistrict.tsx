@@ -7,10 +7,11 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { useForm } from 'react-hook-form'
-import type { DistrictDbType } from '@/type'
+// import type { DistrictDbType } from '@/type' (unused in this UI file)
 import React, { useState } from 'react'
-import { saveDistrict } from '@/api'
-import { useNavigate } from 'react-router-dom'
+import { useAddDistrict } from '@/hooks/useDistricts'
+import { genId } from '@/lib/utils'
+import { useNavigate } from '@tanstack/react-router'
 import { Input } from '@/components/ui/input.tsx'
 import { ColorPicker } from '@/components/ColorPicker.tsx'
 import SaveButton from '@/components/styled/SaveButton.tsx'
@@ -27,22 +28,26 @@ const AddDistrict = (): React.ReactElement => {
     defaultValues: { name: '', color: 'Red' },
   })
 
-  const onSubmit = ({ name, color }: CreateDistrict) => {
-    console.log('saving', name)
+  const addDistrict = useAddDistrict()
+
+  const onSubmit = async ({ name, color }: CreateDistrict) => {
     setDisabled(true)
-    // create new district
-    // forward to edit district
-    const data: DistrictDbType = {
-      id: crypto.randomUUID(),
+    const data: any = {
+      id: genId(),
       name: name,
       leaderId: undefined,
       assistantId: undefined,
       color: color,
       members: [],
     }
-    saveDistrict(data).then(() => {
-      navigate(`/district/${data.id}`)
-    })
+    try {
+      await addDistrict.mutateAsync({ wardId: 0, district: data as any })
+      navigate({ to: `/district/${data.id}` })
+    } catch (err) {
+      console.error('Failed to create district', err)
+    } finally {
+      setDisabled(false)
+    }
   }
 
   return (

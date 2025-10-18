@@ -1,12 +1,13 @@
 import React, { useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { getDistrict, getMemberList } from '@/api'
+import { useMembers } from '@/hooks/useMembers'
+import { useDistrict } from '@/hooks/useDistricts'
 import OSMMapWithMarkers from '@/components/OSMMapWithMarkersOneDistrict.tsx'
-import { useParams } from 'react-router-dom'
-import { District, DistrictDbType } from '@/type'
+import { useMatch } from '@tanstack/react-router'
+import { District } from '@/type'
 import { useMap } from 'react-leaflet'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 import { LatLngBoundsExpression } from 'leaflet'
+import { viewDistrictRoute } from '@/routes'
 
 const MapWithBounds = ({ bounds }: { bounds: LatLngBoundsExpression }) => {
   const map = useMap()
@@ -32,38 +33,11 @@ type ShowOneDistrictMap = {
 }
 
 const ShowOneDistrictMap = (props: ShowOneDistrictMap): React.ReactElement => {
-  const { districtId } = useParams()
-  const { data: members } = useQuery({
-    queryKey: ['members'],
-    queryFn: getMemberList,
-  })
+  const match = useMatch({ from: viewDistrictRoute })
+  const districtId = Number(match?.params?.districtId)
+  const { data: members } = useMembers(0 as any)
 
-  const { data } = useQuery({
-    queryKey: ['district', districtId],
-    queryFn: () => getDistrict(districtId as string),
-    enabled: districtId !== undefined && members !== undefined,
-    retry: false,
-  })
-
-  const convertDbDistrict = (db?: DistrictDbType): District | undefined => {
-    if (!db) {
-      return undefined
-    }
-    return {
-      id: db.id,
-      name: db.name,
-      leader: members?.find((m) => m.id == db.leaderId) ?? {
-        id: '0',
-        familyName: 'No leader assigned',
-        name: 'No leader',
-      },
-      assistant: members?.find((m) => m.id == db.assistantId),
-      color: db.color,
-      members: members?.filter((m) => db.members?.includes(m.id)),
-    }
-  }
-
-  const district = props.district ? props.district : convertDbDistrict(data)
+  const { data: district } = useDistrict(0 as any, districtId)
 
   const bounds = (d: District) => {
     const distMembers = d.members

@@ -1,5 +1,5 @@
 import useAuth from '@/hooks/useAuth'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation } from '@tanstack/react-router'
 import Sidebar from '@/pages/nav/Sidebar.tsx'
 import { LoginForm } from '@/components/auth/LoginForm.tsx'
 import { SignupForm } from '@/components/auth/SignupForm.tsx'

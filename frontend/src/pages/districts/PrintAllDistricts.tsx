@@ -1,13 +1,9 @@
 import React from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { getDistrictList } from '@/api'
+import { useDistricts } from '@/hooks/useDistricts'
 import PrintDistrict from '@/pages/districts/PrintDistrict.tsx'
 
 const PrintAllDistricts = (): React.ReactElement => {
-  const { data: districts } = useQuery({
-    queryKey: ['districts'],
-    queryFn: getDistrictList,
-  })
+  const { data: districts } = useDistricts(0 as any)
 
   return (
     <>

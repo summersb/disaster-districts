@@ -3,6 +3,7 @@ import * as pdfjsLib from 'pdfjs-dist'
 import type { Member } from '@/type'
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import Paper from '@/components/styled/Paper'
+import { genId } from '@/lib/utils'
 import StyledButton from '@/components/styled/StyledButton.tsx'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
@@ -71,9 +72,8 @@ const UploadPdf = ({ setMembers }: UploadPdfProps): React.ReactElement => {
   }
 
   function parseMemberList(list: string[]) {
-    const latLngRegex = /^\s*(-?\d+(?:\.\d+)?)\s*,?\s*(-?\d+(?:\.\d+)?)\s*$/;
-    const cityRegex = /^\s*(.+?),?\s*([A-Za-z]*)\s+(\d{5}(?:-\d{4})?)\s*$/;
-
+    const latLngRegex = /^\s*(-?\d+(?:\.\d+)?)\s*,?\s*(-?\d+(?:\.\d+)?)\s*$/
+    const cityRegex = /^\s*(.+?),?\s*([A-Za-z]*)\s+(\d{5}(?:-\d{4})?)\s*$/
 
     const members: Member[] = []
 
@@ -104,20 +104,14 @@ const UploadPdf = ({ setMembers }: UploadPdfProps): React.ReactElement => {
           line = list[++i]
         }
         city = cityRegex.exec(line)
-        if (
-          line &&
-          city?.length == 4
-        ) {
-            temp.city = city[1] || ''
-            temp.state = city[2] || ''
-            temp.postalCode = city[3] || ''
+        if (line && city?.length == 4) {
+          temp.city = city[1] || ''
+          temp.state = city[2] || ''
+          temp.postalCode = city[3] || ''
           line = list[++i]
         }
         const latLng = latLngRegex.exec(line)
-        if (
-          line &&
-          latLng?.length == 3
-        ) {
+        if (line && latLng?.length == 3) {
           temp.lat = Number(latLng[1])
           temp.lng = Number(latLng[2])
           line = list[++i]
@@ -125,7 +119,7 @@ const UploadPdf = ({ setMembers }: UploadPdfProps): React.ReactElement => {
       }
 
       const member: Member = {
-        id: crypto.randomUUID(),
+        id: genId(),
         familyName: temp.name ?? '',
         ...temp,
       } as Member

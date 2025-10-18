@@ -7,51 +7,23 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table.tsx'
-import { useQuery } from '@tanstack/react-query'
-import type { District } from '@/type'
-import { getDistrict, getMemberList } from '@/api'
+import { useDistrict } from '@/hooks/useDistricts'
 import ShowOneDistrictMap from '@/pages/districts/ShowOneDistrictMap'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
-import { DistrictDbType } from '@/type'
-import { useParams } from 'react-router-dom'
+import { useMatch } from '@tanstack/react-router'
+import { printDistrictRoute } from '@/routes'
 
 type DistrictProps = {
-  districtId?: string
+  districtId?: number
 }
 
 const PrintDistrict = (props: DistrictProps): React.ReactElement => {
-  const { districtId } = useParams()
-  const { data: members } = useQuery({
-    queryKey: ['members'],
-    queryFn: getMemberList,
-  })
+  const match = useMatch({ from: printDistrictRoute })
+  const districtId = match?.params?.districtId
 
-  const id = props.districtId != null ? props.districtId : (districtId ?? '')
-  const { data } = useQuery({
-    queryKey: ['district', id],
-    queryFn: () => getDistrict(id),
-    enabled: id != null && members !== undefined,
-  })
-
-  const convertDbDistrict = (db?: DistrictDbType): District | undefined => {
-    if (!db) {
-      return undefined
-    }
-    return {
-      id: db.id,
-      name: db.name,
-      leader: members?.find((m) => m.id == db.leaderId) ?? {
-        id: 'none',
-        name: 'none',
-        familyName: 'none',
-      },
-      assistant: members?.find((m) => m.id == db.assistantId),
-      color: db.color,
-      members: members?.filter((m) => db.members?.includes(m.id)),
-    }
-  }
-
-  const district = convertDbDistrict(data)
+  const id =
+    props.districtId != null ? props.districtId : Number(districtId ?? 0)
+  const { data: district } = useDistrict(0 as any, id)
 
   return (
     <div className="new-right-page page">
