@@ -1,11 +1,11 @@
-import useAuth from '@/hooks/useAuth'
+import useUser from '@/context/useUser.tsx'
 import { Outlet, useLocation } from '@tanstack/react-router'
 import Sidebar from '@/pages/nav/Sidebar.tsx'
 import { LoginForm } from '@/components/auth/LoginForm.tsx'
 import { SignupForm } from '@/components/auth/SignupForm.tsx'
 
 const Layout = () => {
-  const { user } = useAuth()
+  const { user } = useUser()
   const location = useLocation()
 
   if (!user?.email) {

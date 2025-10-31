@@ -6,6 +6,7 @@ import type { District, Member } from '@/type'
 import { useNavigate } from '@tanstack/react-router'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 import { deClutter } from '@/components/mapUtils.ts'
+import { Route as DistrictRoute } from '@/routes/_protected/district/$id.tsx'
 
 type Position = {
   lat: number
@@ -36,7 +37,7 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
 
   const districtClicked = (district?: District) => {
     if (district) {
-      navigate({ to: `/district/${district.id}` })
+      navigate({ to: DistrictRoute.to, params: { id: String(district.id) } }).catch(err => console.log(err))
     }
   }
 

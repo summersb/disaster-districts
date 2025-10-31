@@ -1,35 +1,22 @@
 import { useDistricts } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from '@tanstack/react-table'
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import { District, Member } from '@/type'
 import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { FilePenLine, View } from 'lucide-react'
 import DeleteDistrictButton from './DeleteDistrictButton'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
+import { Route as DistrictRoute } from '@/routes/_protected/district/$id'
+import { Route as DistrictPrintRoute } from '@/routes/_protected/print/$districtId'
 
-const columns: (memberList: Member[]) => ColumnDef<District>[] = (
-  _memberList: Member[],
-) => [
+const columns: (memberList: Member[]) => ColumnDef<District>[] = (_memberList: Member[]) => [
   {
     accessorKey: 'view',
     header: 'View',
     cell: (info) => (
-      <Link to={`/printdistrict/${info.row.original.id}`}>
+      <Link to={DistrictPrintRoute.to} params={{ districtId: String(info.row.original.id) }}>
         <Button size="icon">
           <View />
         </Button>
@@ -40,7 +27,7 @@ const columns: (memberList: Member[]) => ColumnDef<District>[] = (
     accessorKey: 'edit',
     header: 'Edit',
     cell: (info) => (
-      <Link to={`/district/${info.row.original.id}`}>
+      <Link to={DistrictRoute.to} params={{ id: String(info.row.original.id) }}>
         <Button size="icon">
           <FilePenLine />
         </Button>{' '}
@@ -99,12 +86,7 @@ export default function Districts() {
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id}>
             {headerGroup.headers.map((header) => (
-              <TableHead key={header.id}>
-                {flexRender(
-                  header.column.columnDef.header,
-                  header.getContext(),
-                )}
-              </TableHead>
+              <TableHead key={header.id}>{flexRender(header.column.columnDef.header, header.getContext())}</TableHead>
             ))}
           </TableRow>
         ))}
@@ -113,9 +95,7 @@ export default function Districts() {
         {table.getRowModel().rows.map((row) => (
           <TableRow key={row.id}>
             {row.getVisibleCells().map((cell) => (
-              <TableCell key={cell.id}>
-                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-              </TableCell>
+              <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
             ))}
           </TableRow>
         ))}

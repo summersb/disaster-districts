@@ -1,0 +1,40 @@
+import { createRootRoute, Outlet, redirect, useLocation, useNavigate } from '@tanstack/react-router'
+import Home from '@/pages/home/Home.tsx'
+import { User } from '@/context/UserContext.tsx'
+import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
+
+export const Route = createRootRoute({
+  beforeLoad: ({ location, context }) => {
+    const isLoginPage = location.pathname === '/login' || location.pathname === '/signup'
+
+    const user = JSON.parse(window.localStorage.getItem('user') ?? '{}') as User
+    console.log('root layout. before load', context.user, user, isLoginPage, location)
+
+    // If user is not authenticated and not on login, redirect
+    if (!context.user?.email && !user?.email && !isLoginPage) {
+      console.log('sending to login')
+      throw redirect({ to: '/login', search: { from: location.pathname } })
+    }
+  },
+  component: RootLayout,
+  notFoundComponent: Home,
+})
+
+function RootLayout() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const pathname = window.location.pathname
+  const isLoginPage = pathname === '/login' || pathname === '/signup'
+
+  // For login/signup, render the page directly (no layout)
+  if (isLoginPage) {
+    console.log('root layout', 'showing outlet', location.href, pathname)
+    return <Outlet />
+  } else {
+    navigate({ to: DashboardRoute.to })
+    return <Outlet />
+  }
+
+  console.log('root layout')
+  return <Outlet />
+}

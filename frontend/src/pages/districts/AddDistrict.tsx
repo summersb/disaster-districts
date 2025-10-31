@@ -15,6 +15,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { Input } from '@/components/ui/input.tsx'
 import { ColorPicker } from '@/components/ColorPicker.tsx'
 import SaveButton from '@/components/styled/SaveButton.tsx'
+import { Route as DistrictRoute } from '@/routes/_protected/district/$id.tsx'
 
 type CreateDistrict = {
   name: string
@@ -42,7 +43,7 @@ const AddDistrict = (): React.ReactElement => {
     }
     try {
       await addDistrict.mutateAsync({ wardId: 0, district: data as any })
-      navigate({ to: `/district/${data.id}` })
+      navigate({ to: DistrictRoute.to, params: { id: String(data.id) } }).catch(err => console.log(err))
     } catch (err) {
       console.error('Failed to create district', err)
     } finally {

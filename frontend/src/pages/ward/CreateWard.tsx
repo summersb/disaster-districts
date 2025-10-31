@@ -10,14 +10,14 @@ import {
 import { Input } from '@/components/ui/input.tsx'
 import { Ward } from '@/type/Ward.ts'
 import { useQueryClient } from '@tanstack/react-query'
-import { useWards } from '@/hooks/useWards'
+import { useWards } from '@/hooks/useWards.tsx'
 import { useForm } from 'react-hook-form'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
-import useAuth from '@/hooks/useAuth.tsx'
+import useUser from '@/context/useUser.tsx'
 import StyledButton from '@/components/styled/StyledButton.tsx'
 
 const CreateWard = (): React.ReactElement => {
-  const { user } = useAuth()
+  const { user } = useUser()
   const [, setActiveWard] = useLocalStorageState<Ward>('ward', undefined)
   const { data } = useWards()
   const queryClient = useQueryClient()

@@ -1,6 +1,6 @@
 import React from 'react'
-import DownloadWard from '@/pages/home/DownloadWard.tsx'
-import WardPermissions from '@/pages/home/WardPermissions.tsx'
+import DownloadWard from '@/pages/ward/DownloadWard.tsx'
+import WardPermissions from '@/pages/ward/WardPermissions.tsx'
 
 const WardAdmin = (): React.ReactElement => {
   return (

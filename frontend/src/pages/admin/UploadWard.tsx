@@ -45,7 +45,7 @@ const wardApi = {
 }
 import { useAddMember } from '@/hooks/useMembers'
 import { useAddDistrict } from '@/hooks/useDistricts'
-import useAuth from '@/hooks/useAuth.tsx'
+import useUser from '@/context/useUser.tsx'
 import { District, Member } from '@/type'
 import { UserRoles } from '@/type/User.ts'
 import StyledButton from '@/components/styled/StyledButton.tsx'
@@ -62,7 +62,7 @@ type WardDoc = {
 
 const UploadWard = (): React.ReactElement => {
   const [file, setFile] = useState<File | null>()
-  const { user } = useAuth()
+  const { user } = useUser()
   const fileReader = new FileReader()
   const [, setActiveWard] = useLocalStorageState<Ward>('ward', undefined)
 

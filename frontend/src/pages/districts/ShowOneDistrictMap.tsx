@@ -2,12 +2,10 @@ import React, { useEffect } from 'react'
 import { useMembers } from '@/hooks/useMembers'
 import { useDistrict } from '@/hooks/useDistricts'
 import OSMMapWithMarkers from '@/components/OSMMapWithMarkersOneDistrict.tsx'
-import { useMatch } from '@tanstack/react-router'
 import { District } from '@/type'
 import { useMap } from 'react-leaflet'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 import { LatLngBoundsExpression } from 'leaflet'
-import { viewDistrictRoute } from '@/routes'
 
 const MapWithBounds = ({ bounds }: { bounds: LatLngBoundsExpression }) => {
   const map = useMap()
@@ -33,8 +31,8 @@ type ShowOneDistrictMap = {
 }
 
 const ShowOneDistrictMap = (props: ShowOneDistrictMap): React.ReactElement => {
-  const match = useMatch({ from: viewDistrictRoute })
-  const districtId = Number(match?.params?.districtId)
+  // todo
+  const districtId = 0
   const { data: members } = useMembers(0 as any)
 
   const { data: district } = useDistrict(0 as any, districtId)

@@ -15,6 +15,7 @@ import { FilePenLine, Trash2 } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 import { useDeleteDistrict, useDistrict } from '@/hooks/useDistricts'
+import { Route as DistrictRoute } from '@/routes/_protected/district/$id.tsx'
 
 type DistrictProps = {
   district: District
@@ -40,7 +41,7 @@ export default function District(props: DistrictProps) {
   return (
     <TableRow>
       <TableCell>
-        <Link to={`/district/${d.id}`}>
+        <Link to={DistrictRoute.to} params={{ id: String(d.id) }}>
           <Button size="icon">
             <FilePenLine />
           </Button>
@@ -60,25 +61,16 @@ export default function District(props: DistrictProps) {
             <DialogHeader>
               <DialogTitle>Are you absolutely sure?</DialogTitle>
               <DialogDescription>
-                This action cannot be undone. This will permanently delete this
-                member.
+                This action cannot be undone. This will permanently delete this member.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="sm:justify-start">
               <DialogClose asChild>
                 <>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={() => doDelete()}
-                  >
+                  <Button type="button" variant="destructive" onClick={() => doDelete()}>
                     Delete
                   </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setOpen(false)}
-                  >
+                  <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
                     Cancel
                   </Button>
                 </>

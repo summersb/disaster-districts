@@ -12,7 +12,6 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import useAuth from '@/hooks/useAuth'
 import {
   Card,
   CardContent,
@@ -21,6 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card.tsx'
+import { Route as Dashboard } from '@/routes/_protected/dashboard'
 
 // ✅ Define schema with password verification
 const formSchema = z
@@ -46,13 +46,12 @@ export function SignupForm() {
     },
   })
 
-  const { signup } = useAuth()
   const navigate = useNavigate()
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(_values: z.infer<typeof formSchema>) {
     try {
-      await signup(values.email, values.password)
-      navigate({ to: '/home' })
+      setTimeout(() => navigate({ to: Dashboard.to }), 5000)
+
     } catch (err: any) {
       console.error('Signup failed', err)
       form.setError('email', { message: err.message || 'Signup failed' })

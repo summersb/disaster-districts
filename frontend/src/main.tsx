@@ -1,38 +1,45 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import App from './App.tsx'
 import './index.css'
-import {
-  createRootRoute,
-  createRouter,
-  RouterProvider as TanStackRouterProvider,
-  createBrowserHistory,
-} from '@tanstack/react-router'
+import { createRouter, RouterProvider as TanStackRouterProvider } from '@tanstack/react-router'
 import { ThemeProvider } from './components/theme-provider.tsx'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { AuthProvider } from './context/AuthProvider.tsx'
+import { UserProvider } from './context/UserContext.tsx'
+import { routeTree } from './routeTree.gen'
+import useUser from '@/context/useUser.tsx'
 
 const client = new QueryClient()
 
-const rootRoute = createRootRoute({
-  component: App,
-})
-
-const history = createBrowserHistory()
-
+// Create a new router instance
 const router = createRouter({
-  routeTree: rootRoute,
-  history,
+  routeTree,
 })
+
+// Register the router instance for type safety
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router
+    context: {
+      user: import('@/context/UserContext').User
+    }
+  }
+}
+
+function AppRouter() {
+  const { user } = useUser()
+  return <TanStackRouterProvider router={router} context={{ user }} />
+}
+
+console.log(router.routeTree)
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemeProvider defaultTheme="dark" storageKey="disaster">
       <QueryClientProvider client={client}>
-        <AuthProvider>
-          <TanStackRouterProvider router={router} />
-        </AuthProvider>
+        <UserProvider>
+          <AppRouter />
+        </UserProvider>
         <div className="print:hidden">
           <ReactQueryDevtools initialIsOpen={false} />
         </div>

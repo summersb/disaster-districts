@@ -1,6 +1,6 @@
 import React from 'react'
-import { useMembers } from '@/hooks/useMembers'
-import { useDistricts } from '@/hooks/useDistricts'
+import { useMembers } from '@/hooks/useMembers.tsx'
+import { useDistricts } from '@/hooks/useDistricts.tsx'
 import StyledButton from '@/components/styled/StyledButton.tsx'
 
 const fetchPerms = async () => {

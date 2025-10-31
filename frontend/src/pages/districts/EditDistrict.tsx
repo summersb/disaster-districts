@@ -8,14 +8,12 @@ import { useDistrict } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
 import DistrictForm from './DistrictForm'
 
-import { useMatch } from '@tanstack/react-router'
-import { editDistrictRoute } from '@/routes'
 import SaveButton from '@/components/styled/SaveButton.tsx'
 
 const EditDistrict = (): React.ReactElement => {
   const [saving, setSaving] = useState<boolean>(false)
-  const match = useMatch({ from: editDistrictRoute })
-  const districtId = Number(match?.params?.districtId)
+  // todo get id from path via tanstack
+  const districtId =  0
 
   const form = useForm<District>({
     resolver: zodResolver(DistrictSchema) as unknown as

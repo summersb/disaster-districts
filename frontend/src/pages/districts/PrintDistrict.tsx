@@ -10,16 +10,14 @@ import {
 import { useDistrict } from '@/hooks/useDistricts'
 import ShowOneDistrictMap from '@/pages/districts/ShowOneDistrictMap'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
-import { useMatch } from '@tanstack/react-router'
-import { printDistrictRoute } from '@/routes'
 
 type DistrictProps = {
   districtId?: number
 }
 
 const PrintDistrict = (props: DistrictProps): React.ReactElement => {
-  const match = useMatch({ from: printDistrictRoute })
-  const districtId = match?.params?.districtId
+  // todo
+  const districtId =  0
 
   const id =
     props.districtId != null ? props.districtId : Number(districtId ?? 0)
