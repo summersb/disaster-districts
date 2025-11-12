@@ -27,7 +27,7 @@ class WardsResource(
 ) {
 
     @GET
-    fun getWards(id: Long): Response {
+    fun getWards(): Response {
         val wards = wardRepository.listAll()
         return Response.ok(wards).build()
     }

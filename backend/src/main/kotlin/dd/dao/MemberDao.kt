@@ -47,4 +47,7 @@ open class MemberDao : PanacheEntityBase {
 
     @ManyToOne
     var district: DistrictDao? = null
+
+    @ManyToOne
+    var ward: WardDao? = null
 }

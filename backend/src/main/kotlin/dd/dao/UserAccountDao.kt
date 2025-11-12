@@ -1,13 +1,14 @@
 package dd.dao
 
 import io.quarkus.hibernate.orm.panache.kotlin.PanacheEntityBase
+import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
-import jakarta.persistence.Table
-import jakarta.persistence.Id
 import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.SequenceGenerator
-import jakarta.persistence.Column
+import jakarta.persistence.Table
 
 @Entity(name = "Users")
 @Table(name = "users")
@@ -26,4 +27,7 @@ open class UserAccountDao : PanacheEntityBase {
 
     @Column(name = "password_hash", length = 255)
     var passwordHash: String? = null
+
+    @ManyToOne
+    var ward: WardDao? = null
 }
