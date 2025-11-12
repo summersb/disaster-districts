@@ -1,7 +1,7 @@
 import { createRootRoute, Outlet, redirect, useLocation, useNavigate } from '@tanstack/react-router'
 import Home from '@/pages/home/Home.tsx'
 import { User } from '@/context/UserContext.tsx'
-import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
+import { Route as DashboardRoute } from '@/routes/_protected/dashboard/index'
 
 export const Route = createRootRoute({
   beforeLoad: ({ location, context }) => {
@@ -15,6 +15,11 @@ export const Route = createRootRoute({
       console.log('sending to login')
       throw redirect({ to: '/login', search: { from: location.pathname } })
     }
+
+    if (location.pathname === '/') {
+      console.log('sending to dashboard')
+      throw redirect({ to: DashboardRoute.to})
+    }
   },
   component: RootLayout,
   notFoundComponent: Home,
@@ -22,19 +27,15 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   const location = useLocation()
-  const navigate = useNavigate()
   const pathname = window.location.pathname
   const isLoginPage = pathname === '/login' || pathname === '/signup'
 
   // For login/signup, render the page directly (no layout)
   if (isLoginPage) {
-    console.log('root layout', 'showing outlet', location.href, pathname)
-    return <Outlet />
-  } else {
-    navigate({ to: DashboardRoute.to })
+    console.log('root layout', 'showing login', location.href, pathname)
     return <Outlet />
   }
 
-  console.log('root layout')
+  console.log('root layout', location.href, pathname)
   return <Outlet />
 }

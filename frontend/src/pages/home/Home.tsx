@@ -3,9 +3,7 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 const Home = () => {
   return (
     <div>
-      Home
-
-      select a ward
+      Home select a ward
       <TanStackRouterDevtools />
     </div>
   )

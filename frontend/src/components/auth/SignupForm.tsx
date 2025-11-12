@@ -20,7 +20,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card.tsx'
-import { Route as Dashboard } from '@/routes/_protected/dashboard'
+import { Route as LoginRoute } from '@/routes/login'
+import { signup } from '@/hooks/useLogin.tsx'
 
 // ✅ Define schema with password verification
 const formSchema = z
@@ -48,10 +49,12 @@ export function SignupForm() {
 
   const navigate = useNavigate()
 
-  async function onSubmit(_values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      setTimeout(() => navigate({ to: Dashboard.to }), 5000)
-
+      await signup(values)
+      console.log("success")
+      navigate({to: LoginRoute.to}).catch(error => console.error(error))
+      return
     } catch (err: any) {
       console.error('Signup failed', err)
       form.setError('email', { message: err.message || 'Signup failed' })

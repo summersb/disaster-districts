@@ -31,8 +31,6 @@ function AppRouter() {
   return <TanStackRouterProvider router={router} context={{ user }} />
 }
 
-console.log(router.routeTree)
-
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemeProvider defaultTheme="dark" storageKey="disaster">
