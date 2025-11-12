@@ -108,23 +108,25 @@ const ProtectedDashboardMapRoute = ProtectedDashboardMapRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof ProtectedRouteRouteWithChildren
   '/upload': typeof ProtectedUploadRoute
-  '/login': typeof LoginIndexRoute
-  '/signup': typeof SignupIndexRoute
+  '/login/': typeof LoginIndexRoute
+  '/signup/': typeof SignupIndexRoute
   '/dashboard/map': typeof ProtectedDashboardMapRoute
   '/district/$id': typeof ProtectedDistrictIdRoute
   '/district/add': typeof ProtectedDistrictAddRoute
   '/member/$id': typeof ProtectedMemberIdRoute
   '/member/add': typeof ProtectedMemberAddRoute
   '/print/$districtId': typeof ProtectedPrintDistrictIdRoute
-  '/admin': typeof ProtectedAdminIndexRoute
-  '/dashboard': typeof ProtectedDashboardIndexRoute
-  '/district': typeof ProtectedDistrictIndexRoute
-  '/member': typeof ProtectedMemberIndexRoute
-  '/print': typeof ProtectedPrintIndexRoute
-  '/settings': typeof ProtectedSettingsIndexRoute
+  '/admin/': typeof ProtectedAdminIndexRoute
+  '/dashboard/': typeof ProtectedDashboardIndexRoute
+  '/district/': typeof ProtectedDistrictIndexRoute
+  '/member/': typeof ProtectedMemberIndexRoute
+  '/print/': typeof ProtectedPrintIndexRoute
+  '/settings/': typeof ProtectedSettingsIndexRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof ProtectedRouteRouteWithChildren
   '/upload': typeof ProtectedUploadRoute
   '/login': typeof LoginIndexRoute
   '/signup': typeof SignupIndexRoute
@@ -163,23 +165,25 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/upload'
-    | '/login'
-    | '/signup'
+    | '/login/'
+    | '/signup/'
     | '/dashboard/map'
     | '/district/$id'
     | '/district/add'
     | '/member/$id'
     | '/member/add'
     | '/print/$districtId'
-    | '/admin'
-    | '/dashboard'
-    | '/district'
-    | '/member'
-    | '/print'
-    | '/settings'
+    | '/admin/'
+    | '/dashboard/'
+    | '/district/'
+    | '/member/'
+    | '/print/'
+    | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/upload'
     | '/login'
     | '/signup'
@@ -226,21 +230,21 @@ declare module '@tanstack/react-router' {
     '/_protected': {
       id: '/_protected'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof ProtectedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup/': {
       id: '/signup/'
       path: '/signup'
-      fullPath: '/signup'
+      fullPath: '/signup/'
       preLoaderRoute: typeof SignupIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login/': {
       id: '/login/'
       path: '/login'
-      fullPath: '/login'
+      fullPath: '/login/'
       preLoaderRoute: typeof LoginIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -254,42 +258,42 @@ declare module '@tanstack/react-router' {
     '/_protected/settings/': {
       id: '/_protected/settings/'
       path: '/settings'
-      fullPath: '/settings'
+      fullPath: '/settings/'
       preLoaderRoute: typeof ProtectedSettingsIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/print/': {
       id: '/_protected/print/'
       path: '/print'
-      fullPath: '/print'
+      fullPath: '/print/'
       preLoaderRoute: typeof ProtectedPrintIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/member/': {
       id: '/_protected/member/'
       path: '/member'
-      fullPath: '/member'
+      fullPath: '/member/'
       preLoaderRoute: typeof ProtectedMemberIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/district/': {
       id: '/_protected/district/'
       path: '/district'
-      fullPath: '/district'
+      fullPath: '/district/'
       preLoaderRoute: typeof ProtectedDistrictIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/dashboard/': {
       id: '/_protected/dashboard/'
       path: '/dashboard'
-      fullPath: '/dashboard'
+      fullPath: '/dashboard/'
       preLoaderRoute: typeof ProtectedDashboardIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/admin/': {
       id: '/_protected/admin/'
       path: '/admin'
-      fullPath: '/admin'
+      fullPath: '/admin/'
       preLoaderRoute: typeof ProtectedAdminIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }

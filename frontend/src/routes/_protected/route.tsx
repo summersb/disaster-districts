@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+import { createFileRoute, Outlet, redirect, useNavigate } from '@tanstack/react-router'
 import useUser from '@/context/useUser.tsx'
 import Sidebar from '@/pages/nav/Sidebar.tsx'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
@@ -8,7 +8,7 @@ import { User } from '@/context/UserContext.tsx'
 export const Route = createFileRoute('/_protected')({
   beforeLoad: ({ location, context }) => {
     const user = JSON.parse(window.localStorage.getItem('user') ?? '{}') as User
-    console.log('root layout. before load', context.user, user, location)
+    console.log('protect route layout. before load', context.user, user, location)
 
     // If user is not authenticated and not on login, redirect
     if (!context.user?.email && !user?.email) {
@@ -22,8 +22,15 @@ export const Route = createFileRoute('/_protected')({
 
 function MainLayout() {
   const { user } = useUser()
+  const navigate = useNavigate()
 
-  console.log('protected layout')
+  console.log('protected layout', user)
+  if (!user.email) {
+    navigate({ to: '/login' }).catch((err) => {
+      console.log(err)
+    })
+    return null
+  }
   return (
     <div className="h-screen print:h-auto">
       root layout

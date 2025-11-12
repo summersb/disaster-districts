@@ -3,11 +3,11 @@ import { DistrictSchema } from './District'
 import * as z from 'zod'
 
 export const WardConfigSchema = z.object({
-  wardName: z.string(),
+  name: z.string(),
 })
 
 export const WardSchema = z.object({
-  wardName: z.string(),
+  name: z.string(),
   members: z.array(MemberSchema).optional(),
   districts: z.array(DistrictSchema).optional(),
 })

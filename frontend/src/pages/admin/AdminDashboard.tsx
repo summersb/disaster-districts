@@ -19,7 +19,7 @@ const AdminDashboard = (): React.ReactElement => {
   const [, setActiveWard] = useLocalStorageState<Ward>('ward', undefined)
   const { data } = useWards()
   const select = (name: string) => {
-    setActiveWard({ wardName: name })
+    setActiveWard({ name: name })
     queryClient.invalidateQueries()
   }
 
@@ -38,10 +38,10 @@ const AdminDashboard = (): React.ReactElement => {
             Choose Ward
             {data?.map((wc) => (
               <StyledButton
-                key={wc.wardName}
-                onClick={() => select(wc.wardName)}
+                key={wc.name}
+                onClick={() => select(wc.name)}
               >
-                {wc.wardName}
+                {wc.name}
               </StyledButton>
             ))}
           </div>

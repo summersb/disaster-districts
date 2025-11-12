@@ -2,11 +2,12 @@ import React from 'react'
 import { HardDriveUpload, Map, Rows3, School, School2, Settings, User, Users } from 'lucide-react'
 import { Link, redirect } from '@tanstack/react-router'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { User as User2 } from '@/context/UserContext.tsx'
+import { User as UserType } from '@/context/UserContext.tsx'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState'
 import { Ward } from '@/type/Ward.ts'
 import { Button } from '@/components/ui/button'
 import useUser from '@/context/useUser.tsx'
+import { Route as AdminRoute} from '@/routes/_protected/admin'
 import { Route as DashboardRoute} from '@/routes/_protected/dashboard'
 import { Route as DashboardMapRoute} from '@/routes/_protected/dashboard/map'
 import { Route as DistrictRoute} from '@/routes/_protected/district'
@@ -16,22 +17,23 @@ import { Route as MemberRoute} from '@/routes/_protected/member'
 import { Route as MemberRouteAdd} from '@/routes/_protected/member/add'
 import { Route as UploadRoute} from '@/routes/_protected/upload'
 import { Route as SettingsRoute} from '@/routes/_protected/settings'
+import { Route as LoginRoute } from '@/routes/login'
 
 type Props = {
-  user: User2
+  user: UserType
 }
 
 const Sidebar = ({ user }: Props): React.ReactElement => {
   const auth = useUser()
-  const [, setUser] = useLocalStorageState<User2>('user', undefined)
+  const [, setUser] = useLocalStorageState<UserType>('user', undefined)
   const [wardDoc] = useLocalStorageState<Ward>('ward', undefined)
 
   const logout = async () => {
+    console.log("logout")
     auth.setUser({})
     setUser({})
-    redirect({ to: '/' })
+    redirect({ to: LoginRoute.to })
   }
-
   return (
     <div className="flex flex-col h-full space-y-4">
       <div className="flex flex-row">
@@ -46,6 +48,10 @@ const Sidebar = ({ user }: Props): React.ReactElement => {
       </div>
       <div className="flex flex-row">
         <Link to={DashboardRoute.to}>{wardDoc?.wardName}</Link>
+      </div>
+      <div className="flex flex-row">
+        <Settings />
+        <Link to={AdminRoute.to}>Admin</Link>
       </div>
       <div className="flex flex-row">
         <School />

@@ -3,20 +3,18 @@ import { Ward } from '@/type/Ward.ts'
 
 const loadWards = async () => {
   const res = await fetch(`/api/wards`)
-  const json = await res.json()
-  return json
+  return await res.json()
 }
 
 const loadWard = async (wardId: number) => {
   const res = await fetch(`/api/wards/${wardId}`)
-  const json = await res.json()
-  return json
+  return await res.json()
 }
 
 export const useWards = () => {
   return useQuery<Ward[]>({
     queryKey: ['wards'],
-    queryFn: loadWards
+    queryFn: loadWards,
   })
 }
 
