@@ -1,13 +1,6 @@
-import { useState } from 'react'
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
+import { ColorPicker } from '@/components/ColorPicker.tsx'
+import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Command,
   CommandEmpty,
@@ -17,19 +10,26 @@ import {
 } from '@/components/ui/command'
 import { CommandInput } from '@/components/ui/command'
 import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { useFormContext, useFieldArray } from 'react-hook-form'
-import { cn } from '@/lib/utils'
-import { Check, ChevronsUpDown } from 'lucide-react'
-import MapDisplay from '@/pages/map/MapDisplay'
-import { useMembers } from '@/hooks/useMembers'
 import { useDistricts } from '@/hooks/useDistricts'
+import { useMembers } from '@/hooks/useMembers'
+import { cn } from '@/lib/utils'
+import MapDisplay from '@/pages/map/MapDisplay'
 import type { District, Member } from '@/type'
-import { ColorPicker } from '@/components/ColorPicker.tsx'
-import MemberDisplayName from '@/components/MemberDisplayName.tsx'
+import { Check, ChevronsUpDown } from 'lucide-react'
+import { useState } from 'react'
+import { useFieldArray, useFormContext } from 'react-hook-form'
 
 type DistrictFormProps = {
   districtId: number

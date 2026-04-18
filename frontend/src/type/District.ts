@@ -1,5 +1,5 @@
-import { MemberSchema } from './Member'
 import * as z from 'zod'
+import { MemberSchema } from './Member'
 
 export const DistrictSchema = z.object({
   id: z.number(),

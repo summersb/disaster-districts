@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
-import * as pdfjsLib from 'pdfjs-dist'
-import type { Member } from '@/type'
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import Paper from '@/components/styled/Paper'
-import { genId } from '@/lib/utils'
 import StyledButton from '@/components/styled/StyledButton.tsx'
+import { genId } from '@/lib/utils'
+import type { Member } from '@/type'
+import * as pdfjsLib from 'pdfjs-dist'
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import type React from 'react'
+import { useState } from 'react'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
 
@@ -33,7 +34,7 @@ const UploadPdf = ({ setMembers }: UploadPdfProps): React.ReactElement => {
       return
     }
 
-    fileReader.onload = async function () {
+    fileReader.onload = async () => {
       const pdfData = new Uint8Array(fileReader.result as ArrayBuffer)
       const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise
 
@@ -90,7 +91,7 @@ const UploadPdf = ({ setMembers }: UploadPdfProps): React.ReactElement => {
         name: name?.[1]?.trim(),
       }
       line = list[++i]
-      if (line && line.includes(',')) {
+      if (line?.includes(',')) {
         // If the next line is not an address, process the member immediately
       } else {
         // Process address details only if they exist
@@ -99,19 +100,19 @@ const UploadPdf = ({ setMembers }: UploadPdfProps): React.ReactElement => {
           line = list[++i]
         }
         let city = cityRegex.exec(line)
-        if (line && !line.includes(',') && city?.length != 4) {
+        if (line && !line.includes(',') && city?.length !== 4) {
           temp.address2 = line
           line = list[++i]
         }
         city = cityRegex.exec(line)
-        if (line && city?.length == 4) {
+        if (line && city?.length === 4) {
           temp.city = city[1] || ''
           temp.state = city[2] || ''
           temp.postalCode = city[3] || ''
           line = list[++i]
         }
         const latLng = latLngRegex.exec(line)
-        if (line && latLng?.length == 3) {
+        if (line && latLng?.length === 3) {
           temp.lat = Number(latLng[1])
           temp.lng = Number(latLng[2])
           line = list[++i]

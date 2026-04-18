@@ -1,6 +1,6 @@
-import { useFormContext } from 'react-hook-form'
-import { Textarea } from '@/components/ui/textarea'
 import Paper from '@/components/styled/Paper.tsx'
+import { Textarea } from '@/components/ui/textarea'
+import { useFormContext } from 'react-hook-form'
 
 const ImportDirectoryList = () => {
   const { register } = useFormContext()

@@ -1,4 +1,4 @@
-import React from 'react'
+import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 import {
   Table,
   TableBody,
@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table.tsx'
 import { useDistrict } from '@/hooks/useDistricts'
 import ShowOneDistrictMap from '@/pages/districts/ShowOneDistrictMap'
-import MemberDisplayName from '@/components/MemberDisplayName.tsx'
+import type React from 'react'
 
 type DistrictProps = {
   districtId?: number
@@ -17,7 +17,7 @@ type DistrictProps = {
 
 const PrintDistrict = (props: DistrictProps): React.ReactElement => {
   // todo
-  const districtId =  0
+  const districtId = 0
 
   const id =
     props.districtId != null ? props.districtId : Number(districtId ?? 0)

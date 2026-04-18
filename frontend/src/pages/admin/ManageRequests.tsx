@@ -1,5 +1,6 @@
-import { UserRequest } from '@/type/User'
-import React, { useState } from 'react'
+import type { UserRequest } from '@/type/User'
+import type React from 'react'
+import { useState } from 'react'
 
 const ManageRequests = (): React.ReactElement => {
   const [requests] = useState<UserRequest[]>([])

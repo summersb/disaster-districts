@@ -1,8 +1,8 @@
-import React from 'react'
-import { useMembers } from '@/hooks/useMembers'
-import { useDistricts } from '@/hooks/useDistricts'
-import { District, Member } from '@/type'
 import OSMMapWithMarkers from '@/components/OSMMapWithMarkers.tsx'
+import { useDistricts } from '@/hooks/useDistricts'
+import { useMembers } from '@/hooks/useMembers'
+import type { District, Member } from '@/type'
+import type React from 'react'
 
 type MapDisplayProps = {
   lat?: number

@@ -1,6 +1,6 @@
-import * as React from 'react'
+import type { Member } from '@/type'
 import { AdvancedMarker, Pin } from '@vis.gl/react-google-maps'
-import { Member } from '@/type'
+import type * as React from 'react'
 import { useState } from 'react'
 
 type MarkerProps = {

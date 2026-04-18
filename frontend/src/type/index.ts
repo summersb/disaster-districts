@@ -1,18 +1,18 @@
-import { MemberSchema } from './Member'
-import type { Member } from './Member'
+import { districtColors } from './Colors'
 import { DistrictSchema } from './District'
 import type { District } from './District'
-import { WardSchema, WardConfigSchema } from './Ward'
-import { UserRequestSchema } from './User'
 import type {
   AddressComponent,
-  GeoPoint,
   GeoBox,
+  GeoPoint,
   Geometry,
   Result,
   Results,
 } from './GoogleApi'
-import { districtColors } from './Colors'
+import { MemberSchema } from './Member'
+import type { Member } from './Member'
+import { UserRequestSchema } from './User'
+import { WardConfigSchema, WardSchema } from './Ward'
 
 export type {
   Member,
@@ -26,10 +26,6 @@ export type {
 }
 
 export { MemberSchema, DistrictSchema }
-export {
-  WardSchema,
-  WardConfigSchema,
-  UserRequestSchema,
-}
+export { WardSchema, WardConfigSchema, UserRequestSchema }
 
 export { districtColors }

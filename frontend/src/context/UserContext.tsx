@@ -1,4 +1,5 @@
-import React, { createContext, useState } from 'react'
+import type React from 'react'
+import { createContext, useState } from 'react'
 
 export type User = {
   id?: number
@@ -17,10 +18,16 @@ type AuthProviderType = {
   children: React.ReactElement
 }
 
-export const UserProvider = ({ children }: AuthProviderType): React.ReactElement => {
+export const UserProvider = ({
+  children,
+}: AuthProviderType): React.ReactElement => {
   const [user, setUser] = useState<User>({})
 
-  return <UserContext.Provider value={{ user, setUser }}>{children}</UserContext.Provider>
+  return (
+    <UserContext.Provider value={{ user, setUser }}>
+      {children}
+    </UserContext.Provider>
+  )
 }
 
 export default UserContext

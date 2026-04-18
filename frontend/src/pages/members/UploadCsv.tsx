@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
-import type { Member } from '@/type'
 import Paper from '@/components/styled/Paper.tsx'
 import StyledButton from '@/components/styled/StyledButton.tsx'
+import type { Member } from '@/type'
+import type React from 'react'
+import { useState } from 'react'
 
 type UploadCsvProps = {
   setMembers: (members: Member[]) => void
@@ -45,7 +46,7 @@ const UploadCsv = ({ setMembers }: UploadCsvProps): React.ReactElement => {
     const fileReader = new FileReader()
 
     if (file) {
-      fileReader.onload = function (event) {
+      fileReader.onload = (event) => {
         const text = event.target?.result
         if (text) {
           csvFileToArray(text as string)

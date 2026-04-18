@@ -1,12 +1,12 @@
-import React from 'react'
+import type React from 'react'
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import L from 'leaflet'
-import type { District, Member } from '@/type'
-import { useNavigate } from '@tanstack/react-router'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 import { deClutter } from '@/components/mapUtils.ts'
 import { Route as DistrictRoute } from '@/routes/_protected/district/$id.tsx'
+import type { District, Member } from '@/type'
+import { useNavigate } from '@tanstack/react-router'
+import L from 'leaflet'
 
 type Position = {
   lat: number
@@ -37,7 +37,10 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
 
   const districtClicked = (district?: District) => {
     if (district) {
-      navigate({ to: DistrictRoute.to, params: { id: String(district.id) } }).catch(err => console.log(err))
+      navigate({
+        to: DistrictRoute.to,
+        params: { id: String(district.id) },
+      }).catch((err) => console.log(err))
     }
   }
 
@@ -66,7 +69,7 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
 
   function getGroupIcon(): L.Icon {
     return new L.Icon({
-      iconUrl: `/images/Group.svg`,
+      iconUrl: '/images/Group.svg',
       iconSize: [50, 80], // size of the icon
       iconAnchor: [12, 41], // point of the icon which will correspond to marker's location
       popupAnchor: [1, -34], // point from which the popup should open relative to the iconAnchor
@@ -118,9 +121,10 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
       ))}
       {props.districts?.map((d) => {
         // get average lat/lng for a district
-        const distMembers = d.members
-          .filter((m: Member | undefined): m is Member => m != null)
-        if (distMembers == null || distMembers?.length == 0) return null
+        const distMembers = d.members.filter(
+          (m: Member | undefined): m is Member => m != null,
+        )
+        if (distMembers == null || distMembers?.length === 0) return null
         const center = findCenter(distMembers)
         return (
           <Marker

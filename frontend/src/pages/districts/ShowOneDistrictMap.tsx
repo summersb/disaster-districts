@@ -1,11 +1,12 @@
-import React, { useEffect } from 'react'
-import { useMembers } from '@/hooks/useMembers'
-import { useDistrict } from '@/hooks/useDistricts'
-import OSMMapWithMarkers from '@/components/OSMMapWithMarkersOneDistrict.tsx'
-import { District } from '@/type'
-import { useMap } from 'react-leaflet'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
-import { LatLngBoundsExpression } from 'leaflet'
+import OSMMapWithMarkers from '@/components/OSMMapWithMarkersOneDistrict.tsx'
+import { useDistrict } from '@/hooks/useDistricts'
+import { useMembers } from '@/hooks/useMembers'
+import type { District } from '@/type'
+import type { LatLngBoundsExpression } from 'leaflet'
+import type React from 'react'
+import { useEffect } from 'react'
+import { useMap } from 'react-leaflet'
 
 const MapWithBounds = ({ bounds }: { bounds: LatLngBoundsExpression }) => {
   const map = useMap()

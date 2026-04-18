@@ -1,5 +1,5 @@
-import React from 'react'
 import { cn } from '@/lib/utils.ts'
+import React from 'react'
 
 const colors = [
   { name: 'Red', value: '#FF5733' },
@@ -21,7 +21,7 @@ const colors = [
   { name: 'Dark Orange', value: '#FF8F33' },
   { name: 'Light Green', value: '#33FF57' },
   { name: 'Magenta', value: '#FF33FF' },
-  { name: 'Bright Green', value: '#8FFF33' }
+  { name: 'Bright Green', value: '#8FFF33' },
 ]
 
 export interface ColorPickerProps
@@ -33,10 +33,10 @@ export interface ColorPickerProps
 const ColorPicker = React.forwardRef<HTMLSelectElement, ColorPickerProps>(
   (
     { className, selectedColor, setSelectedColor, ...props },
-    ref
+    ref,
   ): React.ReactElement => {
     const selectedColorObj = colors.find(
-      (color) => color.name === selectedColor
+      (color) => color.name === selectedColor,
     )
     return (
       <select
@@ -44,7 +44,7 @@ const ColorPicker = React.forwardRef<HTMLSelectElement, ColorPickerProps>(
         onChange={(e) => setSelectedColor(e.target.value)}
         className={cn(
           'flex h-10 w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-          className
+          className,
         )}
         style={{ color: selectedColorObj?.value ?? 'green' }}
         ref={ref}
@@ -57,7 +57,7 @@ const ColorPicker = React.forwardRef<HTMLSelectElement, ColorPickerProps>(
         ))}
       </select>
     )
-  }
+  },
 )
 ColorPicker.displayName = 'ColorPicker'
 

@@ -1,3 +1,5 @@
+import { ColorPicker } from '@/components/ColorPicker.tsx'
+import SaveButton from '@/components/styled/SaveButton.tsx'
 import {
   Form,
   FormControl,
@@ -6,16 +8,15 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { useForm } from 'react-hook-form'
-// import type { DistrictDbType } from '@/type' (unused in this UI file)
-import React, { useState } from 'react'
+import { Input } from '@/components/ui/input.tsx'
 import { useAddDistrict } from '@/hooks/useDistricts'
 import { genId } from '@/lib/utils'
-import { useNavigate } from '@tanstack/react-router'
-import { Input } from '@/components/ui/input.tsx'
-import { ColorPicker } from '@/components/ColorPicker.tsx'
-import SaveButton from '@/components/styled/SaveButton.tsx'
 import { Route as DistrictRoute } from '@/routes/_protected/district/$id.tsx'
+import { useNavigate } from '@tanstack/react-router'
+// import type { DistrictDbType } from '@/type' (unused in this UI file)
+import type React from 'react'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 
 type CreateDistrict = {
   name: string
@@ -43,7 +44,9 @@ const AddDistrict = (): React.ReactElement => {
     }
     try {
       await addDistrict.mutateAsync({ wardId: 0, district: data as any })
-      navigate({ to: DistrictRoute.to, params: { id: String(data.id) } }).catch(err => console.log(err))
+      navigate({ to: DistrictRoute.to, params: { id: String(data.id) } }).catch(
+        (err) => console.log(err),
+      )
     } catch (err) {
       console.error('Failed to create district', err)
     } finally {

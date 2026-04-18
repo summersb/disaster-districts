@@ -1,9 +1,4 @@
-import React, { useState } from 'react'
-import { District } from '@/type'
-import { useDeleteDistrict } from '@/hooks/useDistricts'
-import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
-import { Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogClose,
@@ -13,6 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog.tsx'
+import { useDeleteDistrict } from '@/hooks/useDistricts'
+import type { District } from '@/type'
+import { useQueryClient } from '@tanstack/react-query'
+import { Trash2 } from 'lucide-react'
+import type React from 'react'
+import { useState } from 'react'
 
 type DeleteDistrictButtonProps = {
   district: District
@@ -30,7 +31,7 @@ const DeleteDistrictButton = ({
       await deleteMutation.mutateAsync({ wardId: 0, districtId: district.id })
       await queryClient.invalidateQueries({ queryKey: ['districts'] })
     } catch (e) {
-      console.log('Error ' + e)
+      console.log(`Error ${e}`)
     }
     setOpen(false)
   }

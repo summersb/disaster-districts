@@ -1,7 +1,7 @@
 # ==========================
 # Base image with Maven and JDK
 # ==========================
-FROM maven:3.9.11-eclipse-temurin-25 AS dev
+FROM maven:3.9.14-eclipse-temurin-25 AS dev
 
 WORKDIR /app
 

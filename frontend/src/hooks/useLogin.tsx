@@ -1,9 +1,9 @@
+import type { User } from '@/context/UserContext.tsx'
+import type { LoginRequest } from '@/type/User.ts'
 import { useQuery } from '@tanstack/react-query'
-import { LoginRequest } from '@/type/User.ts'
-import { User } from '@/context/UserContext.tsx'
 
 export const login = async (user: LoginRequest) => {
-  const res = await fetch(`/api/auth/login`, {
+  const res = await fetch('/api/auth/login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -17,7 +17,7 @@ export const login = async (user: LoginRequest) => {
 }
 
 export const signup = async (user: LoginRequest) => {
-  const res = await fetch(`/api/users`, {
+  const res = await fetch('/api/users', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

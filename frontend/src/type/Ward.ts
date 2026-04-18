@@ -1,6 +1,6 @@
-import { MemberSchema } from './Member'
-import { DistrictSchema } from './District'
 import * as z from 'zod'
+import { DistrictSchema } from './District'
+import { MemberSchema } from './Member'
 
 export const WardConfigSchema = z.object({
   name: z.string(),

@@ -1,10 +1,10 @@
-import React from 'react'
+import type React from 'react'
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import L from 'leaflet'
-import type { District, Member } from '@/type'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 import { deClutter } from '@/components/mapUtils.ts'
+import type { District, Member } from '@/type'
+import L from 'leaflet'
 
 type Position = {
   lat: number
@@ -41,7 +41,7 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
 
   function getGroupIcon(): L.Icon {
     return new L.Icon({
-      iconUrl: `/images/Group.svg`,
+      iconUrl: '/images/Group.svg',
       iconSize: [50, 80], // size of the icon
       iconAnchor: [12, 41], // point of the icon which will correspond to marker's location
       popupAnchor: [1, -34], // point from which the popup should open relative to the iconAnchor

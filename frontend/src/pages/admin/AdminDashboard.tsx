@@ -1,18 +1,18 @@
-import React from 'react'
-import { useWards } from '@/hooks/useWards'
-import DownloadWard from '@/pages/ward/DownloadWard.tsx'
-import CreateWard from '@/pages/ward/CreateWard.tsx'
-import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
-import { Ward } from '@/type/Ward.ts'
-import { useQueryClient } from '@tanstack/react-query'
-import UploadWard from '@/pages/admin/UploadWard.tsx'
+import StyledButton from '@/components/styled/StyledButton.tsx'
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs.tsx'
-import StyledButton from '@/components/styled/StyledButton.tsx'
+import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
+import { useWards } from '@/hooks/useWards'
+import UploadWard from '@/pages/admin/UploadWard.tsx'
+import CreateWard from '@/pages/ward/CreateWard.tsx'
+import DownloadWard from '@/pages/ward/DownloadWard.tsx'
+import type { Ward } from '@/type/Ward.ts'
+import { useQueryClient } from '@tanstack/react-query'
+import type React from 'react'
 
 const AdminDashboard = (): React.ReactElement => {
   const queryClient = useQueryClient()
@@ -37,10 +37,7 @@ const AdminDashboard = (): React.ReactElement => {
           <div>
             Choose Ward
             {data?.map((wc) => (
-              <StyledButton
-                key={wc.name}
-                onClick={() => select(wc.name)}
-              >
+              <StyledButton key={wc.name} onClick={() => select(wc.name)}>
                 {wc.name}
               </StyledButton>
             ))}

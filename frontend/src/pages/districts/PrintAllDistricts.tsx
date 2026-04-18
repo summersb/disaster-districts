@@ -1,6 +1,6 @@
-import React from 'react'
 import { useDistricts } from '@/hooks/useDistricts'
 import PrintDistrict from '@/pages/districts/PrintDistrict.tsx'
+import type React from 'react'
 
 const PrintAllDistricts = (): React.ReactElement => {
   const { data: districts } = useDistricts(0 as any)

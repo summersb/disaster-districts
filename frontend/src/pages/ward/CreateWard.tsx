@@ -1,12 +1,19 @@
-import React from 'react'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form.tsx'
-import { Input } from '@/components/ui/input.tsx'
-import { Ward } from '@/type/Ward.ts'
-import { useQueryClient } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
-import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
-import useUser from '@/context/useUser.tsx'
 import StyledButton from '@/components/styled/StyledButton.tsx'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form.tsx'
+import { Input } from '@/components/ui/input.tsx'
+import useUser from '@/context/useUser.tsx'
+import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
+import type { Ward } from '@/type/Ward.ts'
+import { useQueryClient } from '@tanstack/react-query'
+import type React from 'react'
+import { useForm } from 'react-hook-form'
 
 const CreateWard = (): React.ReactElement => {
   const { user } = useUser()
@@ -33,7 +40,10 @@ const CreateWard = (): React.ReactElement => {
     <div>
       Create New Ward
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="w-2/3 space-y-6">
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="w-2/3 space-y-6"
+        >
           <div className="mb-4">
             <FormField
               control={form.control}
@@ -43,7 +53,11 @@ const CreateWard = (): React.ReactElement => {
                   <FormLabel>Ward Name</FormLabel>
                   <FormControl>
                     <div className="mb-4 text-black bg-slate-500">
-                      <Input placeholder="Ward name" {...field} className="text-white bg-gray-900" />
+                      <Input
+                        placeholder="Ward name"
+                        {...field}
+                        className="text-white bg-gray-900"
+                      />
                     </div>
                   </FormControl>
                   <FormMessage />

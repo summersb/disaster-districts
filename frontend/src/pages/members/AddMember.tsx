@@ -1,13 +1,13 @@
-import {Button} from '@/components/ui/button'
-import {Form} from '@/components/ui/form'
-import {zodResolver} from '@hookform/resolvers/zod'
-import {SubmitHandler, useForm} from 'react-hook-form'
+import { Button } from '@/components/ui/button'
+import { Form } from '@/components/ui/form'
 import { useAddMember } from '@/hooks/useMembers'
 import { genId } from '@/lib/utils'
+import { getGeo } from '@/pages/members/process.ts'
 import type { Member } from '@/type'
 import { MemberSchema } from '@/type'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { type SubmitHandler, useForm } from 'react-hook-form'
 import MemberForm from './MemberForm'
-import { getGeo } from '@/pages/members/process.ts'
 
 export default function AddMember() {
   const form = useForm<Member>({

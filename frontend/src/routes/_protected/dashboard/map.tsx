@@ -1,5 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router'
 import MapDisplay from '@/pages/map/MapDisplay.tsx'
+import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_protected/dashboard/map')({
   component: RouteComponent,

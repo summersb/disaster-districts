@@ -1,7 +1,7 @@
-import React from 'react'
-import { useMembers } from '@/hooks/useMembers.tsx'
-import { useDistricts } from '@/hooks/useDistricts.tsx'
 import StyledButton from '@/components/styled/StyledButton.tsx'
+import { useDistricts } from '@/hooks/useDistricts.tsx'
+import { useMembers } from '@/hooks/useMembers.tsx'
+import type React from 'react'
 
 const fetchPerms = async () => {
   const res = await fetch('/api/wards/permissions')

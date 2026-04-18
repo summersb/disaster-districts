@@ -1,18 +1,32 @@
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input.tsx'
 import { Button } from '@/components/ui/button.tsx'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form.tsx'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form.tsx'
+import { Input } from '@/components/ui/input.tsx'
+import type { User } from '@/context/UserContext.tsx'
 import useUser from '@/context/useUser.tsx'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
-import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
-import { User } from '@/context/UserContext.tsx'
-import { Route as SignupRoute } from '@/routes/signup'
 import { login } from '@/hooks/useLogin.tsx'
-import { LoginRequest, LoginSchema } from '@/type/User.ts'
+import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
+import { Route as SignupRoute } from '@/routes/signup'
+import { type LoginRequest, LoginSchema } from '@/type/User.ts'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 
 export function LoginForm() {
   const [error, setError] = useState<string>()
@@ -44,11 +58,13 @@ export function LoginForm() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
-      {error && (<>Error logging in</>)}
+      {error && 'Error logging in'}
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl text-center">Login</CardTitle>
-          <CardDescription className="text-center">Enter your credentials to access your account</CardDescription>
+          <CardDescription className="text-center">
+            Enter your credentials to access your account
+          </CardDescription>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -60,7 +76,11 @@ export function LoginForm() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="you@example.com" {...field} />
+                      <Input
+                        type="email"
+                        placeholder="you@example.com"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -73,7 +93,11 @@ export function LoginForm() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -86,7 +110,10 @@ export function LoginForm() {
               </Button>
               <p className="text-sm text-center text-muted-foreground">
                 Don’t have an account?{' '}
-                <Link to={SignupRoute.to} className="text-primary hover:underline">
+                <Link
+                  to={SignupRoute.to}
+                  className="text-primary hover:underline"
+                >
                   Sign up
                 </Link>
               </p>

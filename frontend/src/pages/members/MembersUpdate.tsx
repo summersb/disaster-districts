@@ -44,9 +44,7 @@ const Old: React.FC<Props> = ({ children }) => {
 
 const New: React.FC<Props> = ({ children }) => {
   return (
-    <span className="bg-green-900 text-white px-1 rounded">
-      {children}
-    </span>
+    <span className="bg-green-900 text-white px-1 rounded">{children}</span>
   )
 }
 
@@ -59,9 +57,11 @@ const ShowChange: React.FC<Props2> = ({ old, updated }) => {
   if (old === updated) {
     return updated
   }
-  return (<>
-    <Old>{old}</Old><New>{updated}</New>
-  </>
+  return (
+    <>
+      <Old>{old}</Old>
+      <New>{updated}</New>
+    </>
   )
 }
 
@@ -92,10 +92,13 @@ const MembersUpdate = ({ members }: MembersProps): React.ReactElement => {
                 className="odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800 border-b dark:border-gray-700"
               >
                 <TableCell>
-                  <ShowChange old={m.old.familyName} updated={m.updated.familyName}/>
+                  <ShowChange
+                    old={m.old.familyName}
+                    updated={m.updated.familyName}
+                  />
                 </TableCell>
                 <TableCell>
-                  <ShowChange old={m.old.name} updated={m.updated.name}/>
+                  <ShowChange old={m.old.name} updated={m.updated.name} />
                 </TableCell>
                 <TableCell>
                   <ShowChange
@@ -104,7 +107,7 @@ const MembersUpdate = ({ members }: MembersProps): React.ReactElement => {
                   />
                 </TableCell>
                 <TableCell>
-                  <ShowChange old={m.old.city} updated={m.updated.city}/>
+                  <ShowChange old={m.old.city} updated={m.updated.city} />
                 </TableCell>
                 <TableCell>
                   <ShowChange old={m.old.state} updated={m.updated.state} />

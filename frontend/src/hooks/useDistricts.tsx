@@ -1,5 +1,5 @@
+import type { District } from '@/type'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { District } from '@/type'
 
 const loadDistricts = async (wardId: number): Promise<District[]> => {
   const res = await fetch(`/api/wards/${wardId}/districts`)
@@ -47,9 +47,9 @@ export const useAddDistrictMember = () => {
     onSuccess: () => {
       queryClient
         .invalidateQueries({ queryKey: ['districts'] })
-        .catch((e) => console.log('Error ' + e))
+        .catch((e) => console.log(`Error ${e}`))
     },
-    onError: (e) => console.log('Error ' + e),
+    onError: (e) => console.log(`Error ${e}`),
   })
 }
 
@@ -75,9 +75,9 @@ export const useDeleteDistrictMember = () => {
     onSuccess: () => {
       queryClient
         .invalidateQueries({ queryKey: ['districts'] })
-        .catch((e) => console.log('Error ' + e))
+        .catch((e) => console.log(`Error ${e}`))
     },
-    onError: (e) => console.log('Error ' + e),
+    onError: (e) => console.log(`Error ${e}`),
   })
 }
 
@@ -100,9 +100,9 @@ export const useAddDistrict = () => {
     onSuccess: () => {
       queryClient
         .invalidateQueries({ queryKey: ['districts'] })
-        .catch((e) => console.log('Error ' + e))
+        .catch((e) => console.log(`Error ${e}`))
     },
-    onError: (e) => console.log('Error ' + e),
+    onError: (e) => console.log(`Error ${e}`),
   })
 }
 
@@ -123,8 +123,8 @@ export const useDeleteDistrict = () => {
     onSuccess: () => {
       queryClient
         .invalidateQueries({ queryKey: ['districts'] })
-        .catch((e) => console.log('Error ' + e))
+        .catch((e) => console.log(`Error ${e}`))
     },
-    onError: (e) => console.log('Error ' + e),
+    onError: (e) => console.log(`Error ${e}`),
   })
 }

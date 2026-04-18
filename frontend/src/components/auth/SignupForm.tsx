@@ -1,17 +1,4 @@
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
-import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormControl,
-  FormMessage,
-} from '@/components/ui/form'
 import {
   Card,
   CardContent,
@@ -20,8 +7,21 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card.tsx'
-import { Route as LoginRoute } from '@/routes/login'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { signup } from '@/hooks/useLogin.tsx'
+import { Route as LoginRoute } from '@/routes/login'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useNavigate } from '@tanstack/react-router'
+import { useForm } from 'react-hook-form'
+import * as z from 'zod'
 
 // ✅ Define schema with password verification
 const formSchema = z
@@ -52,8 +52,8 @@ export function SignupForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       await signup(values)
-      console.log("success")
-      navigate({to: LoginRoute.to}).catch(error => console.error(error))
+      console.log('success')
+      navigate({ to: LoginRoute.to }).catch((error) => console.error(error))
       return
     } catch (err: any) {
       console.error('Signup failed', err)

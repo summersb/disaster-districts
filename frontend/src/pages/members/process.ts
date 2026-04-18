@@ -1,12 +1,12 @@
 import type { Member } from '@/type'
 
 enum Mode {
-  name,
-  address,
-  address2,
-  city,
-  geo,
-  unk,
+  name = 0,
+  address = 1,
+  address2 = 2,
+  city = 3,
+  geo = 4,
+  unk = 5,
 }
 
 export function parseData(data: string): Member[] {
@@ -133,9 +133,8 @@ export const osmResolveAddress = async ({
         displayName: location.displayName,
       }
     })[0]
-  } else {
-    throw new Error('Failed to fetch location data.')
   }
+  throw new Error('Failed to fetch location data.')
 }
 
 export const getGeo = async (
@@ -162,8 +161,7 @@ export const getGeo = async (
       //          (addressComponent) => addressComponent.types[0] === 'postal_code'
       //        )?.long_name ?? '0'
     )
-  } else {
-    console.log("No geo lookup, has lat/lng", member.lat, member.lng)
   }
+  console.log('No geo lookup, has lat/lng', member.lat, member.lng)
   return member
 }

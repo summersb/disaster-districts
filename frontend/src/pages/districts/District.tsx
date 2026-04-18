@@ -1,6 +1,5 @@
-import { useState } from 'react'
-import type { District } from '@/type'
-import { TableCell, TableRow } from '@/components/ui/table'
+import MemberDisplayName from '@/components/MemberDisplayName.tsx'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogClose,
@@ -10,12 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog.tsx'
-import { Button } from '@/components/ui/button'
-import { FilePenLine, Trash2 } from 'lucide-react'
-import { Link } from '@tanstack/react-router'
-import MemberDisplayName from '@/components/MemberDisplayName.tsx'
+import { TableCell, TableRow } from '@/components/ui/table'
 import { useDeleteDistrict, useDistrict } from '@/hooks/useDistricts'
 import { Route as DistrictRoute } from '@/routes/_protected/district/$id.tsx'
+import type { District } from '@/type'
+import { Link } from '@tanstack/react-router'
+import { FilePenLine, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 
 type DistrictProps = {
   district: District
@@ -61,16 +61,25 @@ export default function District(props: DistrictProps) {
             <DialogHeader>
               <DialogTitle>Are you absolutely sure?</DialogTitle>
               <DialogDescription>
-                This action cannot be undone. This will permanently delete this member.
+                This action cannot be undone. This will permanently delete this
+                member.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="sm:justify-start">
               <DialogClose asChild>
                 <>
-                  <Button type="button" variant="destructive" onClick={() => doDelete()}>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => doDelete()}
+                  >
                     Delete
                   </Button>
-                  <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setOpen(false)}
+                  >
                     Cancel
                   </Button>
                 </>

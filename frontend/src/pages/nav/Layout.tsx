@@ -1,8 +1,8 @@
-import useUser from '@/context/useUser.tsx'
-import { Outlet, useLocation } from '@tanstack/react-router'
-import Sidebar from '@/pages/nav/Sidebar.tsx'
 import { LoginForm } from '@/components/auth/LoginForm.tsx'
 import { SignupForm } from '@/components/auth/SignupForm.tsx'
+import useUser from '@/context/useUser.tsx'
+import Sidebar from '@/pages/nav/Sidebar.tsx'
+import { Outlet, useLocation } from '@tanstack/react-router'
 
 const Layout = () => {
   const { user } = useUser()

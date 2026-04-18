@@ -1,4 +1,4 @@
-import React from 'react'
+import type React from 'react'
 
 type PaperProps = {
   children: React.ReactNode // Type for children

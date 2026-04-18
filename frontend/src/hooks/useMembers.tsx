@@ -1,5 +1,5 @@
+import type { Member } from '@/type'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Member } from '@/type'
 
 const loadMembers = async (wardId: number) => {
   const res = await fetch(`/api/wards/${wardId}/members`)
@@ -39,9 +39,9 @@ export const useAddMember = () => {
     onSuccess: () => {
       queryClient
         .invalidateQueries({ queryKey: ['members'] })
-        .catch((e) => console.log('Error ' + e))
+        .catch((e) => console.log(`Error ${e}`))
     },
-    onError: (e) => console.log('Error ' + e),
+    onError: (e) => console.log(`Error ${e}`),
   })
 }
 
@@ -49,7 +49,11 @@ export const useSaveMember = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ wardId, memberId, member }: { wardId: number; memberId: number; member: Member }) =>
+    mutationFn: ({
+      wardId,
+      memberId,
+      member,
+    }: { wardId: number; memberId: number; member: Member }) =>
       fetch(`/api/wards/${wardId}/members/${memberId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -58,9 +62,9 @@ export const useSaveMember = () => {
     onSuccess: () => {
       queryClient
         .invalidateQueries({ queryKey: ['members'] })
-        .catch((e) => console.log('Error ' + e))
+        .catch((e) => console.log(`Error ${e}`))
     },
-    onError: (e) => console.log('Error ' + e),
+    onError: (e) => console.log(`Error ${e}`),
   })
 }
 
@@ -75,8 +79,8 @@ export const useDeleteMember = () => {
     onSuccess: () => {
       queryClient
         .invalidateQueries({ queryKey: ['members'] })
-        .catch((e) => console.log('Error ' + e))
+        .catch((e) => console.log(`Error ${e}`))
     },
-    onError: (e) => console.log('Error ' + e),
+    onError: (e) => console.log(`Error ${e}`),
   })
 }

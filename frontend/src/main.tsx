@@ -1,13 +1,16 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
-import { createRouter, RouterProvider as TanStackRouterProvider } from '@tanstack/react-router'
-import { ThemeProvider } from './components/theme-provider.tsx'
+import useUser from '@/context/useUser.tsx'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import {
+  RouterProvider as TanStackRouterProvider,
+  createRouter,
+} from '@tanstack/react-router'
+import { ThemeProvider } from './components/theme-provider.tsx'
 import { UserProvider } from './context/UserContext.tsx'
 import { routeTree } from './routeTree.gen'
-import useUser from '@/context/useUser.tsx'
 
 const client = new QueryClient()
 

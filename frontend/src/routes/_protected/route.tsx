@@ -1,14 +1,24 @@
-import { createFileRoute, Outlet, redirect, useNavigate } from '@tanstack/react-router'
+import type { User } from '@/context/UserContext.tsx'
 import useUser from '@/context/useUser.tsx'
-import Sidebar from '@/pages/nav/Sidebar.tsx'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import Home from '@/pages/home/Home.tsx'
-import { User } from '@/context/UserContext.tsx'
+import Sidebar from '@/pages/nav/Sidebar.tsx'
+import {
+  Outlet,
+  createFileRoute,
+  redirect,
+  useNavigate,
+} from '@tanstack/react-router'
+import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 
 export const Route = createFileRoute('/_protected')({
   beforeLoad: ({ location, context }) => {
     const user = JSON.parse(window.localStorage.getItem('user') ?? '{}') as User
-    console.log('protect route layout. before load', context.user, user, location)
+    console.log(
+      'protect route layout. before load',
+      context.user,
+      user,
+      location,
+    )
 
     // If user is not authenticated and not on login, redirect
     if (!context.user?.email && !user?.email) {

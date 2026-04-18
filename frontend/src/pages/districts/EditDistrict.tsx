@@ -1,11 +1,12 @@
 import { Form } from '@/components/ui/form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { SubmitHandler, useForm } from 'react-hook-form'
-import type { District } from '@/type'
-import { DistrictSchema } from '@/type'
-import React, { useEffect, useState } from 'react'
 import { useDistrict } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
+import type { District } from '@/type'
+import { DistrictSchema } from '@/type'
+import { zodResolver } from '@hookform/resolvers/zod'
+import type React from 'react'
+import { useEffect, useState } from 'react'
+import { type SubmitHandler, useForm } from 'react-hook-form'
 import DistrictForm from './DistrictForm'
 
 import SaveButton from '@/components/styled/SaveButton.tsx'
@@ -13,7 +14,7 @@ import SaveButton from '@/components/styled/SaveButton.tsx'
 const EditDistrict = (): React.ReactElement => {
   const [saving, setSaving] = useState<boolean>(false)
   // todo get id from path via tanstack
-  const districtId =  0
+  const districtId = 0
 
   const form = useForm<District>({
     resolver: zodResolver(DistrictSchema) as unknown as

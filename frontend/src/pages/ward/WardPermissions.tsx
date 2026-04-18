@@ -1,15 +1,15 @@
-import React from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { UserRoles } from '@/type/User.ts'
 import {
+  Table,
   TableBody,
   TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  Table,
 } from '@/components/ui/table.tsx'
+import type { UserRoles } from '@/type/User.ts'
+import { useQuery } from '@tanstack/react-query'
+import type React from 'react'
 
 const WardPermissions = (): React.ReactElement => {
   const { data: permissions } = useQuery<UserRoles>({

@@ -1,11 +1,12 @@
-import React, { useState } from 'react'
+import type React from 'react'
+import { useState } from 'react'
 // fallback to direct fetch calls for ward admin operations
 const wardApi = {
   getWardList: async () => {
     try {
       const res = await fetch('/api/wards/list')
-      return res.ok ? (await res.json()) : []
-    } catch (e) {
+      return res.ok ? await res.json() : []
+    } catch (_e) {
       return []
     }
   },
@@ -43,14 +44,14 @@ const wardApi = {
     }
   },
 }
-import { useAddMember } from '@/hooks/useMembers'
-import { useAddDistrict } from '@/hooks/useDistricts'
-import useUser from '@/context/useUser.tsx'
-import { District, Member } from '@/type'
-import { UserRoles } from '@/type/User.ts'
 import StyledButton from '@/components/styled/StyledButton.tsx'
+import useUser from '@/context/useUser.tsx'
+import { useAddDistrict } from '@/hooks/useDistricts'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
-import { Ward } from '@/type/Ward.ts'
+import { useAddMember } from '@/hooks/useMembers'
+import type { District, Member } from '@/type'
+import type { UserRoles } from '@/type/User.ts'
+import type { Ward } from '@/type/Ward.ts'
 
 type WardDoc = {
   id: number
@@ -76,7 +77,7 @@ const UploadWard = (): React.ReactElement => {
     e.preventDefault()
 
     if (file) {
-      fileReader.onload = async function (event) {
+      fileReader.onload = async (event) => {
         const text = event.target?.result
         if (text) {
           try {

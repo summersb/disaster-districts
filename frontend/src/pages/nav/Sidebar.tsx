@@ -1,23 +1,32 @@
-import React from 'react'
-import { HardDriveUpload, Map, Rows3, School, School2, Settings, User, Users } from 'lucide-react'
-import { Link, redirect } from '@tanstack/react-router'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { User as UserType } from '@/context/UserContext.tsx'
-import { useLocalStorageState } from '@/hooks/useLocalStorageState'
-import { Ward } from '@/type/Ward.ts'
 import { Button } from '@/components/ui/button'
+import type { User as UserType } from '@/context/UserContext.tsx'
 import useUser from '@/context/useUser.tsx'
-import { Route as AdminRoute} from '@/routes/_protected/admin'
-import { Route as DashboardRoute} from '@/routes/_protected/dashboard'
-import { Route as DashboardMapRoute} from '@/routes/_protected/dashboard/map'
-import { Route as DistrictRoute} from '@/routes/_protected/district'
-import { Route as DistrictRouteAdd} from '@/routes/_protected/district/add'
-import { Route as PrintRoute} from '@/routes/_protected/print'
-import { Route as MemberRoute} from '@/routes/_protected/member'
-import { Route as MemberRouteAdd} from '@/routes/_protected/member/add'
-import { Route as UploadRoute} from '@/routes/_protected/upload'
-import { Route as SettingsRoute} from '@/routes/_protected/settings'
+import { useLocalStorageState } from '@/hooks/useLocalStorageState'
+import { Route as AdminRoute } from '@/routes/_protected/admin'
+import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
+import { Route as DashboardMapRoute } from '@/routes/_protected/dashboard/map'
+import { Route as DistrictRoute } from '@/routes/_protected/district'
+import { Route as DistrictRouteAdd } from '@/routes/_protected/district/add'
+import { Route as MemberRoute } from '@/routes/_protected/member'
+import { Route as MemberRouteAdd } from '@/routes/_protected/member/add'
+import { Route as PrintRoute } from '@/routes/_protected/print'
+import { Route as SettingsRoute } from '@/routes/_protected/settings'
+import { Route as UploadRoute } from '@/routes/_protected/upload'
 import { Route as LoginRoute } from '@/routes/login'
+import type { Ward } from '@/type/Ward.ts'
+import { Link, redirect } from '@tanstack/react-router'
+import {
+  HardDriveUpload,
+  Map as MapIcon,
+  Rows3,
+  School,
+  School2,
+  Settings,
+  User,
+  Users,
+} from 'lucide-react'
+import type React from 'react'
 
 type Props = {
   user: UserType
@@ -29,7 +38,7 @@ const Sidebar = ({ user }: Props): React.ReactElement => {
   const [wardDoc] = useLocalStorageState<Ward>('ward', undefined)
 
   const logout = async () => {
-    console.log("logout")
+    console.log('logout')
     auth.setUser({})
     setUser({})
     redirect({ to: LoginRoute.to })
@@ -39,12 +48,15 @@ const Sidebar = ({ user }: Props): React.ReactElement => {
       <div className="flex flex-row">
         <Avatar>
           <AvatarImage src={user.avatarUrl ?? ''} />
-          <AvatarFallback>{user.email?.match(/\b(\w)/g)?.join('')}</AvatarFallback>
+          <AvatarFallback>
+            {user.email?.match(/\b(\w)/g)?.join('')}
+          </AvatarFallback>
         </Avatar>
         {user.email}
       </div>
       <div className="flex flex-row">
-        <img alt="logo" src="/favicon.ico" width={24} height={24} /> Disaster Districts
+        <img alt="logo" src="/favicon.ico" width={24} height={24} /> Disaster
+        Districts
       </div>
       <div className="flex flex-row">
         <Link to={DashboardRoute.to}>{wardDoc?.wardName}</Link>
@@ -75,7 +87,7 @@ const Sidebar = ({ user }: Props): React.ReactElement => {
         <HardDriveUpload /> <Link to={UploadRoute.to}>Upload Members</Link>
       </div>
       <div className="flex flex-row grow">
-        <Map />
+        <MapIcon />
         <Link to={DashboardMapRoute.to}>Map</Link>
       </div>
       <div className="flex flex-row grow">

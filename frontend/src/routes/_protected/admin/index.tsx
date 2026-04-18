@@ -1,6 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router'
-import React, { Suspense } from 'react'
 import AdminDashboard from '@/pages/admin/AdminDashboard.tsx'
+import { createFileRoute } from '@tanstack/react-router'
+import { Suspense } from 'react'
 
 export const Route = createFileRoute('/_protected/admin/')({
   component: RouteComponent,

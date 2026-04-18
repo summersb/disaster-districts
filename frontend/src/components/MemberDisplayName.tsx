@@ -1,5 +1,5 @@
-import React from 'react'
-import { Member } from '@/type'
+import type { Member } from '@/type'
+import type React from 'react'
 
 type MemberDisplayNameProps = {
   member?: Member

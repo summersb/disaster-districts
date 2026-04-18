@@ -1,16 +1,16 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from '@tanstack/react-router'
-// no direct useQuery here; we use useMember hook
-import { zodResolver } from '@hookform/resolvers/zod'
+import StyledButton from '@/components/styled/StyledButton.tsx'
 import { Form } from '@/components/ui/form'
-import { SubmitHandler, useForm } from 'react-hook-form'
 import { useMember, useSaveMember } from '@/hooks/useMembers'
+import { getGeo } from '@/pages/members/process.ts'
+import { Route as MemberRoute } from '@/routes/_protected/member'
 import type { Member } from '@/type'
 import { MemberSchema } from '@/type'
+// no direct useQuery here; we use useMember hook
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Link, useNavigate } from '@tanstack/react-router'
+import React, { useState } from 'react'
+import { type SubmitHandler, useForm } from 'react-hook-form'
 import MemberForm from './MemberForm'
-import { getGeo } from '@/pages/members/process.ts'
-import StyledButton from '@/components/styled/StyledButton.tsx'
-import { Route as MemberRoute} from '@/routes/_protected/member'
 
 const EditMember = () => {
   // todo
@@ -19,7 +19,9 @@ const EditMember = () => {
   const { data } = useMember(0 as any, Number(memberId))
 
   const form = useForm<Member>({
-    resolver: zodResolver(MemberSchema) as unknown as import('react-hook-form').Resolver<Member, any> | undefined,
+    resolver: zodResolver(MemberSchema) as unknown as
+      | import('react-hook-form').Resolver<Member, any>
+      | undefined,
     defaultValues: (data ?? ({} as Member)) as Member,
   })
 
@@ -51,13 +53,18 @@ const EditMember = () => {
       <div className="text-xl flex justify-around">Edit Member</div>
       <div className="text-xl text-red-900">{error && error}</div>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="w-2/3 space-y-6">
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="w-2/3 space-y-6"
+        >
           <MemberForm />
           <StyledButton type="submit" disabled={form.formState.isSubmitting}>
             Save
           </StyledButton>
           <Link to={MemberRoute.to}>
-            <StyledButton disabled={form.formState.isSubmitting}>Cancel</StyledButton>
+            <StyledButton disabled={form.formState.isSubmitting}>
+              Cancel
+            </StyledButton>
           </Link>
         </form>
       </Form>
