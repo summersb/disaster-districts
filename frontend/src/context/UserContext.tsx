@@ -5,6 +5,8 @@ export type User = {
   id?: number
   email?: string
   avatarUrl?: string
+  wardId?: number
+  token?: string
 }
 
 export interface UserContextType {

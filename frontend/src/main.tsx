@@ -17,15 +17,13 @@ const client = new QueryClient()
 // Create a new router instance
 const router = createRouter({
   routeTree,
+  context: { user: {} as import('@/context/UserContext').User },
 })
 
 // Register the router instance for type safety
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router
-    context: {
-      user: import('@/context/UserContext').User
-    }
   }
 }
 

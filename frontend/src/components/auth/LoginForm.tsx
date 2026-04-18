@@ -52,7 +52,7 @@ export function LoginForm() {
       await navigate({ to: from, replace: true })
     } catch (error) {
       console.log(error)
-      setError(error)
+      setError(error instanceof Error ? error.message : String(error))
     }
   }
 

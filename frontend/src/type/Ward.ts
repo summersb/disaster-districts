@@ -8,6 +8,7 @@ export const WardConfigSchema = z.object({
 
 export const WardSchema = z.object({
   name: z.string(),
+  wardName: z.string().optional(),
   members: z.array(MemberSchema).optional(),
   districts: z.array(DistrictSchema).optional(),
 })

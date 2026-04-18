@@ -3,12 +3,16 @@ import Home from '@/pages/home/Home.tsx'
 import { Route as DashboardRoute } from '@/routes/_protected/dashboard/index'
 import {
   Outlet,
-  createRootRoute,
+  createRootRouteWithContext,
   redirect,
   useLocation,
 } from '@tanstack/react-router'
 
-export const Route = createRootRoute({
+type RouterContext = {
+  user: User
+}
+
+export const Route = createRootRouteWithContext<RouterContext>()({
   beforeLoad: ({ location, context }) => {
     const isLoginPage =
       location.pathname === '/login' || location.pathname === '/signup'

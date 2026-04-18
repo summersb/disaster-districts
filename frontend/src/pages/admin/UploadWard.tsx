@@ -88,7 +88,7 @@ const UploadWard = (): React.ReactElement => {
               { wardName: wardData.name },
             ])
             await (wardApi as any).createWard(wardData.name, user as any)
-            setActiveWard({ wardName: wardData.name })
+            setActiveWard({ name: wardData.name, wardName: wardData.name })
             console.log('Created ward', wardData.name)
             await (wardApi as any).savePermissions(
               wardData.name,
