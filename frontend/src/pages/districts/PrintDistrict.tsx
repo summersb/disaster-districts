@@ -43,8 +43,9 @@ const PrintDistrict = (props: DistrictProps): React.ReactElement => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {district.members
-                ?.sort((m1, m2) => m1.familyName.localeCompare(m2.familyName))
+              {(district.members ?? [])
+                .slice()
+                .sort((m1, m2) => m1.familyName.localeCompare(m2.familyName))
                 .map((m) => (
                   <TableRow key={m.id}>
                     <TableCell>

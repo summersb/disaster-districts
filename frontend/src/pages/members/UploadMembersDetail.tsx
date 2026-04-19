@@ -30,7 +30,8 @@ const UploadMembersDetail = ({ members }: MembersProps): React.ReactElement => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {members
+          {(members ?? [])
+            .slice()
             .sort((a, b) => a.familyName.localeCompare(b.familyName))
             .map((m) => {
               return (

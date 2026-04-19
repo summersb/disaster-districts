@@ -55,7 +55,7 @@ const MemberList = () => {
         queryClient.invalidateQueries({ queryKey: ['members'] })
       } catch (e: any) {
         setOpen(false)
-        alert(e.message)
+        console.error('Delete member failed', e)
       }
     }
   }
@@ -134,8 +134,8 @@ const MemberList = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data
-            ?.filter((m) =>
+          {(Array.isArray(data) ? data : [])
+            .filter((m) =>
               m.familyName.toLowerCase().includes(filter?.toLowerCase() ?? ''),
             )
             .filter((m) => (showNoPos ? m.lat == null : true))

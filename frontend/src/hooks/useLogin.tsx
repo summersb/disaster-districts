@@ -16,6 +16,18 @@ export const login = async (user: LoginRequest) => {
   return await res.json()
 }
 
+export const googleLogin = async (credential: string) => {
+  const res = await fetch('/api/auth/google', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ credential }),
+  })
+  if (!res.ok) {
+    throw new Error(res.statusText)
+  }
+  return await res.json()
+}
+
 export const signup = async (user: LoginRequest) => {
   const res = await fetch('/api/users', {
     method: 'POST',

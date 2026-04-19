@@ -1,16 +1,17 @@
 import type { Member } from '@/type'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-const loadMembers = async (wardId: number) => {
+const loadMembers = async (wardId: number): Promise<Member[]> => {
   const res = await fetch(`/api/wards/${wardId}/members`)
+  if (!res.ok) return []
   const json = await res.json()
-  return json
+  return Array.isArray(json) ? json : []
 }
 
-const loadMember = async (wardId: number, memberId: number) => {
+const loadMember = async (wardId: number, memberId: number): Promise<Member> => {
   const res = await fetch(`/api/wards/${wardId}/members/${memberId}`)
-  const json = await res.json()
-  return json
+  if (!res.ok) throw new Error(`Failed to load member ${memberId}`)
+  return res.json()
 }
 
 export const useMembers = (wardId: number) =>

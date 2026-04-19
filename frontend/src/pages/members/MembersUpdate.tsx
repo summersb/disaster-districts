@@ -85,7 +85,7 @@ const MembersUpdate = ({ members }: MembersProps): React.ReactElement => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {members.map((m) => {
+          {(members ?? []).map((m) => {
             return (
               <TableRow
                 key={`update-${m.old.id}`}

@@ -3,6 +3,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './index.css'
 import useUser from '@/context/useUser.tsx'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import { createRouter, RouterProvider as TanStackRouterProvider } from '@tanstack/react-router'
 import { ThemeProvider } from './components/theme-provider.tsx'
 import { UserProvider } from './context/UserContext.tsx'
@@ -33,6 +34,7 @@ function AppRouter() {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''}>
     <ThemeProvider defaultTheme="dark" storageKey="disaster">
       <QueryClientProvider client={client}>
         <UserProvider>
@@ -55,6 +57,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </div>
       </QueryClientProvider>
     </ThemeProvider>
+    </GoogleOAuthProvider>
   </React.StrictMode>,
 )
 

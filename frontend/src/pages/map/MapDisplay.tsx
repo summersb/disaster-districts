@@ -21,35 +21,43 @@ const MapDisplay = ({
   markerClicked,
   showLabel,
 }: MapDisplayProps): React.ReactElement => {
-  const { data, isError, error } = useMembers(0 as any)
-  const { data: districts } = useDistricts(0 as any)
+  const { data, isError, isLoading } = useMembers(0 as any)
+  const { data: districts, isLoading: districtsLoading } = useDistricts(0 as any)
 
   if (isError) {
-    alert(error)
+    return <div className="p-4 text-destructive">Failed to load members.</div>
   }
 
-  const m = (members ?? data)?.filter((m) => m.lat !== undefined)
-  const center = {
-    lat: lat ?? 33.19228423,
-    lng: lng ?? -17.2413057,
+  if (isLoading || districtsLoading) {
+    return <div className="p-4 text-muted-foreground">Loading...</div>
   }
+
+  const memberList = members ?? data ?? []
+  const mapped = memberList.filter((m) => m.lat !== undefined)
+  const center = { lat, lng }
+
+  if (!districts) {
+    return <div className="p-4 text-muted-foreground">Loading districts...</div>
+  }
+
+  if (mapped.length === 0) {
+    return (
+      <div className="p-4 text-muted-foreground">
+        No members with location data to display.
+      </div>
+    )
+  }
+
   return (
-    <>
-      {!districts && <div>Loading</div>}
-      {districts && (
-        <div className="h-full">
-          {m && (
-            <OSMMapWithMarkers
-              districts={districts}
-              members={m}
-              center={center}
-              markerClicked={markerClicked}
-              showLabel={showLabel}
-            />
-          )}
-        </div>
-      )}
-    </>
+    <div className="h-full">
+      <OSMMapWithMarkers
+        districts={districts}
+        members={mapped}
+        center={center}
+        markerClicked={markerClicked}
+        showLabel={showLabel}
+      />
+    </div>
   )
 }
 

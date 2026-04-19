@@ -7,9 +7,10 @@ export const Route = createFileRoute('/_protected/print/$districtId')({
 })
 
 function RouteComponent() {
+  const { districtId } = Route.useParams()
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <PrintDistrict />
+      <PrintDistrict districtId={Number(districtId)} />
     </Suspense>
   )
 }

@@ -19,11 +19,12 @@ import { Input } from '@/components/ui/input.tsx'
 import type { User } from '@/context/UserContext.tsx'
 import useUser from '@/context/useUser.tsx'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
-import { login } from '@/hooks/useLogin.tsx'
+import { googleLogin, login } from '@/hooks/useLogin.tsx'
 import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
 import { Route as SignupRoute } from '@/routes/signup'
 import { type LoginRequest, LoginSchema } from '@/type/User.ts'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { GoogleLogin } from '@react-oauth/google'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -39,26 +40,36 @@ export function LoginForm() {
     defaultValues: { email: '', password: '' },
   })
 
+  const handleAuthSuccess = async (json: { token: string; id?: number; email: string }) => {
+    auth.setUser({ id: json.id, email: json.email, token: json.token })
+    setUser({ email: json.email, token: json.token })
+    const from = search.from || DashboardRoute.to
+    await navigate({ to: from, replace: true })
+  }
+
   const onSubmit = async (values: LoginRequest) => {
-    console.log('Login attempt:', values)
     try {
       const json = await login(values)
-      console.log(json)
-      auth.setUser({ id: json.id, email: json.email })
-      setUser({ email: json.email })
-      const from = search.from || DashboardRoute.to
-      // Use router.navigate instead of setTimeout to ensure proper routing
-      console.log('login form navigate to ', from)
-      await navigate({ to: from, replace: true })
-    } catch (error) {
-      console.log(error)
-      setError(error instanceof Error ? error.message : String(error))
+      await handleAuthSuccess(json)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
     }
   }
 
+  const onGoogleSuccess = async (credentialResponse: { credential?: string }) => {
+    try {
+      if (!credentialResponse.credential) throw new Error('No credential returned')
+      const json = await googleLogin(credentialResponse.credential)
+      await handleAuthSuccess(json)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google login failed')
+    }
+  }
+
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
-      {error && 'Error logging in'}
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl text-center">Login</CardTitle>
@@ -69,6 +80,9 @@ export function LoginForm() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-4">
+              {error && (
+                <p className="text-sm text-destructive text-center">{error}</p>
+              )}
               <FormField
                 control={form.control}
                 name="email"
@@ -108,8 +122,27 @@ export function LoginForm() {
               <Button type="submit" className="w-full">
                 Sign In
               </Button>
+              {googleClientId && (
+                <>
+                  <div className="relative w-full">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">or</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-center w-full">
+                    <GoogleLogin
+                      onSuccess={onGoogleSuccess}
+                      onError={() => setError('Google login failed')}
+                      useOneTap={false}
+                    />
+                  </div>
+                </>
+              )}
               <p className="text-sm text-center text-muted-foreground">
-                Don’t have an account?{' '}
+                Don't have an account?{' '}
                 <Link
                   to={SignupRoute.to}
                   className="text-primary hover:underline"

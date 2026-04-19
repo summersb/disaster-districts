@@ -1,9 +1,9 @@
-FROM node:22-alpine
+FROM node:22-slim
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install --prefer-offline --no-audit
+COPY package.json ./
+RUN yarn install
 
 COPY . .
 
@@ -11,4 +11,4 @@ RUN chown -R node:node /app
 
 EXPOSE 5173
 
-CMD ["npm", "run", "dev", "--", "--host"]
+CMD ["yarn", "dev", "--host"]

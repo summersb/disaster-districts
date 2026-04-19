@@ -31,9 +31,11 @@ services:
       context: ./frontend
     volumes:
       - ./frontend:/app
-#      - dd-vite-node-modules:/app/node_modules 
-    user: "${UID:-1000}:${GID:-1000}"  
+#      - dd-vite-node-modules:/app/node_modules
+    user: "${UID:-1000}:${GID:-1000}"
     container_name: dd-vite
+    environment:
+      VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
     ports:
       - "5173:5173"
     depends_on:
