@@ -10,4 +10,8 @@ class UserAccountRepository : PanacheRepository<UserAccountDao>
     fun findByEmail(email: String): UserAccountDao? {
         return find("email", email).firstResult()
     }
+
+    fun findByWardId(wardId: Long): List<UserAccountDao> {
+        return find("ward.id", wardId).list()
+    }
 }

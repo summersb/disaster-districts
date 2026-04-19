@@ -40,9 +40,9 @@ export function LoginForm() {
     defaultValues: { email: '', password: '' },
   })
 
-  const handleAuthSuccess = async (json: { token: string; id?: number; email: string }) => {
-    auth.setUser({ id: json.id, email: json.email, token: json.token })
-    setUser({ email: json.email, token: json.token })
+  const handleAuthSuccess = async (json: { token: string; id?: number; email: string; role?: string }) => {
+    auth.setUser({ id: json.id, email: json.email, token: json.token, role: json.role })
+    setUser({ email: json.email, token: json.token, role: json.role })
     const from = search.from || DashboardRoute.to
     await navigate({ to: from, replace: true })
   }

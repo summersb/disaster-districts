@@ -2,8 +2,13 @@ package dd.resource
 
 import dd.dao.DistrictDao
 
-open class Ward (
+open class Ward(
     var id: Long?,
     var name: String,
-    var districts: MutableList<DistrictDao>? = mutableListOf()
+    var districts: MutableList<DistrictDao>? = mutableListOf(),
+)
+
+data class WardDto(
+    val id: Long?,
+    val name: String,
 )

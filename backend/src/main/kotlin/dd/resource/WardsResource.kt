@@ -1,9 +1,11 @@
 package dd.resource
 
 import dd.dao.WardDao
+import dd.repository.UserAccountRepository
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
@@ -21,22 +23,24 @@ import jakarta.ws.rs.core.UriInfo
 @Produces(MediaType.APPLICATION_JSON)
 class WardsResource(
     val wardRepository: WardRepository,
+    val userAccountRepository: UserAccountRepository,
     val membersResource: MembersResource,
     val districtsResource: DistrictsResource,
-    @field:Context val uriInfo: UriInfo
+    @field:Context val uriInfo: UriInfo,
 ) {
+
+    private fun toDto(w: WardDao) = WardDto(id = w.id, name = w.name ?: "")
 
     @GET
     fun getWards(): Response {
-        val wards = wardRepository.listAll()
-        return Response.ok(wards).build()
+        return Response.ok(wardRepository.listAll().map { toDto(it) }).build()
     }
 
     @GET
     @Path("/{id}")
     fun getWard(id: Long): Response {
-        val user = wardRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
-        return Response.ok(user).build()
+        val ward = wardRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
+        return Response.ok(toDto(ward)).build()
     }
 
     @POST
@@ -64,5 +68,15 @@ class WardsResource(
     fun getMembers(wardId: Long): MembersResource {
         membersResource.wardId = wardId
         return membersResource
+    }
+
+    @GET
+    @Path("{wardId}/users")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun getWardUsers(@PathParam("wardId") wardId: Long): Response {
+        val users = userAccountRepository.findByWardId(wardId).map { u ->
+            User(id = u.id, email = u.email, role = u.role, wardId = u.ward?.id)
+        }
+        return Response.ok(users).build()
     }
 }

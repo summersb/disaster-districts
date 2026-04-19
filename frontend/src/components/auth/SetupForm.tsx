@@ -52,9 +52,9 @@ export function SetupForm() {
     defaultValues: { email: '', password: '', confirmPassword: '' },
   })
 
-  const handleAuthSuccess = async (json: { token: string; id?: number; email: string }) => {
-    auth.setUser({ id: json.id, email: json.email, token: json.token })
-    setStoredUser({ email: json.email, token: json.token })
+  const handleAuthSuccess = async (json: { token: string; id?: number; email: string; role?: string }) => {
+    auth.setUser({ id: json.id, email: json.email, token: json.token, role: json.role })
+    setStoredUser({ email: json.email, token: json.token, role: json.role })
     invalidateSetupCache()
     await navigate({ to: DashboardRoute.to, replace: true })
   }

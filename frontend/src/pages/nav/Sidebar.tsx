@@ -61,10 +61,12 @@ const Sidebar = ({ user }: Props): React.ReactElement => {
       <div className="flex flex-row">
         <Link to={DashboardRoute.to}>{wardDoc?.wardName}</Link>
       </div>
-      <div className="flex flex-row">
-        <Settings />
-        <Link to={AdminRoute.to}>Admin</Link>
-      </div>
+      {user.role === 'admin' && (
+        <div className="flex flex-row">
+          <Settings />
+          <Link to={AdminRoute.to}>Admin</Link>
+        </div>
+      )}
       <div className="flex flex-row">
         <School />
         <Link to={DistrictRoute.to}>Districts</Link>

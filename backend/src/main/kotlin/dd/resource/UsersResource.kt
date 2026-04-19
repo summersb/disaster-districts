@@ -3,11 +3,14 @@ package dd.resource
 import at.favre.lib.crypto.bcrypt.BCrypt
 import dd.dao.UserAccountDao
 import dd.repository.UserAccountRepository
+import dd.repository.WardRepository
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.POST
+import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.MediaType
@@ -20,39 +23,57 @@ import jakarta.ws.rs.core.UriInfo
 @Produces(MediaType.APPLICATION_JSON)
 class UsersResource(
     val userAccountRepository: UserAccountRepository,
-    @field:Context val uriInfo: UriInfo
+    val wardRepository: WardRepository,
+    @field:Context val uriInfo: UriInfo,
 ) {
+
+    private fun toDto(u: UserAccountDao) = User(
+        id = u.id,
+        email = u.email,
+        role = u.role,
+        wardId = u.ward?.id,
+    )
 
     @GET
     fun getUsers(): Response {
-        val userList = userAccountRepository.listAll()
-        val dto = userList.map { User(it.email) }
-        return Response.ok(dto).build()
+        return Response.ok(userAccountRepository.listAll().map { toDto(it) }).build()
     }
 
     @GET
     @Path("/{id}")
-    fun getUser(id: Long): Response {
+    fun getUser(@PathParam("id") id: Long): Response {
         val user = userAccountRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
-        return Response.ok(user).build()
+        return Response.ok(toDto(user)).build()
     }
 
     @POST
     @Transactional
     fun createUser(user: User): Response {
         val userExists = userAccountRepository.findByEmail(user.email)
-        if (userExists != null) {
-            return Response.status(Status.CONFLICT).build()
-        }
-        if (user.password == null) {
-            return Response.status(Status.BAD_REQUEST).build()
-        }
-        val dbuser = UserAccountDao().apply {
+        if (userExists != null) return Response.status(Status.CONFLICT).build()
+        if (user.password == null) return Response.status(Status.BAD_REQUEST).build()
+        val dbUser = UserAccountDao().apply {
             email = user.email
             passwordHash = BCrypt.withDefaults().hashToString(12, user.password.toCharArray())
         }
-        dbuser.persist()
-        val uri = uriInfo.getAbsolutePathBuilder().path(dbuser.id.toString())
+        dbUser.persist()
+        val uri = uriInfo.absolutePathBuilder.path(dbUser.id.toString())
         return Response.created(uri.build()).build()
+    }
+
+    @PUT
+    @Path("/{id}")
+    @Transactional
+    fun updateUser(@PathParam("id") id: Long, update: UserUpdate): Response {
+        val dbUser = userAccountRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
+        update.role?.let { dbUser.role = it }
+        when {
+            update.removeFromWard -> dbUser.ward = null
+            update.wardId != null -> {
+                val ward = wardRepository.findById(update.wardId) ?: return Response.status(Status.NOT_FOUND).build()
+                dbUser.ward = ward
+            }
+        }
+        return Response.ok(toDto(dbUser)).build()
     }
 }
