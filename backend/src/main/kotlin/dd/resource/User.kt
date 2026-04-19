@@ -7,12 +7,12 @@ data class User(
     val id: Long? = null,
     val email: String,
     val password: String? = null,
-    val role: String? = null,
+    val roles: List<String>? = null,
     val wardId: Long? = null,
 )
 
 data class UserUpdate(
-    val role: String? = null,
+    val roles: List<String>? = null,
     val wardId: Long? = null,
     val removeFromWard: Boolean = false,
 )

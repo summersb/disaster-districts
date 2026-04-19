@@ -7,7 +7,7 @@ export type User = {
   avatarUrl?: string
   wardId?: number
   token?: string
-  role?: string
+  roles?: string[]
 }
 
 export interface UserContextType {

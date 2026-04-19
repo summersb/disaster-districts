@@ -86,12 +86,12 @@ class AuthResource(
         val admin = UserAccountDao().apply {
             this.email = email
             this.passwordHash = passwordHash
-            this.role = "admin"
+            this.roles = "admin"
         }
         admin.persist()
 
         val token = generateToken(admin.email)
-        return Response.ok(AuthResponse(token, admin.id, admin.email, admin.role)).build()
+        return Response.ok(AuthResponse(token, admin.id, admin.email, admin.getRoleList())).build()
     }
 
     @POST
@@ -110,7 +110,7 @@ class AuthResource(
         }
 
         val token = generateToken(foundUser.email)
-        return Response.ok(AuthResponse(token, foundUser.id, foundUser.email, foundUser.role)).build()
+        return Response.ok(AuthResponse(token, foundUser.id, foundUser.email, foundUser.getRoleList())).build()
     }
 
     @POST
@@ -129,7 +129,7 @@ class AuthResource(
         }
 
         val token = generateToken(user.email)
-        return Response.ok(AuthResponse(token, user.id, user.email, user.role)).build()
+        return Response.ok(AuthResponse(token, user.id, user.email, user.getRoleList())).build()
     }
 }
 
@@ -145,7 +145,7 @@ data class AuthResponse(
     val token: String,
     val id: Long?,
     val email: String,
-    val role: String,
+    val roles: List<String>,
 )
 
 data class GoogleTokenRequest(

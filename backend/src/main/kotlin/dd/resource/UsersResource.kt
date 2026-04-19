@@ -30,7 +30,7 @@ class UsersResource(
     private fun toDto(u: UserAccountDao) = User(
         id = u.id,
         email = u.email,
-        role = u.role,
+        roles = u.getRoleList(),
         wardId = u.ward?.id,
     )
 
@@ -66,11 +66,12 @@ class UsersResource(
     @Transactional
     fun updateUser(@PathParam("id") id: Long, update: UserUpdate): Response {
         val dbUser = userAccountRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
-        update.role?.let { dbUser.role = it }
+        update.roles?.let { dbUser.setRoles(it) }
         when {
             update.removeFromWard -> dbUser.ward = null
             update.wardId != null -> {
-                val ward = wardRepository.findById(update.wardId) ?: return Response.status(Status.NOT_FOUND).build()
+                val ward = wardRepository.findById(update.wardId)
+                    ?: return Response.status(Status.NOT_FOUND).build()
                 dbUser.ward = ward
             }
         }

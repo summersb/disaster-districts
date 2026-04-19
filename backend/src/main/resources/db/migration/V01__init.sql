@@ -12,7 +12,7 @@ create table users (
     email varchar(255) unique not null,
     password_hash varchar(255),
     ward_id bigint,
-    role varchar(50) not null default 'user'
+    roles text not null default 'user'
 );
 
 create sequence districts_id_seq;

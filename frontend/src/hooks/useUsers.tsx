@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 export type UserRecord = {
   id: number
   email: string
-  role: string
+  roles: string[]
   wardId?: number
 }
 
@@ -37,18 +37,18 @@ export const useUpdateUser = () => {
   return useMutation({
     mutationFn: ({
       id,
-      role,
+      roles,
       wardId,
       removeFromWard,
     }: {
       id: number
-      role?: string
+      roles?: string[]
       wardId?: number
       removeFromWard?: boolean
     }) =>
       authFetch(`/api/users/${id}`, {
         method: 'PUT',
-        body: JSON.stringify({ role, wardId, removeFromWard }),
+        body: JSON.stringify({ roles, wardId, removeFromWard }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })

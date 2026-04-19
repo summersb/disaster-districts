@@ -14,6 +14,7 @@ import { Route as SignupIndexRouteImport } from './routes/signup/index'
 import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as ProtectedUploadRouteImport } from './routes/_protected/upload'
+import { Route as ProtectedUserAdminIndexRouteImport } from './routes/_protected/user-admin/index'
 import { Route as ProtectedSettingsIndexRouteImport } from './routes/_protected/settings/index'
 import { Route as ProtectedPrintIndexRouteImport } from './routes/_protected/print/index'
 import { Route as ProtectedMemberIndexRouteImport } from './routes/_protected/member/index'
@@ -49,6 +50,11 @@ const LoginIndexRoute = LoginIndexRouteImport.update({
 const ProtectedUploadRoute = ProtectedUploadRouteImport.update({
   id: '/upload',
   path: '/upload',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedUserAdminIndexRoute = ProtectedUserAdminIndexRouteImport.update({
+  id: '/user-admin/',
+  path: '/user-admin/',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const ProtectedSettingsIndexRoute = ProtectedSettingsIndexRouteImport.update({
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/member/': typeof ProtectedMemberIndexRoute
   '/print/': typeof ProtectedPrintIndexRoute
   '/settings/': typeof ProtectedSettingsIndexRoute
+  '/user-admin/': typeof ProtectedUserAdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof ProtectedRouteRouteWithChildren
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/member': typeof ProtectedMemberIndexRoute
   '/print': typeof ProtectedPrintIndexRoute
   '/settings': typeof ProtectedSettingsIndexRoute
+  '/user-admin': typeof ProtectedUserAdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/_protected/member/': typeof ProtectedMemberIndexRoute
   '/_protected/print/': typeof ProtectedPrintIndexRoute
   '/_protected/settings/': typeof ProtectedSettingsIndexRoute
+  '/_protected/user-admin/': typeof ProtectedUserAdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/member/'
     | '/print/'
     | '/settings/'
+    | '/user-admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/member'
     | '/print'
     | '/settings'
+    | '/user-admin'
   id:
     | '__root__'
     | '/_protected'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/_protected/member/'
     | '/_protected/print/'
     | '/_protected/settings/'
+    | '/_protected/user-admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -273,6 +285,13 @@ declare module '@tanstack/react-router' {
       path: '/upload'
       fullPath: '/upload'
       preLoaderRoute: typeof ProtectedUploadRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/user-admin/': {
+      id: '/_protected/user-admin/'
+      path: '/user-admin'
+      fullPath: '/user-admin/'
+      preLoaderRoute: typeof ProtectedUserAdminIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/settings/': {
@@ -376,6 +395,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedMemberIndexRoute: typeof ProtectedMemberIndexRoute
   ProtectedPrintIndexRoute: typeof ProtectedPrintIndexRoute
   ProtectedSettingsIndexRoute: typeof ProtectedSettingsIndexRoute
+  ProtectedUserAdminIndexRoute: typeof ProtectedUserAdminIndexRoute
 }
 
 const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
@@ -392,6 +412,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedMemberIndexRoute: ProtectedMemberIndexRoute,
   ProtectedPrintIndexRoute: ProtectedPrintIndexRoute,
   ProtectedSettingsIndexRoute: ProtectedSettingsIndexRoute,
+  ProtectedUserAdminIndexRoute: ProtectedUserAdminIndexRoute,
 }
 
 const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(

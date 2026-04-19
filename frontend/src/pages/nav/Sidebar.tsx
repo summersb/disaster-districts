@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import type { User as UserType } from '@/context/UserContext.tsx'
 import useUser from '@/context/useUser.tsx'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState'
+import { isAdmin, canManageUsers } from '@/lib/roles'
 import { Route as AdminRoute } from '@/routes/_protected/admin'
 import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
 import { Route as DashboardMapRoute } from '@/routes/_protected/dashboard/map'
@@ -13,6 +14,7 @@ import { Route as MemberRouteAdd } from '@/routes/_protected/member/add'
 import { Route as PrintRoute } from '@/routes/_protected/print'
 import { Route as SettingsRoute } from '@/routes/_protected/settings'
 import { Route as UploadRoute } from '@/routes/_protected/upload'
+import { Route as UserAdminRoute } from '@/routes/_protected/user-admin'
 import { Route as LoginRoute } from '@/routes/login'
 import type { Ward } from '@/type/Ward.ts'
 import { Link, redirect } from '@tanstack/react-router'
@@ -25,6 +27,7 @@ import {
   Settings,
   User,
   Users,
+  UserCog,
 } from 'lucide-react'
 import type React from 'react'
 
@@ -38,11 +41,11 @@ const Sidebar = ({ user }: Props): React.ReactElement => {
   const [wardDoc] = useLocalStorageState<Ward>('ward', undefined)
 
   const logout = async () => {
-    console.log('logout')
     auth.setUser({})
     setUser({})
     redirect({ to: LoginRoute.to })
   }
+
   return (
     <div className="flex flex-col h-full space-y-4">
       <div className="flex flex-row">
@@ -59,14 +62,23 @@ const Sidebar = ({ user }: Props): React.ReactElement => {
         Districts
       </div>
       <div className="flex flex-row">
-        <Link to={DashboardRoute.to}>{wardDoc?.wardName}</Link>
+        <Link to={DashboardRoute.to}>{wardDoc?.wardName ?? 'Dashboard'}</Link>
       </div>
-      {user.role === 'admin' && (
+
+      {isAdmin(user.roles) && (
         <div className="flex flex-row">
           <Settings />
           <Link to={AdminRoute.to}>Admin</Link>
         </div>
       )}
+
+      {canManageUsers(user.roles) && (
+        <div className="flex flex-row">
+          <UserCog />
+          <Link to={UserAdminRoute.to}>User Admin</Link>
+        </div>
+      )}
+
       <div className="flex flex-row">
         <School />
         <Link to={DistrictRoute.to}>Districts</Link>

@@ -28,8 +28,15 @@ open class UserAccountDao : PanacheEntityBase {
     @Column(name = "password_hash", length = 255)
     var passwordHash: String? = null
 
-    @Column(name = "role", length = 50)
-    var role: String = "user"
+    @Column(name = "roles", columnDefinition = "text")
+    var roles: String = "user"
+
+    fun getRoleList(): List<String> = roles.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    fun hasRole(role: String): Boolean = getRoleList().contains(role)
+
+    fun setRoles(list: List<String>) {
+        roles = list.distinct().joinToString(",").ifEmpty { "user" }
+    }
 
     @ManyToOne
     var ward: WardDao? = null
