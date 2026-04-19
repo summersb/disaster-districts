@@ -1,6 +1,5 @@
 import { LoginForm } from '@/components/auth/LoginForm.tsx'
 import { createFileRoute } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import * as z from 'zod'
 
 export const Route = createFileRoute('/login/')({
@@ -10,10 +9,5 @@ export const Route = createFileRoute('/login/')({
 
 function RouteComponent() {
   console.log('login route')
-  return (
-    <>
-      <LoginForm />
-      <TanStackRouterDevtools />
-    </>
-  )
+  return <LoginForm />
 }

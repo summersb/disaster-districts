@@ -3,14 +3,13 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './index.css'
 import useUser from '@/context/useUser.tsx'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import {
-  RouterProvider as TanStackRouterProvider,
-  createRouter,
-} from '@tanstack/react-router'
+import { createRouter, RouterProvider as TanStackRouterProvider } from '@tanstack/react-router'
 import { ThemeProvider } from './components/theme-provider.tsx'
 import { UserProvider } from './context/UserContext.tsx'
 import { routeTree } from './routeTree.gen'
+import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
+import { TanStackDevtools } from '@tanstack/react-devtools'
 
 const client = new QueryClient()
 
@@ -40,9 +39,22 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <AppRouter />
         </UserProvider>
         <div className="print:hidden">
-          <ReactQueryDevtools initialIsOpen={false} />
+          <TanStackDevtools
+            config={{ hideUntilHover: true, position: 'top-right' }}
+            plugins={[
+              {
+                name: 'TanStack Query',
+                render: <ReactQueryDevtoolsPanel />,
+              },
+              {
+                name: 'TanStack Router',
+                render: <TanStackRouterDevtoolsPanel />,
+              },
+            ]}
+            />
         </div>
       </QueryClientProvider>
     </ThemeProvider>
   </React.StrictMode>,
 )
+

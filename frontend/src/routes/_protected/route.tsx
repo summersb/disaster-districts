@@ -8,7 +8,6 @@ import {
   redirect,
   useNavigate,
 } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 
 export const Route = createFileRoute('/_protected')({
   beforeLoad: ({ location, context }) => {
@@ -49,7 +48,6 @@ function MainLayout() {
       </div>
       <main className="bg-gray-900 overflow-y-auto p-4 ml-64 print:w-full print:ml-0 print:p-0">
         <Outlet />
-        <TanStackRouterDevtools />
       </main>
     </div>
   )
