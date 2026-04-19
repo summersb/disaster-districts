@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(./mvnw compile *)",
-      "Bash(yarn add *)",
-      "Bash(yarn tsc *)"
-    ]
-  }
-}
