@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProtectedRouteRouteImport } from './routes/_protected/route'
 import { Route as SignupIndexRouteImport } from './routes/signup/index'
+import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as ProtectedUploadRouteImport } from './routes/_protected/upload'
 import { Route as ProtectedSettingsIndexRouteImport } from './routes/_protected/settings/index'
@@ -33,6 +34,11 @@ const ProtectedRouteRoute = ProtectedRouteRouteImport.update({
 const SignupIndexRoute = SignupIndexRouteImport.update({
   id: '/signup/',
   path: '/signup/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetupIndexRoute = SetupIndexRouteImport.update({
+  id: '/setup/',
+  path: '/setup/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginIndexRoute = LoginIndexRouteImport.update({
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/': typeof ProtectedRouteRouteWithChildren
   '/upload': typeof ProtectedUploadRoute
   '/login/': typeof LoginIndexRoute
+  '/setup/': typeof SetupIndexRoute
   '/signup/': typeof SignupIndexRoute
   '/dashboard/map': typeof ProtectedDashboardMapRoute
   '/district/$id': typeof ProtectedDistrictIdRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/': typeof ProtectedRouteRouteWithChildren
   '/upload': typeof ProtectedUploadRoute
   '/login': typeof LoginIndexRoute
+  '/setup': typeof SetupIndexRoute
   '/signup': typeof SignupIndexRoute
   '/dashboard/map': typeof ProtectedDashboardMapRoute
   '/district/$id': typeof ProtectedDistrictIdRoute
@@ -148,6 +156,7 @@ export interface FileRoutesById {
   '/_protected': typeof ProtectedRouteRouteWithChildren
   '/_protected/upload': typeof ProtectedUploadRoute
   '/login/': typeof LoginIndexRoute
+  '/setup/': typeof SetupIndexRoute
   '/signup/': typeof SignupIndexRoute
   '/_protected/dashboard/map': typeof ProtectedDashboardMapRoute
   '/_protected/district/$id': typeof ProtectedDistrictIdRoute
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/'
     | '/upload'
     | '/login/'
+    | '/setup/'
     | '/signup/'
     | '/dashboard/map'
     | '/district/$id'
@@ -186,6 +196,7 @@ export interface FileRouteTypes {
     | '/'
     | '/upload'
     | '/login'
+    | '/setup'
     | '/signup'
     | '/dashboard/map'
     | '/district/$id'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/_protected'
     | '/_protected/upload'
     | '/login/'
+    | '/setup/'
     | '/signup/'
     | '/_protected/dashboard/map'
     | '/_protected/district/$id'
@@ -222,6 +234,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   ProtectedRouteRoute: typeof ProtectedRouteRouteWithChildren
   LoginIndexRoute: typeof LoginIndexRoute
+  SetupIndexRoute: typeof SetupIndexRoute
   SignupIndexRoute: typeof SignupIndexRoute
 }
 
@@ -239,6 +252,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup/'
       preLoaderRoute: typeof SignupIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup/': {
+      id: '/setup/'
+      path: '/setup'
+      fullPath: '/setup/'
+      preLoaderRoute: typeof SetupIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login/': {
@@ -381,6 +401,7 @@ const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   ProtectedRouteRoute: ProtectedRouteRouteWithChildren,
   LoginIndexRoute: LoginIndexRoute,
+  SetupIndexRoute: SetupIndexRoute,
   SignupIndexRoute: SignupIndexRoute,
 }
 export const routeTree = rootRouteImport

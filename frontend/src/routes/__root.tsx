@@ -1,4 +1,5 @@
 import type { User } from '@/context/UserContext.tsx'
+import { checkSetupNeeded } from '@/hooks/useLogin.tsx'
 import Home from '@/pages/home/Home.tsx'
 import { Route as DashboardRoute } from '@/routes/_protected/dashboard/index'
 import {
@@ -12,28 +13,39 @@ type RouterContext = {
   user: User
 }
 
+// Cached per session so we only hit the API once
+let setupChecked = false
+let needsSetup = false
+
 export const Route = createRootRouteWithContext<RouterContext>()({
-  beforeLoad: ({ location, context }) => {
-    const isLoginPage =
-      location.pathname === '/login' || location.pathname === '/signup'
+  beforeLoad: async ({ location, context }) => {
+    const isSetupPage = location.pathname === '/setup' || location.pathname === '/setup/'
+    const isLoginPage = location.pathname === '/login' || location.pathname === '/signup'
+
+    if (!setupChecked) {
+      needsSetup = await checkSetupNeeded()
+      setupChecked = true
+    }
+
+    // If no accounts exist yet, force setup
+    if (needsSetup && !isSetupPage) {
+      throw redirect({ to: '/setup' })
+    }
+
+    // Once setup is done, don't let them back to the setup page
+    if (!needsSetup && isSetupPage) {
+      throw redirect({ to: '/login' })
+    }
+
+    if (isSetupPage || isLoginPage) return
 
     const user = JSON.parse(window.localStorage.getItem('user') ?? '{}') as User
-    console.log(
-      'root layout. before load',
-      context.user,
-      user,
-      isLoginPage,
-      location,
-    )
 
-    // If user is not authenticated and not on login, redirect
-    if (!context.user?.email && !user?.email && !isLoginPage) {
-      console.log('sending to login')
+    if (!context.user?.email && !user?.email) {
       throw redirect({ to: '/login', search: { from: location.pathname } })
     }
 
     if (location.pathname === '/') {
-      console.log('sending to dashboard')
       throw redirect({ to: DashboardRoute.to })
     }
   },
@@ -42,16 +54,20 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 })
 
 function RootLayout() {
-  const location = useLocation()
+  useLocation()
   const pathname = window.location.pathname
-  const isLoginPage = pathname === '/login' || pathname === '/signup'
+  const isAuthPage =
+    pathname === '/login' || pathname === '/signup' || pathname.startsWith('/setup')
 
-  // For login/signup, render the page directly (no layout)
-  if (isLoginPage) {
-    console.log('root layout', 'showing login', location.href, pathname)
+  if (isAuthPage) {
     return <Outlet />
   }
 
-  console.log('root layout', location.href, pathname)
   return <Outlet />
+}
+
+// Call this after successful setup so the next navigation doesn't re-check
+export const invalidateSetupCache = () => {
+  setupChecked = false
+  needsSetup = false
 }

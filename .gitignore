@@ -4,3 +4,4 @@ frontend/dist
 /frontend/package-lock.json
 /frontend/yarn.lock
 /.claude/settings.local.json
+/.env

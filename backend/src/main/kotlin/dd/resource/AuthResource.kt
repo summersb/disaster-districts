@@ -8,6 +8,7 @@ import dd.repository.UserAccountRepository
 import io.smallrye.jwt.build.Jwt
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.GET
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.Produces
@@ -37,6 +38,62 @@ class AuthResource(
             .sign()
     }
 
+    private fun verifyGoogleToken(credential: String): String? {
+        val client = HttpClient.newHttpClient()
+        val req = HttpRequest.newBuilder()
+            .uri(URI.create("https://oauth2.googleapis.com/tokeninfo?id_token=$credential"))
+            .GET()
+            .build()
+        val resp = client.send(req, HttpResponse.BodyHandlers.ofString())
+        if (resp.statusCode() != 200) return null
+        val tokenInfo = jacksonObjectMapper().readValue<Map<String, String>>(resp.body())
+        if (tokenInfo["email_verified"] != "true") return null
+        return tokenInfo["email"]
+    }
+
+    @GET
+    @Path("/setup")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun checkSetup(): Response {
+        val needsSetup = userAccountRepository.count() == 0L
+        return Response.ok(SetupStatus(needsSetup)).build()
+    }
+
+    @POST
+    @Path("/setup")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Transactional
+    fun setupAdmin(request: SetupRequest): Response {
+        if (userAccountRepository.count() > 0) {
+            return Response.status(Response.Status.FORBIDDEN).build()
+        }
+
+        val email: String
+        val passwordHash: String?
+
+        if (request.credential != null) {
+            email = verifyGoogleToken(request.credential)
+                ?: return Response.status(Response.Status.UNAUTHORIZED).build()
+            passwordHash = null
+        } else if (request.email != null && request.password != null) {
+            email = request.email
+            passwordHash = BCrypt.withDefaults().hashToString(12, request.password.toCharArray())
+        } else {
+            return Response.status(Response.Status.BAD_REQUEST).build()
+        }
+
+        val admin = UserAccountDao().apply {
+            this.email = email
+            this.passwordHash = passwordHash
+            this.role = "admin"
+        }
+        admin.persist()
+
+        val token = generateToken(admin.email)
+        return Response.ok(AuthResponse(token, admin.id, admin.email)).build()
+    }
+
     @POST
     @Path("/login")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -62,21 +119,8 @@ class AuthResource(
     @Produces(MediaType.APPLICATION_JSON)
     @Transactional
     fun googleLogin(request: GoogleTokenRequest): Response {
-        val client = HttpClient.newHttpClient()
-        val req = HttpRequest.newBuilder()
-            .uri(URI.create("https://oauth2.googleapis.com/tokeninfo?id_token=${request.credential}"))
-            .GET()
-            .build()
-        val resp = client.send(req, HttpResponse.BodyHandlers.ofString())
-        if (resp.statusCode() != 200) {
-            return Response.status(Response.Status.UNAUTHORIZED).build()
-        }
-
-        val tokenInfo = jacksonObjectMapper().readValue<Map<String, String>>(resp.body())
-        val email = tokenInfo["email"] ?: return Response.status(Response.Status.UNAUTHORIZED).build()
-        if (tokenInfo["email_verified"] != "true") {
-            return Response.status(Response.Status.UNAUTHORIZED).build()
-        }
+        val email = verifyGoogleToken(request.credential)
+            ?: return Response.status(Response.Status.UNAUTHORIZED).build()
 
         val user = userAccountRepository.findByEmail(email) ?: run {
             val newUser = UserAccountDao().apply { this.email = email }
@@ -88,6 +132,14 @@ class AuthResource(
         return Response.ok(AuthResponse(token, user.id, user.email)).build()
     }
 }
+
+data class SetupStatus(val needsSetup: Boolean)
+
+data class SetupRequest(
+    val email: String? = null,
+    val password: String? = null,
+    val credential: String? = null,
+)
 
 data class AuthResponse(
     val token: String,

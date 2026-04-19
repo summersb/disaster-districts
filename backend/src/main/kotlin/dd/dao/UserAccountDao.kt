@@ -28,6 +28,9 @@ open class UserAccountDao : PanacheEntityBase {
     @Column(name = "password_hash", length = 255)
     var passwordHash: String? = null
 
+    @Column(name = "role", length = 50)
+    var role: String = "user"
+
     @ManyToOne
     var ward: WardDao? = null
 }
