@@ -11,15 +11,22 @@ import { Input } from '@/components/ui/input.tsx'
 import useUser from '@/context/useUser.tsx'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
 import type { Ward } from '@/type/Ward.ts'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
 import type React from 'react'
 import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+
+const schema = z.object({
+  name: z.string().trim().min(1, 'Ward name is required'),
+})
 
 const CreateWard = (): React.ReactElement => {
   const { user } = useUser()
   const [, setActiveWard] = useLocalStorageState<Ward>('ward', undefined)
   const queryClient = useQueryClient()
   const form = useForm<Ward>({
+    resolver: zodResolver(schema),
     defaultValues: {
       name: '',
     },
@@ -29,10 +36,10 @@ const CreateWard = (): React.ReactElement => {
       await fetch('/api/wards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: ward.name, user }),
+        body: JSON.stringify({ name: ward.name.trim(), user }),
       })
     } finally {
-      queryClient.invalidateQueries({ queryKey: ['wardList'] })
+      queryClient.invalidateQueries({ queryKey: ['wards'] })
       setActiveWard(ward)
     }
   }

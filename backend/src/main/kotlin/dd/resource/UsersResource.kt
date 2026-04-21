@@ -2,6 +2,7 @@ package dd.resource
 
 import at.favre.lib.crypto.bcrypt.BCrypt
 import dd.dao.UserAccountDao
+import dd.dao.UserRoleDao
 import dd.repository.UserAccountRepository
 import dd.repository.WardRepository
 import jakarta.transaction.Transactional
@@ -31,7 +32,7 @@ class UsersResource(
         id = u.id,
         email = u.email,
         roles = u.getRoleList(),
-        wardId = u.ward?.id,
+        wardId = u.getWard()?.id,
     )
 
     @GET
@@ -57,6 +58,11 @@ class UsersResource(
             passwordHash = BCrypt.withDefaults().hashToString(12, user.password.toCharArray())
         }
         dbUser.persist()
+        val defaultRole = UserRoleDao().apply {
+            this.user = dbUser
+            this.role = "user"
+        }
+        dbUser.userRoles.add(defaultRole)
         val uri = uriInfo.absolutePathBuilder.path(dbUser.id.toString())
         return Response.created(uri.build()).build()
     }
@@ -66,15 +72,47 @@ class UsersResource(
     @Transactional
     fun updateUser(@PathParam("id") id: Long, update: UserUpdate): Response {
         val dbUser = userAccountRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
-        update.roles?.let { dbUser.setRoles(it) }
+
+        update.roles?.let { newRoles ->
+            val currentWard = dbUser.getWard()
+            dbUser.userRoles.clear()
+            val roles = newRoles.distinct().ifEmpty { listOf("user") }
+            roles.forEach { role ->
+                val roleDao = UserRoleDao().apply {
+                    this.user = dbUser
+                    this.role = role
+                    this.ward = if (role == "admin") null else currentWard
+                }
+                dbUser.userRoles.add(roleDao)
+            }
+        }
+
         when {
-            update.removeFromWard -> dbUser.ward = null
+            update.removeFromWard -> {
+                dbUser.userRoles.clear()
+                val defaultRole = UserRoleDao().apply {
+                    this.user = dbUser
+                    this.role = "user"
+                }
+                dbUser.userRoles.add(defaultRole)
+            }
             update.wardId != null -> {
                 val ward = wardRepository.findById(update.wardId)
                     ?: return Response.status(Status.NOT_FOUND).build()
-                dbUser.ward = ward
+                val nonAdminRoles = dbUser.userRoles.filter { it.role != "admin" }
+                if (nonAdminRoles.isEmpty()) {
+                    val roleDao = UserRoleDao().apply {
+                        this.user = dbUser
+                        this.role = "user"
+                        this.ward = ward
+                    }
+                    dbUser.userRoles.add(roleDao)
+                } else {
+                    nonAdminRoles.forEach { it.ward = ward }
+                }
             }
         }
+
         return Response.ok(toDto(dbUser)).build()
     }
 }

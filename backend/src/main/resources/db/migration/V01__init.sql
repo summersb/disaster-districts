@@ -10,9 +10,16 @@ create sequence users_id_seq;
 create table users (
     id bigint primary key default nextval('users_id_seq'),
     email varchar(255) unique not null,
-    password_hash varchar(255),
-    ward_id bigint,
-    roles text not null default 'user'
+    password_hash varchar(255)
+);
+
+create sequence user_roles_id_seq;
+
+create table user_roles (
+    id bigint primary key default nextval('user_roles_id_seq'),
+    user_id bigint not null,
+    role varchar(50) not null,
+    ward_id bigint
 );
 
 create sequence districts_id_seq;
@@ -52,3 +59,6 @@ alter table districts add constraint districts_ward_fk foreign key (ward_id) ref
 alter table members add constraint members_district_fk foreign key (district_id) references districts (id);
 alter table members add constraint members_ward_fk foreign key (ward_id) references wards (id);
 alter table users add constraint users_ward_fk foreign key (ward_id) references wards (id);
+
+alter table user_roles foreign key (user_id) references users(id);
+alter table user_roles foreign key (ward_id) references wards(id);

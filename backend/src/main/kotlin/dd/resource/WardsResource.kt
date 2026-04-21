@@ -75,7 +75,7 @@ class WardsResource(
     @Produces(MediaType.APPLICATION_JSON)
     fun getWardUsers(@PathParam("wardId") wardId: Long): Response {
         val users = userAccountRepository.findByWardId(wardId).map { u ->
-            User(id = u.id, email = u.email, roles = u.getRoleList(), wardId = u.ward?.id)
+            User(id = u.id, email = u.email, roles = u.getRoleList(), wardId = u.getWard()?.id)
         }
         return Response.ok(users).build()
     }

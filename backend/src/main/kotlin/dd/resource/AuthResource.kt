@@ -4,6 +4,7 @@ import at.favre.lib.crypto.bcrypt.BCrypt
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import dd.dao.UserAccountDao
+import dd.dao.UserRoleDao
 import dd.repository.UserAccountRepository
 import io.smallrye.jwt.build.Jwt
 import jakarta.transaction.Transactional
@@ -86,9 +87,13 @@ class AuthResource(
         val admin = UserAccountDao().apply {
             this.email = email
             this.passwordHash = passwordHash
-            this.roles = "admin"
         }
         admin.persist()
+        val adminRole = UserRoleDao().apply {
+            this.user = admin
+            this.role = "admin"
+        }
+        admin.userRoles.add(adminRole)
 
         val token = generateToken(admin.email)
         return Response.ok(AuthResponse(token, admin.id, admin.email, admin.getRoleList())).build()
@@ -125,6 +130,11 @@ class AuthResource(
         val user = userAccountRepository.findByEmail(email) ?: run {
             val newUser = UserAccountDao().apply { this.email = email }
             newUser.persist()
+            val defaultRole = UserRoleDao().apply {
+                this.user = newUser
+                this.role = "user"
+            }
+            newUser.userRoles.add(defaultRole)
             newUser
         }
 

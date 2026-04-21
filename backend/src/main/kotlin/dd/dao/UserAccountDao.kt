@@ -1,12 +1,14 @@
 package dd.dao
 
 import io.quarkus.hibernate.orm.panache.kotlin.PanacheEntityBase
+import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
-import jakarta.persistence.ManyToOne
+import jakarta.persistence.OneToMany
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
 
@@ -15,11 +17,7 @@ import jakarta.persistence.Table
 open class UserAccountDao : PanacheEntityBase {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "users_id_seq")
-    @SequenceGenerator(
-        name = "users_id_seq",
-        sequenceName = "users_id_seq",
-        allocationSize = 1
-    )
+    @SequenceGenerator(name = "users_id_seq", sequenceName = "users_id_seq", allocationSize = 1)
     var id: Long? = null
 
     @Column(name = "email", length = 255)
@@ -28,16 +26,12 @@ open class UserAccountDao : PanacheEntityBase {
     @Column(name = "password_hash", length = 255)
     var passwordHash: String? = null
 
-    @Column(name = "roles", columnDefinition = "text")
-    var roles: String = "user"
+    @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.EAGER)
+    var userRoles: MutableList<UserRoleDao> = mutableListOf()
 
-    fun getRoleList(): List<String> = roles.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-    fun hasRole(role: String): Boolean = getRoleList().contains(role)
+    fun getRoleList(): List<String> = userRoles.map { it.role }.distinct()
 
-    fun setRoles(list: List<String>) {
-        roles = list.distinct().joinToString(",").ifEmpty { "user" }
-    }
+    fun hasRole(role: String): Boolean = userRoles.any { it.role == role }
 
-    @ManyToOne
-    var ward: WardDao? = null
+    fun getWard(): WardDao? = userRoles.firstOrNull { it.ward != null }?.ward
 }
