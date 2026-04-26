@@ -28,7 +28,7 @@ import { getWardId } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import MapDisplay from '@/pages/map/MapDisplay'
 import type { District, Member } from '@/type'
-import { Check, ChevronsUpDown } from 'lucide-react'
+import { Check, ChevronsUpDown, Crosshair } from 'lucide-react'
 import { useState } from 'react'
 import { useFieldArray, useFormContext } from 'react-hook-form'
 
@@ -39,6 +39,7 @@ type DistrictFormProps = {
 const DistrictForm = ({ districtId }: DistrictFormProps) => {
   const [openLeader, setOpenLeader] = useState(false)
   const [openAssistant, setOpenAssistant] = useState(false)
+  const [pickingCenter, setPickingCenter] = useState(false)
   const form = useFormContext()
   const {
     fields: districtMembers,
@@ -70,8 +71,10 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
   )
 
   const handleMapClick = (clickedLat: number, clickedLng: number) => {
+    if (!pickingCenter) return
     form.setValue('lat', clickedLat, { shouldDirty: true })
     form.setValue('lng', clickedLng, { shouldDirty: true })
+    setPickingCenter(false)
   }
   if (currentDistrict) {
     currentDistrict.members = districtMembers.map((m) => m.id)
@@ -106,7 +109,7 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
   return (
     <>
       <div className="flex mb-4 ">
-        <div className="w-1/4 ml-2">
+        <div className="w-1/3 ml-2">
           <div className="mb-4">
             <FormField
               control={form.control}
@@ -322,44 +325,46 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
               )}
             />
           </div>
-          <p className="text-sm text-muted-foreground mb-2">
-            Click anywhere on the map to move the district center.
-          </p>
-
-          <div className="flex mb-4">
-            <div className="w-1/2 mr-2">
-              <label htmlFor="districtMembers" className="block font-bold mb-2">
-                Members
-              </label>
-            </div>
-            <div className="w-1/2 mr-2">
-              <label htmlFor="map" className="block font-bold mb-2">
-                Map
-              </label>
-            </div>
+          <div className="mb-2 flex items-center gap-2">
+            <Button
+              type="button"
+              variant={pickingCenter ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setPickingCenter((p) => !p)}
+              title="Pick center on the map"
+            >
+              <Crosshair className="h-4 w-4 mr-1" />
+              {pickingCenter ? 'Click on map…' : 'Pick center on map'}
+            </Button>
+            {pickingCenter && (
+              <span className="text-sm text-muted-foreground">
+                Click anywhere on the map to set the center.
+              </span>
+            )}
           </div>
 
-          <div className="flex mb-4 h-[500px]">
-            <div className="w-1/2 mr-2">
-              <ul>
-                {districtMembers
-                  ?.sort((m1, m2) =>
-                    m1?.familyName?.localeCompare(m2?.familyName),
-                  )
-                  .map((field, idx: number) => (
-                    <li
-                      className="odd:bg-slate-700 even:bg-slate-900 "
-                      key={idx}
-                    >
-                      <MemberDisplayName member={field as Member} />
-                    </li>
-                  ))}
-              </ul>
-            </div>
+          <div className="mb-4">
+            <label htmlFor="districtMembers" className="block font-bold mb-2">
+              Members
+            </label>
+            <ul>
+              {districtMembers
+                ?.sort((m1, m2) =>
+                  m1?.familyName?.localeCompare(m2?.familyName),
+                )
+                .map((field, idx: number) => (
+                  <li
+                    className="odd:bg-slate-700 even:bg-slate-900 "
+                    key={idx}
+                  >
+                    <MemberDisplayName member={field as Member} />
+                  </li>
+                ))}
+            </ul>
           </div>
         </div>
         {districts && (
-          <div className="w-3/4 ml-2 h-[600px]">
+          <div className="w-2/3 ml-2 h-[600px]">
             <MapDisplay
               districts={
                 currentDistrict
@@ -377,7 +382,7 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
               lng={lng ?? (currentDistrict as any)?.lng ?? leader?.lng}
               leader={leader}
               markerClicked={memberClicked}
-              onMapClick={handleMapClick}
+              onMapClick={pickingCenter ? handleMapClick : undefined}
               showLabel
             />
           </div>

@@ -65,17 +65,21 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
     }
   }
 
-  const getMemberColor = (memberId: number): string => {
-    // check if member is leader
+  const getMemberColor = (member: Member): string => {
+    // Prefer the member's own assigned district color (set on the MemberDto).
+    // Fall back to scanning the districts prop for one whose leader matches,
+    // then to a default. This ensures every district member shows up in the
+    // district's color, not just the leader.
+    const ownDistrictColor = member.district?.color
+    if (ownDistrictColor) return ownDistrictColor
     const leaderColor = props.districts?.find(
-      (d) => d.leader?.id === memberId,
+      (d) => d.leader?.id === member.id,
     )?.color
-    const color = 'Blue'
-    return leaderColor ?? color ?? 'Blue'
+    return leaderColor ?? 'Blue'
   }
 
   function getMemberIcon(member: Member): L.Icon {
-    const color = getMemberColor(member.id)
+    const color = getMemberColor(member)
 
     return new L.Icon({
       iconUrl: `/images/${color}.svg`,

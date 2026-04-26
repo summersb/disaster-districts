@@ -67,11 +67,13 @@ from (values
 ) as m(family_name, given_name, address1, city, state, postal_code, phone, lat, lng);
 
 -- Two sample districts in Sample Ward, with leader/assistant assigned from the seeded members.
+-- Color names match the ColorPicker options and the SVG filenames in
+-- frontend/public/images (e.g. /images/Blue.svg, /images/Red.svg).
 insert into districts (name, ward_id, color, lat, lng, leader, assistant)
 select
     'North District',
     (select id from wards where name = 'Sample Ward'),
-    '#3b82f6',
+    'Blue',
     40.7180,
     -74.0060,
     (select id from members where name = 'Anderson, James'),
@@ -81,7 +83,7 @@ insert into districts (name, ward_id, color, lat, lng, leader, assistant)
 select
     'South District',
     (select id from wards where name = 'Sample Ward'),
-    '#ef4444',
+    'Red',
     40.7080,
     -74.0060,
     (select id from members where name = 'Brown, Mary'),

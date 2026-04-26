@@ -45,7 +45,11 @@ class MembersResource(
 
     @GET
     fun getMembers(): Response {
-        val members = wardId?.let { memberRepository.findByWard(it) }
+        // wardId == 0 is the frontend's "no ward" convention used by system /
+        // ward admins who aren't tied to a single ward; in that case return
+        // every member instead of scoping by ward.
+        val scope = wardId?.takeIf { it > 0 }
+        val members = scope?.let { memberRepository.findByWard(it) }
             ?: memberRepository.listAll()
         return Response.ok(members.map { toDto(it) }).build()
     }

@@ -3,6 +3,7 @@ package dd.resource
 import dd.dao.DistrictDao
 import dd.repository.DistrictRepository
 import dd.repository.WardRepository
+import jakarta.persistence.EntityManager
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.Path
@@ -12,6 +13,7 @@ import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.enterprise.context.RequestScoped
 import jakarta.transaction.Transactional
+import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.PUT
 import jakarta.ws.rs.core.Context
@@ -24,6 +26,7 @@ import jakarta.ws.rs.core.UriInfo
 class DistrictsResource(
     val districtRepository: DistrictRepository,
     val wardRepository: WardRepository,
+    val entityManager: EntityManager,
     @field:Context val uriInfo: UriInfo
 ) {
     var wardId: Long? = null
@@ -39,7 +42,11 @@ class DistrictsResource(
 
     @GET
     fun getDistricts(): Response {
-        val districts = wardId?.let { districtRepository.list("ward.id", it) }
+        // wardId == 0 is the frontend's "no ward" convention used by system /
+        // ward admins who aren't tied to a single ward; in that case return
+        // every district instead of scoping by ward.
+        val scope = wardId?.takeIf { it > 0 }
+        val districts = scope?.let { districtRepository.list("ward.id", it) }
             ?: districtRepository.listAll()
         return Response.ok(districts.map { toDto(it) }).build()
     }
@@ -83,5 +90,21 @@ class DistrictsResource(
         district.lat?.let { dbDistrict.lat = it }
         district.lng?.let { dbDistrict.lng = it }
         return Response.ok(toDto(dbDistrict)).build()
+    }
+
+    @DELETE
+    @Path("/{id}")
+    @Transactional
+    fun deleteDistrict(@PathParam("id") id: Long): Response {
+        val dbDistrict = districtRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
+        // Detach any members pointing at this district before delete; otherwise
+        // the members.district_id FK blocks the delete. The schema's leader and
+        // assistant columns belong to districts itself and go away with the row.
+        entityManager
+            .createQuery("update Member m set m.district = null where m.district.id = :id")
+            .setParameter("id", id)
+            .executeUpdate()
+        districtRepository.delete(dbDistrict)
+        return Response.noContent().build()
     }
 }

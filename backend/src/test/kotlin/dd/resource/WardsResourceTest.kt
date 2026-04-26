@@ -70,7 +70,7 @@ class WardsResourceTest {
             .then()
             .statusCode(200)
             .body("find { it.name == 'Anderson, James' }.district.name", equalTo("North District"))
-            .body("find { it.name == 'Anderson, James' }.district.color", equalTo("#3b82f6"))
+            .body("find { it.name == 'Anderson, James' }.district.color", equalTo("Blue"))
             // The DTO must NOT carry a members back-reference (would be infinite recursion).
             .body("find { it.name == 'Anderson, James' }.district.members", equalTo(null))
     }

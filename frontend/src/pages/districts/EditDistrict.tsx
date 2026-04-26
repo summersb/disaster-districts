@@ -38,12 +38,23 @@ const EditDistrict = ({ districtId }: EditDistrictProps): React.ReactElement => 
     if (data && members) {
       // convert db district shape to form District shape
       const db = data as any
+      // The map and the ColorPicker key off color *names* that match SVG
+      // filenames in /public/images (e.g. Blue.svg). Legacy rows may have a
+      // hex value stored — normalize those to a sensible default so the
+      // picker has something to select and the marker has an icon.
+      const knownColorNames = [
+        'Red', 'Green', 'Blue', 'Pink', 'Orange', 'Cyan', 'Dark Red',
+        'Purple', 'Yellow', 'Lime', 'Indigo', 'Violet', 'Teal',
+        'Bright Red', 'Scarlet', 'Sky Blue', 'Dark Orange', 'Light Green',
+        'Magenta', 'Bright Green',
+      ]
+      const color = knownColorNames.includes(db.color) ? db.color : 'Blue'
       const district: District = {
         id: db.id,
         name: db.name,
         leader: members.find((m) => m.id === db.leaderId) ?? ({} as any),
         assistant: members.find((m) => m.id === db.assistantId) ?? undefined,
-        color: db.color,
+        color,
         lat: db.lat,
         lng: db.lng,
         members: (members ?? []).filter((m) => m.district?.id === db.id),
