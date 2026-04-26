@@ -2,15 +2,18 @@ package dd.resource
 
 import dd.dao.DistrictDao
 import dd.repository.DistrictRepository
+import dd.repository.WardRepository
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.enterprise.context.RequestScoped
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.POST
+import jakarta.ws.rs.PUT
 import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.Response.Status
 import jakarta.ws.rs.core.UriInfo
@@ -20,21 +23,32 @@ import jakarta.ws.rs.core.UriInfo
 @Produces(MediaType.APPLICATION_JSON)
 class DistrictsResource(
     val districtRepository: DistrictRepository,
+    val wardRepository: WardRepository,
     @field:Context val uriInfo: UriInfo
 ) {
     var wardId: Long? = null
 
+    private fun toDto(d: DistrictDao) = DistrictDto(
+        id = d.id,
+        name = d.name,
+        color = d.color,
+        lat = d.lat,
+        lng = d.lng,
+        wardId = d.ward?.id,
+    )
+
     @GET
-    fun getDistricts(id: Long): Response {
-        val wards = districtRepository.listAll()
-        return Response.ok(wards).build()
+    fun getDistricts(): Response {
+        val districts = wardId?.let { districtRepository.list("ward.id", it) }
+            ?: districtRepository.listAll()
+        return Response.ok(districts.map { toDto(it) }).build()
     }
 
     @GET
     @Path("/{id}")
-    fun getDistrict(id: Long): Response {
+    fun getDistrict(@PathParam("id") id: Long): Response {
         val district = districtRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
-        return Response.ok(district).build()
+        return Response.ok(toDto(district)).build()
     }
 
     @POST
@@ -47,12 +61,27 @@ class DistrictsResource(
         if (districtExists != null) {
             return Response.status(Status.CONFLICT).build()
         }
-        val dbuser = DistrictDao().apply {
+        val dbDistrict = DistrictDao().apply {
             name = district.name
             color = district.color
+            lat = district.lat
+            lng = district.lng
+            ward = wardId?.let { wardRepository.findById(it) }
         }
-        dbuser.persist()
-        val uri = uriInfo.getAbsolutePathBuilder().path(dbuser.id.toString())
+        dbDistrict.persist()
+        val uri = uriInfo.getAbsolutePathBuilder().path(dbDistrict.id.toString())
         return Response.created(uri.build()).build()
+    }
+
+    @PUT
+    @Path("/{id}")
+    @Transactional
+    fun updateDistrict(@PathParam("id") id: Long, district: District): Response {
+        val dbDistrict = districtRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
+        district.name?.let { dbDistrict.name = it }
+        district.color?.let { dbDistrict.color = it }
+        district.lat?.let { dbDistrict.lat = it }
+        district.lng?.let { dbDistrict.lng = it }
+        return Response.ok(toDto(dbDistrict)).build()
     }
 }

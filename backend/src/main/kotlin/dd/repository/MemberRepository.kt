@@ -13,6 +13,6 @@ class MemberRepository : PanacheRepository<MemberDao> {
     }
 
     fun findByWard(id: Long): List<MemberDao> {
-        return find("wardId", id).list()
+        return find("ward.id", id).list()
     }
 }

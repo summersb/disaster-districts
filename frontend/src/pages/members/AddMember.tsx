@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
 import { useAddMember } from '@/hooks/useMembers'
+import { getWardId } from '@/lib/api'
 import { genId } from '@/lib/utils'
 import { getGeo } from '@/pages/members/process.ts'
 import type { Member } from '@/type'
@@ -35,7 +36,7 @@ export default function AddMember() {
   const onSubmit: SubmitHandler<Member> = async (data) => {
     const m = await getGeo(data)
     try {
-      await createMember.mutateAsync({ wardId: 0, member: m } as any)
+      await createMember.mutateAsync({ wardId: getWardId(), member: m } as any)
       form.reset()
     } catch (e) {
       console.error('Create member failed', e)

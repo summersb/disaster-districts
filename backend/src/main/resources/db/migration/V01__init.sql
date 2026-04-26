@@ -2,7 +2,9 @@ create sequence wards_id_seq;
 
 create table wards (
     id bigint primary key default nextval('wards_id_seq'),
-    name varchar(255)
+    name varchar(255),
+    lat double precision,
+    lng double precision
 );
 
 create sequence users_id_seq;
@@ -30,7 +32,9 @@ create table districts (
     leader bigint,
     assistant bigint,
     color varchar(50),
-    ward_id bigint
+    ward_id bigint,
+    lat double precision,
+    lng double precision
 );
 
 create sequence members_id_seq;
@@ -58,7 +62,6 @@ alter table districts add constraint districts_assistant_fk foreign key (assista
 alter table districts add constraint districts_ward_fk foreign key (ward_id) references wards (id);
 alter table members add constraint members_district_fk foreign key (district_id) references districts (id);
 alter table members add constraint members_ward_fk foreign key (ward_id) references wards (id);
-alter table users add constraint users_ward_fk foreign key (ward_id) references wards (id);
 
-alter table user_roles foreign key (user_id) references users(id);
-alter table user_roles foreign key (ward_id) references wards(id);
+alter table user_roles add constraint users_role_users_fk foreign key (user_id) references users(id);
+alter table user_roles add constraint users_role_wards_fk foreign key (ward_id) references wards(id);

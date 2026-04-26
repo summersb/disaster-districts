@@ -28,6 +28,9 @@ open class DistrictDao : PanacheEntityBase {
     @Column(length=50)
     var color: String? = null
 
+    var lat: Double? = null
+    var lng: Double? = null
+
     @OneToMany(mappedBy = "district")
     var members: MutableList<MemberDao>? = mutableListOf()
     @ManyToOne

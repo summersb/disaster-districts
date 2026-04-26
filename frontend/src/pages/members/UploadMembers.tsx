@@ -7,6 +7,7 @@ import {
   useMembers,
   useSaveMember,
 } from '@/hooks/useMembers'
+import { getWardId } from '@/lib/api'
 import { genId } from '@/lib/utils'
 import UploadCsv from '@/pages/members/UploadCsv.tsx'
 import UploadPdf from '@/pages/members/UploadPdf.tsx'
@@ -29,8 +30,9 @@ const UploadMembers = (): React.ReactElement => {
   const queryClient = useQueryClient()
   const form = useForm<FormType>()
   const [members, setMembers] = useState<Member[]>()
+  const wardId = getWardId()
 
-  const { data: dbMemberList } = useMembers(0 as any)
+  const { data: dbMemberList } = useMembers(wardId)
 
   const addMember = useAddMember()
   const saveMemberHook = useSaveMember()
@@ -107,7 +109,7 @@ const UploadMembers = (): React.ReactElement => {
 
       saveMemberHook
         .mutateAsync({
-          wardId: 0,
+          wardId,
           memberId: Number(updatedMember.id),
           member: updatedMember as any,
         })
@@ -124,7 +126,7 @@ const UploadMembers = (): React.ReactElement => {
       // create each new member via hook so cache invalidation is handled
       await Promise.all(
         newMembers.map((m) =>
-          addMember.mutateAsync({ wardId: 0, member: m as any }),
+          addMember.mutateAsync({ wardId, member: m as any }),
         ),
       ).catch((err) => console.error('Error creating new members', err))
     }
@@ -136,7 +138,7 @@ const UploadMembers = (): React.ReactElement => {
     const ids = removedMembers.map((m) => m.id)
     for (const id of ids) {
       try {
-        await deleteMemberHook.mutateAsync({ wardId: 0, memberId: Number(id) })
+        await deleteMemberHook.mutateAsync({ wardId, memberId: Number(id) })
       } catch (err) {
         console.error('Failed to delete member', id, err)
       }

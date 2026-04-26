@@ -2,6 +2,7 @@ import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 import OSMMapWithMarkers from '@/components/OSMMapWithMarkersOneDistrict.tsx'
 import { useDistrict } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
+import { getWardId } from '@/lib/api'
 import type { District } from '@/type'
 import type { LatLngBoundsExpression } from 'leaflet'
 import type React from 'react'
@@ -34,9 +35,10 @@ type ShowOneDistrictMap = {
 const ShowOneDistrictMap = (props: ShowOneDistrictMap): React.ReactElement => {
   // todo
   const districtId = 0
-  const { data: members } = useMembers(0 as any)
+  const wardId = getWardId()
+  const { data: members } = useMembers(wardId)
 
-  const { data: district } = useDistrict(0 as any, districtId)
+  const { data: district } = useDistrict(wardId, districtId)
 
   const bounds = (d: District) => {
     const distMembers = d.members

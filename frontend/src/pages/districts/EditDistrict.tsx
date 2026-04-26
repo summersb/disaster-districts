@@ -1,6 +1,7 @@
 import { Form } from '@/components/ui/form'
 import { useDistrict } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
+import { getWardId } from '@/lib/api'
 import type { District } from '@/type'
 import { DistrictSchema } from '@/type'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -11,10 +12,13 @@ import DistrictForm from './DistrictForm'
 
 import SaveButton from '@/components/styled/SaveButton.tsx'
 
-const EditDistrict = (): React.ReactElement => {
+type EditDistrictProps = {
+  districtId: number
+}
+
+const EditDistrict = ({ districtId }: EditDistrictProps): React.ReactElement => {
   const [saving, setSaving] = useState<boolean>(false)
-  // todo get id from path via tanstack
-  const districtId = 0
+  const wardId = getWardId()
 
   const form = useForm<District>({
     resolver: zodResolver(DistrictSchema) as unknown as
@@ -27,8 +31,8 @@ const EditDistrict = (): React.ReactElement => {
     },
   })
 
-  const { data: members } = useMembers(0 as any)
-  const { data } = useDistrict(0 as any, Number(districtId))
+  const { data: members } = useMembers(wardId)
+  const { data } = useDistrict(wardId, Number(districtId))
 
   useEffect(() => {
     if (data && members) {
@@ -40,39 +44,30 @@ const EditDistrict = (): React.ReactElement => {
         leader: members.find((m) => m.id === db.leaderId) ?? ({} as any),
         assistant: members.find((m) => m.id === db.assistantId) ?? undefined,
         color: db.color,
-        members: (members ?? []).filter((m) => db.members?.includes(m.id)),
+        lat: db.lat,
+        lng: db.lng,
+        members: (members ?? []).filter((m) => m.district?.id === db.id),
       }
       form.reset(district)
     }
-  }, [data, form])
+  }, [data, members, form])
 
   const onSubmit: SubmitHandler<District> = async (data) => {
     setSaving(true)
-    type DistrictDbType = {
-      id: number
-      name: string
-      leaderId?: number
-      assistantId?: number
-      color?: string
-      members?: number[]
-    }
-
-    const dbDistrict: DistrictDbType = {
-      id: data.id,
+    const body = {
       name: data.name,
-      leaderId: data.leader?.id,
-      assistantId: data.assistant?.id,
       color: data.color,
-      members: data.members?.map((m) => m.id) ?? [],
+      lat: data.lat,
+      lng: data.lng,
     }
-    dbDistrict.assistantId = data?.assistant?.id ?? undefined
 
     try {
-      await fetch(`/api/wards/0/district/${dbDistrict.id}`, {
+      const res = await fetch(`/api/wards/${wardId}/districts/${data.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dbDistrict),
+        body: JSON.stringify(body),
       })
+      if (!res.ok) throw new Error(`Save failed: ${res.status}`)
     } catch (err: any) {
       form.setError('name', {
         type: 'custom',

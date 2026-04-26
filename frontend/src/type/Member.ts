@@ -1,5 +1,11 @@
 import * as z from 'zod'
 
+export const DistrictRefSchema = z.object({
+  id: z.number().optional(),
+  name: z.string().optional(),
+  color: z.string().optional(),
+})
+
 export const MemberSchema = z.object({
   id: z.number(),
   familyName: z.string(),
@@ -14,6 +20,8 @@ export const MemberSchema = z.object({
   lat: z.number().optional(),
   lng: z.number().optional(),
   notes: z.string().optional(),
+  wardId: z.number().optional(),
+  district: DistrictRefSchema.optional().nullable(),
 })
 
 export type Member = z.infer<typeof MemberSchema>

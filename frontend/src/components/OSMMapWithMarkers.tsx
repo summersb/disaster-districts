@@ -1,5 +1,12 @@
 import type React from 'react'
-import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet'
+import {
+  MapContainer,
+  Marker,
+  TileLayer,
+  Tooltip,
+  useMap,
+  useMapEvents,
+} from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 import { deClutter } from '@/components/mapUtils.ts'
@@ -19,11 +26,25 @@ function ChangeView(center: Position) {
   return null
 }
 
+function ClickHandler({
+  onClick,
+}: {
+  onClick: (lat: number, lng: number) => void
+}) {
+  useMapEvents({
+    click(e) {
+      onClick(e.latlng.lat, e.latlng.lng)
+    },
+  })
+  return null
+}
+
 type MapWithMarkersProps = {
   districts: District[]
   members: Member[]
   center?: Position
   markerClicked?: (member: Member) => void
+  onMapClick?: (lat: number, lng: number) => void
   showLabel: boolean
 }
 
@@ -47,7 +68,7 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
   const getMemberColor = (memberId: number): string => {
     // check if member is leader
     const leaderColor = props.districts?.find(
-      (d) => d.leader.id === memberId,
+      (d) => d.leader?.id === memberId,
     )?.color
     const color = 'Blue'
     return leaderColor ?? color ?? 'Blue'
@@ -102,6 +123,7 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <ChangeView lat={center.lat} lng={center.lng} />
+      {props.onMapClick && <ClickHandler onClick={props.onMapClick} />}
       {deClutter(props.members)?.map((member: Member) => (
         <Marker
           key={member.id}
@@ -120,16 +142,22 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
         </Marker>
       ))}
       {props.districts?.map((d) => {
-        // get average lat/lng for a district
-        const distMembers = d.members.filter(
+        // Prefer the district's stored lat/lng. If absent, fall back to the
+        // average position of the district's own members.
+        const distMembers = (d.members ?? []).filter(
           (m: Member | undefined): m is Member => m != null,
         )
-        if (distMembers == null || distMembers?.length === 0) return null
-        const center = findCenter(distMembers)
+        const districtCenter =
+          d.lat != null && d.lng != null
+            ? { lat: d.lat, lng: d.lng }
+            : distMembers.length > 0
+              ? findCenter(distMembers)
+              : null
+        if (districtCenter == null) return null
         return (
           <Marker
             key={d.id}
-            position={[center.lat, center.lng]}
+            position={[districtCenter.lat, districtCenter.lng]}
             icon={getGroupIcon()}
             eventHandlers={{ click: () => districtClicked(d) }}
           >

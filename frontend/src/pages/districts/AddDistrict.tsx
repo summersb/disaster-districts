@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input.tsx'
 import { useAddDistrict } from '@/hooks/useDistricts'
+import { getWardId } from '@/lib/api'
 import { genId } from '@/lib/utils'
 import { Route as DistrictRoute } from '@/routes/_protected/district/$id.tsx'
 import { useNavigate } from '@tanstack/react-router'
@@ -43,7 +44,7 @@ const AddDistrict = (): React.ReactElement => {
       members: [],
     }
     try {
-      await addDistrict.mutateAsync({ wardId: 0, district: data as any })
+      await addDistrict.mutateAsync({ wardId: getWardId(), district: data as any })
       navigate({ to: DistrictRoute.to, params: { id: String(data.id) } }).catch(
         (err) => console.log(err),
       )

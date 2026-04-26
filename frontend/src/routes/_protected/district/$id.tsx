@@ -6,5 +6,6 @@ export const Route = createFileRoute('/_protected/district/$id')({
 })
 
 function RouteComponent() {
-  return <EditDistrict />
+  const { id } = Route.useParams()
+  return <EditDistrict districtId={Number(id)} />
 }

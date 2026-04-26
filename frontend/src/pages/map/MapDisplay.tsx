@@ -1,6 +1,8 @@
 import OSMMapWithMarkers from '@/components/OSMMapWithMarkers.tsx'
 import { useDistricts } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
+import { useWard } from '@/hooks/useWards'
+import { getWardId } from '@/lib/api'
 import type { District, Member } from '@/type'
 import type React from 'react'
 
@@ -11,18 +13,25 @@ type MapDisplayProps = {
   members?: Member[]
   leader?: Member
   markerClicked?: (member: Member) => void
+  onMapClick?: (lat: number, lng: number) => void
   showLabel: boolean
 }
 
 const MapDisplay = ({
   members,
-  lat = 33.1928423,
-  lng = -117.2413057,
+  districts: districtsProp,
+  lat,
+  lng,
   markerClicked,
+  onMapClick,
   showLabel,
 }: MapDisplayProps): React.ReactElement => {
-  const { data, isError, isLoading } = useMembers(0 as any)
-  const { data: districts, isLoading: districtsLoading } = useDistricts(0 as any)
+  const wardId = getWardId()
+  const { data, isError, isLoading } = useMembers(wardId)
+  const { data: districtsFromQuery, isLoading: districtsLoading } =
+    useDistricts(wardId)
+  const districts = districtsProp ?? districtsFromQuery
+  const { data: ward } = useWard(wardId)
 
   if (isError) {
     return <div className="p-4 text-destructive">Failed to load members.</div>
@@ -34,7 +43,12 @@ const MapDisplay = ({
 
   const memberList = members ?? data ?? []
   const mapped = memberList.filter((m) => m.lat !== undefined)
-  const center = { lat, lng }
+  // Caller-supplied coords (e.g. a district's lat/lng) win; otherwise fall back
+  // to the user's ward, then a hard-coded default.
+  const center = {
+    lat: lat ?? ward?.lat ?? 33.1928423,
+    lng: lng ?? ward?.lng ?? -117.2413057,
+  }
 
   if (!districts) {
     return <div className="p-4 text-muted-foreground">Loading districts...</div>
@@ -55,6 +69,7 @@ const MapDisplay = ({
         members={mapped}
         center={center}
         markerClicked={markerClicked}
+        onMapClick={onMapClick}
         showLabel={showLabel}
       />
     </div>

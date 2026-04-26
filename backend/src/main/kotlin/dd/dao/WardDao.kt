@@ -23,6 +23,9 @@ open class WardDao : PanacheEntityBase {
 
     var name: String? = null
 
+    var lat: Double? = null
+    var lng: Double? = null
+
     @OneToMany(mappedBy = "ward")
     var districts: MutableList<DistrictDao>? = mutableListOf()
 

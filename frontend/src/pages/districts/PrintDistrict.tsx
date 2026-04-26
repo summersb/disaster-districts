@@ -8,6 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table.tsx'
 import { useDistrict } from '@/hooks/useDistricts'
+import { getWardId } from '@/lib/api'
 import ShowOneDistrictMap from '@/pages/districts/ShowOneDistrictMap'
 import type React from 'react'
 
@@ -21,7 +22,7 @@ const PrintDistrict = (props: DistrictProps): React.ReactElement => {
 
   const id =
     props.districtId != null ? props.districtId : Number(districtId ?? 0)
-  const { data: district } = useDistrict(0 as any, id)
+  const { data: district } = useDistrict(getWardId(), id)
 
   return (
     <div className="new-right-page page">

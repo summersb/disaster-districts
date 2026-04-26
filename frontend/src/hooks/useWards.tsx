@@ -18,9 +18,10 @@ export const useWards = () => {
   })
 }
 
-export const useWard = async (wardId: number) => {
+export const useWard = (wardId: number) => {
   return useQuery<Ward>({
     queryKey: ['ward', wardId],
     queryFn: () => loadWard(wardId),
+    enabled: wardId > 0,
   })
 }

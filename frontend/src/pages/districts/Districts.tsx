@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table'
 import { useDistricts } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
+import { getWardId } from '@/lib/api'
 import { Route as DistrictRoute } from '@/routes/_protected/district/$id'
 import { Route as DistrictPrintRoute } from '@/routes/_protected/print/$districtId'
 import type { District, Member } from '@/type'
@@ -25,7 +26,7 @@ import { FilePenLine, View } from 'lucide-react'
 import DeleteDistrictButton from './DeleteDistrictButton'
 
 const columns: (memberList: Member[]) => ColumnDef<District>[] = (
-  _memberList: Member[],
+  memberList: Member[],
 ) => [
   {
     accessorKey: 'view',
@@ -76,7 +77,9 @@ const columns: (memberList: Member[]) => ColumnDef<District>[] = (
     accessorKey: 'count',
     header: 'Member Count',
     cell: (info) => {
-      return <span>{info.row.original?.members?.length ?? -1}</span>
+      const districtId = info.row.original.id
+      const count = memberList.filter((m) => m.district?.id === districtId).length
+      return <span>{count}</span>
     },
   },
   {
@@ -87,9 +90,10 @@ const columns: (memberList: Member[]) => ColumnDef<District>[] = (
 ]
 
 export default function Districts() {
-  const { data: districts } = useDistricts(0 as any)
+  const wardId = getWardId()
+  const { data: districts } = useDistricts(wardId)
 
-  const { data: memberList } = useMembers(0 as any)
+  const { data: memberList } = useMembers(wardId)
 
   const table = useReactTable({
     data: districts || [],

@@ -96,7 +96,7 @@ class AuthResource(
         admin.userRoles.add(adminRole)
 
         val token = generateToken(admin.email)
-        return Response.ok(AuthResponse(token, admin.id, admin.email, admin.getRoleList())).build()
+        return Response.ok(AuthResponse(token, admin.id, admin.email, admin.getRoleList(), admin.getWard()?.id)).build()
     }
 
     @POST
@@ -115,7 +115,7 @@ class AuthResource(
         }
 
         val token = generateToken(foundUser.email)
-        return Response.ok(AuthResponse(token, foundUser.id, foundUser.email, foundUser.getRoleList())).build()
+        return Response.ok(AuthResponse(token, foundUser.id, foundUser.email, foundUser.getRoleList(), foundUser.getWard()?.id)).build()
     }
 
     @POST
@@ -139,7 +139,7 @@ class AuthResource(
         }
 
         val token = generateToken(user.email)
-        return Response.ok(AuthResponse(token, user.id, user.email, user.getRoleList())).build()
+        return Response.ok(AuthResponse(token, user.id, user.email, user.getRoleList(), user.getWard()?.id)).build()
     }
 }
 
@@ -156,6 +156,7 @@ data class AuthResponse(
     val id: Long?,
     val email: String,
     val roles: List<String>,
+    val wardId: Long?,
 )
 
 data class GoogleTokenRequest(

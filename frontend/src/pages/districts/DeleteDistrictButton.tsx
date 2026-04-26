@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog.tsx'
 import { useDeleteDistrict } from '@/hooks/useDistricts'
+import { getWardId } from '@/lib/api'
 import type { District } from '@/type'
 import { useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
@@ -28,7 +29,7 @@ const DeleteDistrictButton = ({
 
   const doDelete = async () => {
     try {
-      await deleteMutation.mutateAsync({ wardId: 0, districtId: district.id })
+      await deleteMutation.mutateAsync({ wardId: getWardId(), districtId: district.id })
       await queryClient.invalidateQueries({ queryKey: ['districts'] })
     } catch (e) {
       console.log(`Error ${e}`)

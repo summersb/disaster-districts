@@ -1,9 +1,10 @@
 import { useDistricts } from '@/hooks/useDistricts'
+import { getWardId } from '@/lib/api'
 import PrintDistrict from '@/pages/districts/PrintDistrict.tsx'
 import type React from 'react'
 
 const PrintAllDistricts = (): React.ReactElement => {
-  const { data: districts } = useDistricts(0 as any)
+  const { data: districts } = useDistricts(getWardId())
 
   return (
     <>

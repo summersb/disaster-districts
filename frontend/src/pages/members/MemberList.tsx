@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/table'
 import { useDistricts } from '@/hooks/useDistricts'
 import { useDeleteMember, useMembers, useSaveMember } from '@/hooks/useMembers'
+import { getWardId } from '@/lib/api'
 import { getGeo } from '@/pages/members/process.ts'
 import { Route as DistrictRoute } from '@/routes/_protected/district/$id'
 import { Route as MemberEditRoute } from '@/routes/_protected/member/$id'
@@ -39,9 +40,10 @@ const MemberList = () => {
   const [id, setId] = useState<number | undefined>()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const { data } = useMembers(0 as any)
+  const wardId = getWardId()
+  const { data } = useMembers(wardId)
 
-  const { data: districts } = useDistricts(0 as any)
+  const { data: districts } = useDistricts(wardId)
 
   const deleteMemberMutation = useDeleteMember()
   const saveMemberHook = useSaveMember()
@@ -49,7 +51,7 @@ const MemberList = () => {
   const deleteMember = async () => {
     if (id !== undefined) {
       try {
-        await deleteMemberMutation.mutateAsync({ wardId: 0, memberId: id })
+        await deleteMemberMutation.mutateAsync({ wardId, memberId: id })
         setOpen(false)
         // ensure members query is refreshed
         queryClient.invalidateQueries({ queryKey: ['members'] })
@@ -80,7 +82,7 @@ const MemberList = () => {
       member.lng = m.lng
       try {
         await saveMemberHook.mutateAsync({
-          wardId: 0,
+          wardId,
           memberId: Number(member.id),
           member: member as any,
         })

@@ -49,6 +49,7 @@ import useUser from '@/context/useUser.tsx'
 import { useAddDistrict } from '@/hooks/useDistricts'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
 import { useAddMember } from '@/hooks/useMembers'
+import { getWardId } from '@/lib/api'
 import type { District, Member } from '@/type'
 import type { UserRoles } from '@/type/User.ts'
 import type { Ward } from '@/type/Ward.ts'
@@ -98,10 +99,11 @@ const UploadWard = (): React.ReactElement => {
             const addMember = useAddMember()
             const addDistrict = useAddDistrict()
 
+            const wardId = getWardId()
             // create members sequentially to avoid overwhelming the backend
             for (const m of wardData.members) {
               try {
-                await addMember.mutateAsync({ wardId: 0, member: m as any })
+                await addMember.mutateAsync({ wardId, member: m as any })
               } catch (err) {
                 console.error('Failed to add member', m, err)
               }
@@ -110,7 +112,7 @@ const UploadWard = (): React.ReactElement => {
 
             for (const d of wardData.districts) {
               try {
-                await addDistrict.mutateAsync({ wardId: 0, district: d as any })
+                await addDistrict.mutateAsync({ wardId, district: d as any })
               } catch (err) {
                 console.error('Failed to add district', d, err)
               }

@@ -29,7 +29,7 @@ class WardsResource(
     @field:Context val uriInfo: UriInfo,
 ) {
 
-    private fun toDto(w: WardDao) = WardDto(id = w.id, name = w.name ?: "")
+    private fun toDto(w: WardDao) = WardDto(id = w.id, name = w.name ?: "", lat = w.lat, lng = w.lng)
 
     @GET
     fun getWards(): Response {
@@ -38,7 +38,7 @@ class WardsResource(
 
     @GET
     @Path("/{id}")
-    fun getWard(id: Long): Response {
+    fun getWard(@PathParam("id") id: Long): Response {
         val ward = wardRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
         return Response.ok(toDto(ward)).build()
     }
@@ -52,6 +52,8 @@ class WardsResource(
         }
         val dbWard = WardDao().apply {
             name = ward.name
+            lat = ward.lat
+            lng = ward.lng
         }
         dbWard.persist()
         val uri = uriInfo.getAbsolutePathBuilder().path(dbWard.id.toString())
@@ -59,13 +61,13 @@ class WardsResource(
     }
 
     @Path("{wardId}/districts")
-    fun getDistricts(wardId: Long): DistrictsResource {
+    fun getDistricts(@PathParam("wardId") wardId: Long): DistrictsResource {
         districtsResource.wardId = wardId
         return districtsResource
     }
 
     @Path("{wardId}/members")
-    fun getMembers(wardId: Long): MembersResource {
+    fun getMembers(@PathParam("wardId") wardId: Long): MembersResource {
         membersResource.wardId = wardId
         return membersResource
     }

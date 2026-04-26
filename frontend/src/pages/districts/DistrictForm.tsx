@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/popover'
 import { useDistricts } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
+import { getWardId } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import MapDisplay from '@/pages/map/MapDisplay'
 import type { District, Member } from '@/type'
@@ -51,14 +52,27 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
     keyName: '_id',
   })
 
-  const { data } = useMembers(0 as any)
+  const wardId = getWardId()
+  const { data } = useMembers(wardId)
 
-  const { data: districts } = useDistricts(0 as any)
+  const { data: districts } = useDistricts(wardId)
   const color = form.watch('color')
   const leader = form.watch('leader')
   const assistant = form.watch('assistant')
+  const lat = form.watch('lat') as number | undefined
+  const lng = form.watch('lng') as number | undefined
   // update current district with current member list
   const currentDistrict = districts?.find((d) => d.id === districtId)
+  // Members assigned to this district come from the ward member list filtered
+  // by member.district.id; that's what gets shown on the edit map.
+  const districtMemberList = (data ?? []).filter(
+    (m) => m.district?.id === districtId,
+  )
+
+  const handleMapClick = (clickedLat: number, clickedLng: number) => {
+    form.setValue('lat', clickedLat, { shouldDirty: true })
+    form.setValue('lng', clickedLng, { shouldDirty: true })
+  }
   if (currentDistrict) {
     currentDistrict.members = districtMembers.map((m) => m.id)
     if (leader) {
@@ -260,6 +274,58 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
             </Popover>
           </div>
 
+          <div className="mb-4 flex gap-2">
+            <FormField
+              control={form.control}
+              name="lat"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormLabel>Center latitude</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="any"
+                      placeholder="lat"
+                      value={field.value ?? ''}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === '' ? undefined : Number(e.target.value),
+                        )
+                      }
+                      className="text-white bg-gray-900"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="lng"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormLabel>Center longitude</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="any"
+                      placeholder="lng"
+                      value={field.value ?? ''}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === '' ? undefined : Number(e.target.value),
+                        )
+                      }
+                      className="text-white bg-gray-900"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+          <p className="text-sm text-muted-foreground mb-2">
+            Click anywhere on the map to move the district center.
+          </p>
+
           <div className="flex mb-4">
             <div className="w-1/2 mr-2">
               <label htmlFor="districtMembers" className="block font-bold mb-2">
@@ -293,14 +359,25 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
           </div>
         </div>
         {districts && (
-          <div className="w-3/4 ml-2">
+          <div className="w-3/4 ml-2 h-[600px]">
             <MapDisplay
-              districts={districts}
-              members={memberList}
-              lat={leader?.lat ?? 33.1928423}
-              lng={leader?.lng ?? -117.2413057}
+              districts={
+                currentDistrict
+                  ? [
+                      {
+                        ...(currentDistrict as any),
+                        lat: lat ?? (currentDistrict as any)?.lat,
+                        lng: lng ?? (currentDistrict as any)?.lng,
+                      } as District,
+                    ]
+                  : []
+              }
+              members={districtMemberList}
+              lat={lat ?? (currentDistrict as any)?.lat ?? leader?.lat}
+              lng={lng ?? (currentDistrict as any)?.lng ?? leader?.lng}
               leader={leader}
               markerClicked={memberClicked}
+              onMapClick={handleMapClick}
               showLabel
             />
           </div>

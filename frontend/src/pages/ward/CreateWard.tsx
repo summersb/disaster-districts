@@ -1,3 +1,4 @@
+import OSMLocationPicker from '@/components/OSMLocationPicker.tsx'
 import StyledButton from '@/components/styled/StyledButton.tsx'
 import {
   Form,
@@ -14,33 +15,46 @@ import type { Ward } from '@/type/Ward.ts'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
 import type React from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 const schema = z.object({
   name: z.string().trim().min(1, 'Ward name is required'),
+  lat: z.number({ error: 'Select a center point on the map' }),
+  lng: z.number({ error: 'Select a center point on the map' }),
 })
+
+type FormValues = z.infer<typeof schema>
 
 const CreateWard = (): React.ReactElement => {
   const { user } = useUser()
   const [, setActiveWard] = useLocalStorageState<Ward>('ward', undefined)
   const queryClient = useQueryClient()
-  const form = useForm<Ward>({
+  const [center, setCenter] = useState<{ lat: number; lng: number } | null>(
+    null,
+  )
+  const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: '',
     },
   })
-  const onSubmit = async (ward: Ward) => {
+  const onSubmit = async (values: FormValues) => {
     try {
       await fetch('/api/wards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: ward.name.trim(), user }),
+        body: JSON.stringify({
+          name: values.name.trim(),
+          lat: values.lat,
+          lng: values.lng,
+          user,
+        }),
       })
     } finally {
       queryClient.invalidateQueries({ queryKey: ['wards'] })
-      setActiveWard(ward)
+      setActiveWard({ name: values.name, lat: values.lat, lng: values.lng })
     }
   }
   return (
@@ -72,6 +86,45 @@ const CreateWard = (): React.ReactElement => {
               )}
             />
           </div>
+
+          <FormField
+            control={form.control}
+            name="lat"
+            render={() => (
+              <FormItem>
+                <FormLabel>Ward Center</FormLabel>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Click on the map to set the center of the ward area.
+                </p>
+                <FormControl>
+                  <div
+                    className="w-full rounded border overflow-hidden"
+                    style={{ height: '50vh', minHeight: 320 }}
+                  >
+                    <OSMLocationPicker
+                      value={center ?? undefined}
+                      onChange={(pos) => {
+                        setCenter(pos)
+                        form.setValue('lat', pos.lat, {
+                          shouldValidate: true,
+                        })
+                        form.setValue('lng', pos.lng, {
+                          shouldValidate: true,
+                        })
+                      }}
+                    />
+                  </div>
+                </FormControl>
+                {center && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Selected: {center.lat.toFixed(6)}, {center.lng.toFixed(6)}
+                  </p>
+                )}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <div className="mb-4">
             <StyledButton variant="outline" type="submit">
               Create

@@ -1,6 +1,7 @@
 import StyledButton from '@/components/styled/StyledButton.tsx'
 import { useDistricts } from '@/hooks/useDistricts.tsx'
 import { useMembers } from '@/hooks/useMembers.tsx'
+import { getWardId } from '@/lib/api'
 import type React from 'react'
 
 const fetchPerms = async () => {
@@ -9,8 +10,9 @@ const fetchPerms = async () => {
 }
 
 export const DownloadWard = (): React.ReactElement => {
-  const { data: members } = useMembers(0 as any)
-  const { data: districts } = useDistricts(0 as any)
+  const wardId = getWardId()
+  const { data: members } = useMembers(wardId)
+  const { data: districts } = useDistricts(wardId)
 
   const downloadWard = async () => {
     const permissions = await fetchPerms()

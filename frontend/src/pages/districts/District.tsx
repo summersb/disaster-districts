@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog.tsx'
 import { TableCell, TableRow } from '@/components/ui/table'
 import { useDeleteDistrict, useDistrict } from '@/hooks/useDistricts'
+import { getWardId } from '@/lib/api'
 import { Route as DistrictRoute } from '@/routes/_protected/district/$id.tsx'
 import type { District } from '@/type'
 import { Link } from '@tanstack/react-router'
@@ -22,7 +23,8 @@ type DistrictProps = {
 }
 
 export default function District(props: DistrictProps) {
-  const { data } = useDistrict(0, props.district.id)
+  const wardId = getWardId()
+  const { data } = useDistrict(wardId, props.district.id)
   const deleteDistrict = useDeleteDistrict()
   const { district: d } = props
   const [open, setOpen] = useState<boolean>(false)
@@ -32,7 +34,7 @@ export default function District(props: DistrictProps) {
   }
 
   const doDelete = () => {
-    deleteDistrict.mutate({ wardId: 0, districtId: d.id })
+    deleteDistrict.mutate({ wardId, districtId: d.id })
     setOpen(false)
   }
 

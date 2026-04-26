@@ -8,6 +8,8 @@ export const DistrictSchema = z.object({
   assistant: MemberSchema.optional(),
   color: z.string(),
   members: z.array(MemberSchema),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
 })
 
 export type District = z.infer<typeof DistrictSchema>

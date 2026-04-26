@@ -1,6 +1,7 @@
 import StyledButton from '@/components/styled/StyledButton.tsx'
 import { Form } from '@/components/ui/form'
 import { useMember, useSaveMember } from '@/hooks/useMembers'
+import { getWardId } from '@/lib/api'
 import { getGeo } from '@/pages/members/process.ts'
 import { Route as MemberRoute } from '@/routes/_protected/member'
 import type { Member } from '@/type'
@@ -16,7 +17,8 @@ const EditMember = () => {
   // todo
   const memberId = 0
   const navigate = useNavigate()
-  const { data } = useMember(0 as any, Number(memberId))
+  const wardId = getWardId()
+  const { data } = useMember(wardId, Number(memberId))
 
   const form = useForm<Member>({
     resolver: zodResolver(MemberSchema) as unknown as
@@ -38,7 +40,7 @@ const EditMember = () => {
     const m = await getGeo(data)
     try {
       await saveMemberHook.mutateAsync({
-        wardId: 0,
+        wardId,
         memberId: Number(data.id),
         member: m as any,
       })
