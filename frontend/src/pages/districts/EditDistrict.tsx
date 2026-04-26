@@ -14,9 +14,13 @@ import SaveButton from '@/components/styled/SaveButton.tsx'
 
 type EditDistrictProps = {
   districtId: number
+  readOnly?: boolean
 }
 
-const EditDistrict = ({ districtId }: EditDistrictProps): React.ReactElement => {
+const EditDistrict = ({
+  districtId,
+  readOnly = false,
+}: EditDistrictProps): React.ReactElement => {
   const [saving, setSaving] = useState<boolean>(false)
   const wardId = getWardId()
 
@@ -96,7 +100,9 @@ const EditDistrict = ({ districtId }: EditDistrictProps): React.ReactElement => 
   return (
     <div className="h-full flex flex-col items-center justify-center">
       <div className="w-full rounded p-6 shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Edit District</h2>
+        <h2 className="text-xl font-semibold mb-4">
+          {readOnly ? 'View District' : 'Edit District'}
+        </h2>
 
         {data && (
           <Form {...form}>
@@ -105,11 +111,13 @@ const EditDistrict = ({ districtId }: EditDistrictProps): React.ReactElement => 
               onSubmit={form.handleSubmit(onSubmit)}
               method="POST"
             >
-              <DistrictForm districtId={districtId} />
+              <DistrictForm districtId={districtId} readOnly={readOnly} />
 
-              <div className="text-gray-700 mb-4">
-                <SaveButton saving={saving} name="Save" disableName="Saving" />
-              </div>
+              {!readOnly && (
+                <div className="text-gray-700 mb-4">
+                  <SaveButton saving={saving} name="Save" disableName="Saving" />
+                </div>
+              )}
             </form>
           </Form>
         )}

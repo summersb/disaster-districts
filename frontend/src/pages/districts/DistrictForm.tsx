@@ -34,9 +34,10 @@ import { useFieldArray, useFormContext } from 'react-hook-form'
 
 type DistrictFormProps = {
   districtId: number
+  readOnly?: boolean
 }
 
-const DistrictForm = ({ districtId }: DistrictFormProps) => {
+const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
   const [openLeader, setOpenLeader] = useState(false)
   const [openAssistant, setOpenAssistant] = useState(false)
   const [pickingCenter, setPickingCenter] = useState(false)
@@ -90,6 +91,7 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
   }
 
   const memberClicked = (member: Member) => {
+    if (readOnly) return
     if (districtMembers.find((m) => m.id === member.id)) {
       districtMembers.forEach((m, idx) => {
         if (m.id === member.id) {
@@ -102,9 +104,17 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
     }
   }
 
-  const memberList: Member[] = data ?? []
-  const leaderList = memberList?.filter((m) => m.id !== assistant?.id)
-  const assistantList = memberList?.filter((m) => m.id !== leader?.id)
+  // Leaders/assistants must come from the district's own membership. Fall back
+  // to including the currently-selected member even if they aren't in the list
+  // (e.g. legacy data) so the picker doesn't lose the existing selection.
+  const leaderCandidates = leader && !districtMemberList.some((m) => m.id === leader.id)
+    ? [...districtMemberList, leader as Member]
+    : districtMemberList
+  const assistantCandidates = assistant && !districtMemberList.some((m) => m.id === assistant.id)
+    ? [...districtMemberList, assistant as Member]
+    : districtMemberList
+  const leaderList = leaderCandidates.filter((m) => m.id !== assistant?.id)
+  const assistantList = assistantCandidates.filter((m) => m.id !== leader?.id)
 
   return (
     <>
@@ -121,6 +131,7 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
                     <div className="mb-4 text-black bg-slate-500">
                       <Input
                         placeholder="District name"
+                        disabled={readOnly}
                         {...field}
                         className="text-white bg-gray-900"
                       />
@@ -146,6 +157,7 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
                         setSelectedColor={(color) => {
                           form.setValue('color', color)
                         }}
+                        disabled={readOnly}
                         className="text-white bg-gray-900"
                       />
                     </div>
@@ -168,6 +180,7 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
                   variant="outline"
                   size="sm"
                   className="w-full justify-start"
+                  disabled={readOnly}
                 >
                   {leader?.id ? (
                     <MemberDisplayName member={leader} />
@@ -229,6 +242,7 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
                   variant="outline"
                   size="sm"
                   className="w-full justify-start"
+                  disabled={readOnly}
                 >
                   {assistant?.id ? (
                     <MemberDisplayName member={assistant} />
@@ -289,6 +303,7 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
                       type="number"
                       step="any"
                       placeholder="lat"
+                      disabled={readOnly}
                       value={field.value ?? ''}
                       onChange={(e) =>
                         field.onChange(
@@ -312,6 +327,7 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
                       type="number"
                       step="any"
                       placeholder="lng"
+                      disabled={readOnly}
                       value={field.value ?? ''}
                       onChange={(e) =>
                         field.onChange(
@@ -325,23 +341,25 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
               )}
             />
           </div>
-          <div className="mb-2 flex items-center gap-2">
-            <Button
-              type="button"
-              variant={pickingCenter ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setPickingCenter((p) => !p)}
-              title="Pick center on the map"
-            >
-              <Crosshair className="h-4 w-4 mr-1" />
-              {pickingCenter ? 'Click on map…' : 'Pick center on map'}
-            </Button>
-            {pickingCenter && (
-              <span className="text-sm text-muted-foreground">
-                Click anywhere on the map to set the center.
-              </span>
-            )}
-          </div>
+          {!readOnly && (
+            <div className="mb-2 flex items-center gap-2">
+              <Button
+                type="button"
+                variant={pickingCenter ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPickingCenter((p) => !p)}
+                title="Pick center on the map"
+              >
+                <Crosshair className="h-4 w-4 mr-1" />
+                {pickingCenter ? 'Click on map…' : 'Pick center on map'}
+              </Button>
+              {pickingCenter && (
+                <span className="text-sm text-muted-foreground">
+                  Click anywhere on the map to set the center.
+                </span>
+              )}
+            </div>
+          )}
 
           <div className="mb-4">
             <label htmlFor="districtMembers" className="block font-bold mb-2">
@@ -381,8 +399,8 @@ const DistrictForm = ({ districtId }: DistrictFormProps) => {
               lat={lat ?? (currentDistrict as any)?.lat ?? leader?.lat}
               lng={lng ?? (currentDistrict as any)?.lng ?? leader?.lng}
               leader={leader}
-              markerClicked={memberClicked}
-              onMapClick={pickingCenter ? handleMapClick : undefined}
+              markerClicked={readOnly ? undefined : memberClicked}
+              onMapClick={!readOnly && pickingCenter ? handleMapClick : undefined}
               showLabel
             />
           </div>

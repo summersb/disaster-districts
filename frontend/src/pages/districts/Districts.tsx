@@ -13,7 +13,7 @@ import { useDistricts } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
 import { getWardId } from '@/lib/api'
 import { Route as DistrictRoute } from '@/routes/_protected/district/$id'
-import { Route as DistrictPrintRoute } from '@/routes/_protected/print/$districtId'
+import { Route as DistrictViewRoute } from '@/routes/_protected/district/view.$id'
 import type { District, Member } from '@/type'
 import { Link } from '@tanstack/react-router'
 import {
@@ -33,8 +33,8 @@ const columns: (memberList: Member[]) => ColumnDef<District>[] = (
     header: 'View',
     cell: (info) => (
       <Link
-        to={DistrictPrintRoute.to}
-        params={{ districtId: String(info.row.original.id) }}
+        to={DistrictViewRoute.to}
+        params={{ id: String(info.row.original.id) }}
       >
         <Button size="icon">
           <View />

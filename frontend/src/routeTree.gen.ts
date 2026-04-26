@@ -27,6 +27,7 @@ import { Route as ProtectedMemberIdRouteImport } from './routes/_protected/membe
 import { Route as ProtectedDistrictAddRouteImport } from './routes/_protected/district/add'
 import { Route as ProtectedDistrictIdRouteImport } from './routes/_protected/district/$id'
 import { Route as ProtectedDashboardMapRouteImport } from './routes/_protected/dashboard/map'
+import { Route as ProtectedDistrictViewIdRouteImport } from './routes/_protected/district/view.$id'
 
 const ProtectedRouteRoute = ProtectedRouteRouteImport.update({
   id: '/_protected',
@@ -118,6 +119,11 @@ const ProtectedDashboardMapRoute = ProtectedDashboardMapRouteImport.update({
   path: '/dashboard/map',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
+const ProtectedDistrictViewIdRoute = ProtectedDistrictViewIdRouteImport.update({
+  id: '/district/view/$id',
+  path: '/district/view/$id',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof ProtectedRouteRouteWithChildren
@@ -138,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/print/': typeof ProtectedPrintIndexRoute
   '/settings/': typeof ProtectedSettingsIndexRoute
   '/user-admin/': typeof ProtectedUserAdminIndexRoute
+  '/district/view/$id': typeof ProtectedDistrictViewIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof ProtectedRouteRouteWithChildren
@@ -158,6 +165,7 @@ export interface FileRoutesByTo {
   '/print': typeof ProtectedPrintIndexRoute
   '/settings': typeof ProtectedSettingsIndexRoute
   '/user-admin': typeof ProtectedUserAdminIndexRoute
+  '/district/view/$id': typeof ProtectedDistrictViewIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -179,6 +187,7 @@ export interface FileRoutesById {
   '/_protected/print/': typeof ProtectedPrintIndexRoute
   '/_protected/settings/': typeof ProtectedSettingsIndexRoute
   '/_protected/user-admin/': typeof ProtectedUserAdminIndexRoute
+  '/_protected/district/view/$id': typeof ProtectedDistrictViewIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -201,6 +210,7 @@ export interface FileRouteTypes {
     | '/print/'
     | '/settings/'
     | '/user-admin/'
+    | '/district/view/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -221,6 +231,7 @@ export interface FileRouteTypes {
     | '/print'
     | '/settings'
     | '/user-admin'
+    | '/district/view/$id'
   id:
     | '__root__'
     | '/_protected'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/_protected/print/'
     | '/_protected/settings/'
     | '/_protected/user-admin/'
+    | '/_protected/district/view/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -378,6 +390,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedDashboardMapRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
+    '/_protected/district/view/$id': {
+      id: '/_protected/district/view/$id'
+      path: '/district/view/$id'
+      fullPath: '/district/view/$id'
+      preLoaderRoute: typeof ProtectedDistrictViewIdRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
   }
 }
 
@@ -396,6 +415,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedPrintIndexRoute: typeof ProtectedPrintIndexRoute
   ProtectedSettingsIndexRoute: typeof ProtectedSettingsIndexRoute
   ProtectedUserAdminIndexRoute: typeof ProtectedUserAdminIndexRoute
+  ProtectedDistrictViewIdRoute: typeof ProtectedDistrictViewIdRoute
 }
 
 const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
@@ -413,6 +433,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedPrintIndexRoute: ProtectedPrintIndexRoute,
   ProtectedSettingsIndexRoute: ProtectedSettingsIndexRoute,
   ProtectedUserAdminIndexRoute: ProtectedUserAdminIndexRoute,
+  ProtectedDistrictViewIdRoute: ProtectedDistrictViewIdRoute,
 }
 
 const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(
