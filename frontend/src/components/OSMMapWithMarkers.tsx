@@ -20,9 +20,9 @@ type Position = {
   lng: number
 }
 
-function ChangeView(center: Position) {
+function ChangeView({ center }: { center: Position }) {
   const map = useMap()
-  map.setView(center)
+  map.setView([center.lat, center.lng], 13)
   return null
 }
 
@@ -148,7 +148,7 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
         attribution='&copy: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <ChangeView lat={center.lat} lng={center.lng} />
+      <ChangeView center={center} />
       {props.onMapClick && <ClickHandler onClick={props.onMapClick} />}
       {deClutter(props.members)?.map((member: Member) => (
         <Marker

@@ -96,9 +96,11 @@ export default function Districts() {
 
   const { data: memberList } = useMembers(wardId)
 
-  const sortedDistricts = (districts ?? [])
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name))
+  // Memoize sorted districts to prevent useReactTable from triggering re-renders
+  const sortedDistricts = useMemo(
+    () => (districts ?? []).slice().sort((a, b) => a.name.localeCompare(b.name)),
+    [districts]
+  )
 
   // Memoize columns to prevent useReactTable from triggering re-renders
   const memoizedColumns = useMemo(() => columns(memberList || []), [memberList])
