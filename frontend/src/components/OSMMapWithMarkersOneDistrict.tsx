@@ -11,9 +11,36 @@ type Position = {
   lng: number
 }
 
-function ChangeView(center: Position) {
+type ChangeViewProps = {
+  center: Position
+  members: Member[]
+}
+
+function ChangeView({ center, members }: ChangeViewProps) {
   const map = useMap()
-  map.setView(center)
+
+  // Filter members with valid coordinates
+  const validMembers = members.filter((m) => m.lat != null && m.lng != null)
+
+  if (validMembers.length > 1) {
+    // Calculate bounds from members
+    const lats = validMembers.map((m) => m.lat as number)
+    const lngs = validMembers.map((m) => m.lng as number)
+
+    const minLat = Math.min(...lats)
+    const maxLat = Math.max(...lats)
+    const minLng = Math.min(...lngs)
+    const maxLng = Math.max(...lngs)
+
+    // Fit bounds with padding
+    map.fitBounds([
+      [minLat, minLng],
+      [maxLat, maxLng],
+    ], { padding: [50, 50] })
+  } else {
+    // Single member or no members, just set view to center
+    map.setView([center.lat, center.lng], 13)
+  }
   return null
 }
 
@@ -52,15 +79,20 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
   }
 
   const findCenter = (memberList: Member[]) => {
-    const lats = memberList.map((m) => m?.lat ?? 0)
-    const lngs = memberList.map((m) => m?.lng ?? 0)
+    const validMembers = memberList.filter((m) => m.lat != null && m.lng != null)
+    if (validMembers.length === 0) {
+      return { lat: 33.1928423, lng: -117.2413057 } // Default fallback
+    }
+
+    const lats = validMembers.map((m) => m.lat as number)
+    const lngs = validMembers.map((m) => m.lng as number)
 
     const avgLat = lats.reduce((a, b) => a + b, 0) / lats.length
     const avgLng = lngs.reduce((a, b) => a + b, 0) / lngs.length
     return { lat: avgLat, lng: avgLng }
   }
 
-  const center = findCenter(props.district.members ?? [])
+  const center = findCenter(props.members)
 
   return (
     <MapContainer
@@ -73,11 +105,11 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
         attribution='&copy: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <ChangeView lat={center.lat} lng={center.lng} />
-      {deClutter(props.district.members ?? [])?.map((member: Member) => (
+      <ChangeView center={center} members={props.members} />
+      {deClutter(props.members.filter((m) => m.lat != null && m.lng != null))?.map((member: Member) => (
         <Marker
           key={member.id}
-          position={[member.lat ?? 0, member.lng ?? 0]}
+          position={[member.lat as number, member.lng as number]}
           icon={getMemberIcon()}
         >
           <Tooltip direction="right" offset={[0, 20]} opacity={0.5} permanent>

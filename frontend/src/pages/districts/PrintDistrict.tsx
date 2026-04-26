@@ -8,6 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table.tsx'
 import { useDistrict } from '@/hooks/useDistricts'
+import { useMembers } from '@/hooks/useMembers'
 import { getWardId } from '@/lib/api'
 import ShowOneDistrictMap from '@/pages/districts/ShowOneDistrictMap'
 import type React from 'react'
@@ -17,12 +18,12 @@ type DistrictProps = {
 }
 
 const PrintDistrict = (props: DistrictProps): React.ReactElement => {
-  // todo
-  const districtId = 0
+  const wardId = getWardId()
+  const { data: district } = useDistrict(wardId, props.districtId ?? 0)
+  const { data: allMembers } = useMembers(wardId)
 
-  const id =
-    props.districtId != null ? props.districtId : Number(districtId ?? 0)
-  const { data: district } = useDistrict(getWardId(), id)
+  // Filter members to only those in this district
+  const districtMembers = (allMembers ?? []).filter((m) => m.district?.id === district?.id)
 
   return (
     <div className="new-right-page page">
@@ -44,7 +45,7 @@ const PrintDistrict = (props: DistrictProps): React.ReactElement => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(district.members ?? [])
+              {districtMembers
                 .slice()
                 .sort((m1, m2) => m1.familyName.localeCompare(m2.familyName))
                 .map((m) => (

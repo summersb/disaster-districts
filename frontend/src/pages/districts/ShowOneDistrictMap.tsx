@@ -1,6 +1,5 @@
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 import OSMMapWithMarkers from '@/components/OSMMapWithMarkersOneDistrict.tsx'
-import { useDistrict } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
 import { getWardId } from '@/lib/api'
 import type { District } from '@/type'
@@ -33,22 +32,30 @@ type ShowOneDistrictMap = {
 }
 
 const ShowOneDistrictMap = (props: ShowOneDistrictMap): React.ReactElement => {
-  // todo
-  const districtId = 0
   const wardId = getWardId()
   const { data: members } = useMembers(wardId)
+  const district = props.district
 
-  const { data: district } = useDistrict(wardId, districtId)
+  const getBoundsElement = (d: District) => {
+    const distMembers = (members ?? []).filter(
+      (m) => m.district?.id === d.id && m.lat != null && m.lng != null
+    )
+    const latitudes = distMembers.map((m) => m.lat as number)
+    const longitudes = distMembers.map((m) => m.lng as number)
 
-  const bounds = (d: District) => {
-    const distMembers = d.members
-    const latitudes = distMembers?.map((m) => m.lat ?? 0) ?? []
-    const longitudes = distMembers?.map((m) => m.lng ?? 0) ?? []
+    if (latitudes.length === 0 || longitudes.length === 0) {
+      return undefined
+    }
 
     const minLat = Math.min(...latitudes)
     const maxLat = Math.max(...latitudes)
     const minLng = Math.min(...longitudes)
     const maxLng = Math.max(...longitudes)
+
+    // Check for valid bounds
+    if (!isFinite(minLat) || !isFinite(maxLat) || !isFinite(minLng) || !isFinite(maxLng)) {
+      return undefined
+    }
 
     return (
       <MapWithBounds
@@ -60,18 +67,20 @@ const ShowOneDistrictMap = (props: ShowOneDistrictMap): React.ReactElement => {
     )
   }
 
+  const districtMembers = (members ?? []).filter((m) => m.district?.id === district?.id)
+
   return (
     <div>
-      {district && (district.members?.length ?? 0) > 0 && (
+      {district && districtMembers.length > 0 && (
         <div className="print-map">
           <div className="w-full">
-            <h1>{district?.name}</h1>
-            {district?.leader && (
+            <h1>{district.name}</h1>
+            {district.leader && (
               <h2>
                 Leader: <MemberDisplayName member={district.leader} />
               </h2>
             )}
-            {district?.assistant && (
+            {district.assistant && (
               <h2>
                 Assistant: <MemberDisplayName member={district.assistant} />
               </h2>
@@ -81,8 +90,8 @@ const ShowOneDistrictMap = (props: ShowOneDistrictMap): React.ReactElement => {
             <OSMMapWithMarkers
               showDistrictMarker={props.showDistrictMarker ?? true}
               district={district}
-              members={members || []}
-              bounds={bounds(district)}
+              members={districtMembers}
+              bounds={getBoundsElement(district)}
             />
           </div>
         </div>
