@@ -66,7 +66,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
     // If user has no ward ID (or it's 0), redirect to ward selection
     if ((user?.wardId ?? 0) === 0) {
-      throw redirect({ to: '/join-ward' })
+      throw redirect({ to: '/_protected/join-ward' })
     }
 
     if (location.pathname === '/') {

@@ -71,7 +71,7 @@ export function SignupForm() {
           roles: authResponse.roles,
         }))
       }
-      navigate({ to: '/join-ward' }).catch((error) => console.error(error))
+      navigate({ to: '/_protected/join-ward' }).catch((error) => console.error(error))
       return
     } catch (err: any) {
       console.error('Signup failed', err)
