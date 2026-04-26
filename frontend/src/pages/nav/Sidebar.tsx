@@ -5,6 +5,7 @@ import useUser from '@/context/useUser.tsx'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState'
 import { isAdmin, canManageUsers } from '@/lib/roles'
 import { Route as AdminRoute } from '@/routes/_protected/admin'
+import { Route as JoinRequestsRoute } from '@/routes/_protected/admin/join-requests'
 import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
 import { Route as DashboardMapRoute } from '@/routes/_protected/dashboard/map'
 import { Route as DistrictRoute } from '@/routes/_protected/district'
@@ -66,10 +67,16 @@ const Sidebar = ({ user }: Props): React.ReactElement => {
       </div>
 
       {isAdmin(user.roles) && (
-        <div className="flex flex-row">
-          <Settings />
-          <Link to={AdminRoute.to}>Admin</Link>
-        </div>
+        <>
+          <div className="flex flex-row">
+            <Settings />
+            <Link to={AdminRoute.to}>Admin</Link>
+          </div>
+          <div className="flex flex-row">
+            <Users />
+            <Link to={JoinRequestsRoute.to}>Ward Requests</Link>
+          </div>
+        </>
       )}
 
       {canManageUsers(user.roles) && (

@@ -15,5 +15,13 @@ export const WardSchema = z.object({
   districts: z.array(DistrictSchema).optional(),
 })
 
+export const WardDtoSchema = z.object({
+  id: z.number().optional(),
+  name: z.string(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+})
+
 export type WardConfig = z.infer<typeof WardConfigSchema>
 export type Ward = z.infer<typeof WardSchema>
+export type WardDto = z.infer<typeof WardDtoSchema>

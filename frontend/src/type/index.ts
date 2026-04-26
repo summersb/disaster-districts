@@ -12,7 +12,8 @@ import type {
 import { MemberSchema } from './Member'
 import type { Member } from './Member'
 import { UserRequestSchema } from './User'
-import { WardConfigSchema, WardSchema } from './Ward'
+import { WardConfigSchema, WardSchema, WardDtoSchema } from './Ward'
+import type { WardDto } from './Ward'
 
 export type {
   Member,
@@ -23,9 +24,10 @@ export type {
   Geometry,
   Result,
   Results,
+  WardDto,
 }
 
 export { MemberSchema, DistrictSchema }
-export { WardSchema, WardConfigSchema, UserRequestSchema }
+export { WardSchema, WardConfigSchema, WardDtoSchema, UserRequestSchema }
 
 export { districtColors }

@@ -16,11 +16,12 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { signup } from '@/hooks/useLogin.tsx'
-import { Route as LoginRoute } from '@/routes/login'
+import { signup, login } from '@/hooks/useLogin.tsx'
+import UserContext from '@/context/UserContext'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
 import { useForm } from 'react-hook-form'
+import { useContext } from 'react'
 import * as z from 'zod'
 
 // ✅ Define schema with password verification
@@ -48,12 +49,29 @@ export function SignupForm() {
   })
 
   const navigate = useNavigate()
+  const userContext = useContext(UserContext)
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       await signup(values)
-      console.log('success')
-      navigate({ to: LoginRoute.to }).catch((error) => console.error(error))
+      const authResponse = await login({ email: values.email, password: values.password })
+      if (userContext) {
+        userContext.setUser({
+          id: authResponse.id,
+          email: authResponse.email,
+          token: authResponse.token,
+          wardId: authResponse.wardId,
+          roles: authResponse.roles,
+        })
+        window.localStorage.setItem('user', JSON.stringify({
+          id: authResponse.id,
+          email: authResponse.email,
+          token: authResponse.token,
+          wardId: authResponse.wardId,
+          roles: authResponse.roles,
+        }))
+      }
+      navigate({ to: '/join-ward' }).catch((error) => console.error(error))
       return
     } catch (err: any) {
       console.error('Signup failed', err)

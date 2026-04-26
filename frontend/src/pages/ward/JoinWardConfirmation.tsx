@@ -1,0 +1,32 @@
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useNavigate } from '@tanstack/react-router'
+import type React from 'react'
+
+const JoinWardConfirmation: React.FC = () => {
+  const navigate = useNavigate()
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Request Submitted</CardTitle>
+          <CardDescription>
+            Your ward join request has been submitted for review.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-600">
+            A ward administrator will review your request and get back to you soon. You'll be able to access the
+            application once your request is approved.
+          </p>
+          <Button onClick={() => navigate({ to: '/login' })} className="w-full">
+            Back to Login
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+export default JoinWardConfirmation

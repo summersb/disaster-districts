@@ -64,30 +64,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       throw redirect({ to: '/login', search: { from: location.pathname } })
     }
 
-    // If user has no ward ID (or it's 0), assign them to the first available ward
+    // If user has no ward ID (or it's 0), redirect to ward selection
     if ((user?.wardId ?? 0) === 0) {
-      try {
-        const wardsRes = await fetch('/api/wards')
-        if (wardsRes.ok) {
-          const wards = await wardsRes.json()
-          if (wards.length > 0) {
-            // Assign user to the first ward
-            const wardId = wards[0].id
-            const updateRes = await fetch(`/api/users/${user.id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ wardId }),
-            })
-            if (updateRes.ok) {
-              // Update localStorage with new wardId
-              user.wardId = wardId
-              window.localStorage.setItem('user', JSON.stringify(user))
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Failed to assign ward to user:', err)
-      }
+      throw redirect({ to: '/join-ward' })
     }
 
     if (location.pathname === '/') {
