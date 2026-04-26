@@ -38,6 +38,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
     const isSetupPage = location.pathname === '/setup' || location.pathname === '/setup/'
     const isLoginPage = location.pathname === '/login' || location.pathname === '/signup'
+    const isJoinWardPage = location.pathname === '/_protected/join-ward' || location.pathname === '/_protected/join-ward/'
 
     if (!setupChecked) {
       needsSetup = await checkSetupNeeded()
@@ -64,8 +65,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       throw redirect({ to: '/login', search: { from: location.pathname } })
     }
 
-    // If user has no ward ID (or it's 0), redirect to ward selection
-    if ((user?.wardId ?? 0) === 0) {
+    // If user has no ward ID (or it's 0), redirect to ward selection (unless already there)
+    if ((user?.wardId ?? 0) === 0 && !isJoinWardPage) {
       throw redirect({ to: '/_protected/join-ward' })
     }
 
