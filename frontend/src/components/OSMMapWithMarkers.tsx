@@ -51,6 +51,7 @@ type MapWithMarkersProps = {
 const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
   const navigate = useNavigate()
   const markerClicked = (member: Member) => {
+    if (isMemberLocked(member)) return
     if (props.markerClicked) {
       props.markerClicked(member)
     }
@@ -65,24 +66,32 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
     }
   }
 
-  const getMemberColor = (member: Member): string => {
-    // Prefer the member's own assigned district color (set on the MemberDto).
-    // Fall back to scanning the districts prop for one whose leader matches,
-    // then to a default. This ensures every district member shows up in the
-    // district's color, not just the leader.
-    const ownDistrictColor = member.district?.color
-    if (ownDistrictColor) return ownDistrictColor
-    const leaderColor = props.districts?.find(
-      (d) => d.leader?.id === member.id,
-    )?.color
-    return leaderColor ?? 'Blue'
+  // Resolve a member's role within any district in the props list. A member
+  // can be a leader of one district, assistant of another, or just a regular
+  // member of one district. Use leaderId/assistantId from the DTO if present,
+  // falling back to the legacy `leader`/`assistant` member objects.
+  const findRoleDistrict = (
+    member: Member,
+  ): { role: 'leader' | 'assistant' | 'member'; color?: string } => {
+    const leaderDistrict = props.districts?.find(
+      (d) =>
+        (d as any).leaderId === member.id || d.leader?.id === member.id,
+    )
+    if (leaderDistrict) return { role: 'leader', color: leaderDistrict.color }
+    const assistantDistrict = props.districts?.find(
+      (d) =>
+        (d as any).assistantId === member.id || d.assistant?.id === member.id,
+    )
+    if (assistantDistrict) return { role: 'assistant', color: assistantDistrict.color }
+    return { role: 'member', color: member.district?.color }
   }
 
   function getMemberIcon(member: Member): L.Icon {
-    const color = getMemberColor(member)
-
+    const { role, color } = findRoleDistrict(member)
+    const colorName = color ?? 'Blue'
+    const prefix = role === 'leader' ? 'Leader-' : role === 'assistant' ? 'Assistant-' : ''
     return new L.Icon({
-      iconUrl: `/images/${color}.svg`,
+      iconUrl: `/images/${prefix}${colorName}.svg`,
       iconSize: [25, 41], // size of the icon
       iconAnchor: [12, 41], // point of the icon which will correspond to marker's location
       popupAnchor: [1, -34], // point from which the popup should open relative to the iconAnchor
@@ -90,6 +99,19 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
         'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
       shadowSize: [41, 41],
     })
+  }
+
+  // Members who lead or assist any district can't be moved by clicking.
+  const isMemberLocked = (member: Member): boolean => {
+    return (
+      props.districts?.some(
+        (d) =>
+          (d as any).leaderId === member.id ||
+          (d as any).assistantId === member.id ||
+          d.leader?.id === member.id ||
+          d.assistant?.id === member.id,
+      ) ?? false
+    )
   }
 
   function getGroupIcon(): L.Icon {

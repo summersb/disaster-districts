@@ -2,6 +2,7 @@ package dd.resource
 
 import dd.dao.DistrictDao
 import dd.repository.DistrictRepository
+import dd.repository.MemberRepository
 import dd.repository.WardRepository
 import jakarta.persistence.EntityManager
 import jakarta.ws.rs.Consumes
@@ -26,6 +27,7 @@ import jakarta.ws.rs.core.UriInfo
 class DistrictsResource(
     val districtRepository: DistrictRepository,
     val wardRepository: WardRepository,
+    val memberRepository: MemberRepository,
     val entityManager: EntityManager,
     @field:Context val uriInfo: UriInfo
 ) {
@@ -38,6 +40,8 @@ class DistrictsResource(
         lat = d.lat,
         lng = d.lng,
         wardId = d.ward?.id,
+        leaderId = d.leader?.id,
+        assistantId = d.assistant?.id,
     )
 
     @GET
@@ -89,6 +93,42 @@ class DistrictsResource(
         district.color?.let { dbDistrict.color = it }
         district.lat?.let { dbDistrict.lat = it }
         district.lng?.let { dbDistrict.lng = it }
+        // Leader/assistant: a value of 0 (or negative) clears the slot; a real
+        // id reassigns. null in the payload leaves the existing value alone.
+        district.leaderId?.let {
+            dbDistrict.leader = if (it > 0) memberRepository.findById(it) else null
+        }
+        district.assistantId?.let {
+            dbDistrict.assistant = if (it > 0) memberRepository.findById(it) else null
+        }
+        // Member roster: when memberIds is supplied, treat it as the canonical
+        // list of members for this district. Members in the list get this
+        // district's id; members previously in this district but absent from
+        // the list are detached (district_id = null). This handles the "click
+        // to move from another district" case in one request.
+        district.memberIds?.let { ids ->
+            if (ids.isNotEmpty()) {
+                entityManager
+                    .createQuery(
+                        "update Member m set m.district = :district where m.id in :ids"
+                    )
+                    .setParameter("district", dbDistrict)
+                    .setParameter("ids", ids)
+                    .executeUpdate()
+                entityManager
+                    .createQuery(
+                        "update Member m set m.district = null where m.district.id = :id and m.id not in :ids"
+                    )
+                    .setParameter("id", id)
+                    .setParameter("ids", ids)
+                    .executeUpdate()
+            } else {
+                entityManager
+                    .createQuery("update Member m set m.district = null where m.district.id = :id")
+                    .setParameter("id", id)
+                    .executeUpdate()
+            }
+        }
         return Response.ok(toDto(dbDistrict)).build()
     }
 

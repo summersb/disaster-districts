@@ -8,6 +8,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.GenerationType
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Column
+import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 
@@ -35,4 +36,12 @@ open class DistrictDao : PanacheEntityBase {
     var members: MutableList<MemberDao>? = mutableListOf()
     @ManyToOne
     var ward: WardDao? = null
+
+    @ManyToOne
+    @JoinColumn(name = "leader")
+    var leader: MemberDao? = null
+
+    @ManyToOne
+    @JoinColumn(name = "assistant")
+    var assistant: MemberDao? = null
 }

@@ -3,7 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 const loadMembers = async (wardId: number): Promise<Member[]> => {
   const res = await fetch(`/api/wards/${wardId}/members`)
-  if (!res.ok) return []
+  if (!res.ok) {
+    return []
+  }
   const json = await res.json()
   return Array.isArray(json) ? json : []
 }
@@ -40,9 +42,7 @@ export const useAddMember = () => {
     onSuccess: () => {
       queryClient
         .invalidateQueries({ queryKey: ['members'] })
-        .catch((e) => console.log(`Error ${e}`))
     },
-    onError: (e) => console.log(`Error ${e}`),
   })
 }
 
@@ -63,9 +63,7 @@ export const useSaveMember = () => {
     onSuccess: () => {
       queryClient
         .invalidateQueries({ queryKey: ['members'] })
-        .catch((e) => console.log(`Error ${e}`))
     },
-    onError: (e) => console.log(`Error ${e}`),
   })
 }
 
@@ -80,8 +78,6 @@ export const useDeleteMember = () => {
     onSuccess: () => {
       queryClient
         .invalidateQueries({ queryKey: ['members'] })
-        .catch((e) => console.log(`Error ${e}`))
     },
-    onError: (e) => console.log(`Error ${e}`),
   })
 }

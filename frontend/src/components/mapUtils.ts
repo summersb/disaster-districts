@@ -6,11 +6,11 @@ export const deClutter = (members: Member[]): Member[] => {
     return []
   }
   const validLatLng = members.filter(
-    (m) => m?.lat !== undefined && m?.lng !== undefined,
+    (m) => m?.lat != null && m?.lng != null,
   )
 
   return validLatLng.map((m) => {
-    if (m.lat === undefined || m.lng === undefined) {
+    if (m.lat == null || m.lng == null) {
       return m
     }
     const start = { latitude: m.lat, longitude: m.lng }
@@ -18,7 +18,7 @@ export const deClutter = (members: Member[]): Member[] => {
     const toClose = validLatLng
       .filter((mm) => mm.id !== m.id)
       .find((otherM) => {
-        if (otherM.lat === undefined || otherM.lng === undefined) {
+        if (otherM.lat == null || otherM.lng == null) {
           return undefined
         }
         const end = { latitude: otherM.lat, longitude: otherM.lng }

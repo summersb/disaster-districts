@@ -56,16 +56,18 @@ const EditDistrict = ({
       const district: District = {
         id: db.id,
         name: db.name,
-        leader: members.find((m) => m.id === db.leaderId) ?? ({} as any),
-        assistant: members.find((m) => m.id === db.assistantId) ?? undefined,
+        leader: members.find((m) => m.id === db.leaderId),
+        assistant: members.find((m) => m.id === db.assistantId),
         color,
         lat: db.lat,
         lng: db.lng,
+        leaderId: db.leaderId ?? null,
+        assistantId: db.assistantId ?? null,
         members: (members ?? []).filter((m) => m.district?.id === db.id),
       }
       form.reset(district)
     }
-  }, [data, members, form])
+  }, [data?.id, members?.length])
 
   const onSubmit: SubmitHandler<District> = async (data) => {
     setSaving(true)
@@ -74,6 +76,9 @@ const EditDistrict = ({
       color: data.color,
       lat: data.lat,
       lng: data.lng,
+      leaderId: data.leader?.id ?? 0,
+      assistantId: data.assistant?.id ?? 0,
+      memberIds: (data.members ?? []).map((m) => m.id),
     }
 
     try {

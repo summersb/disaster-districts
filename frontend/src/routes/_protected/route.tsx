@@ -11,18 +11,11 @@ import {
 
 export const Route = createFileRoute('/_protected')({
   beforeLoad: ({ location, context }) => {
-    const user = JSON.parse(window.localStorage.getItem('user') ?? '{}') as User
-    console.log(
-      'protect route layout. before load',
-      context.user,
-      user,
-      location,
-    )
+    const user = JSON.parse(window.localStorage.getItem("user") ?? "{}") as User;
 
     // If user is not authenticated and not on login, redirect
     if (!context.user?.email && !user?.email) {
-      console.log('sending to login')
-      throw redirect({ to: '/login', search: { from: location.pathname } })
+      throw redirect({ to: "/login", search: { from: location.pathname } });
     }
   },
   component: MainLayout,
@@ -33,11 +26,8 @@ function MainLayout() {
   const { user } = useUser()
   const navigate = useNavigate()
 
-  console.log('protected layout', user)
   if (!user.email) {
-    navigate({ to: '/login' }).catch((err) => {
-      console.log(err)
-    })
+    navigate({ to: "/login" }).catch((err) => {});
     return null
   }
   return (

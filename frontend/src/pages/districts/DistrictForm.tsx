@@ -63,13 +63,45 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
   const assistant = form.watch('assistant')
   const lat = form.watch('lat') as number | undefined
   const lng = form.watch('lng') as number | undefined
-  // update current district with current member list
   const currentDistrict = districts?.find((d) => d.id === districtId)
-  // Members assigned to this district come from the ward member list filtered
-  // by member.district.id; that's what gets shown on the edit map.
-  const districtMemberList = (data ?? []).filter(
-    (m) => m.district?.id === districtId,
+  const allWardMembers = data ?? []
+  const pendingMemberIds = new Set<number>(
+    districtMembers.map((m) => (m as unknown as Member).id),
   )
+  // Members shown in the side list = pending roster of THIS district.
+  const districtMemberList = allWardMembers.filter((m) =>
+    pendingMemberIds.has(m.id),
+  )
+
+  // Build the member list for the map: every ward member, but with the
+  // pending roster overridden to this district so their pin shows in this
+  // district's color before save.
+  const mapMembers = allWardMembers.map((m) =>
+    pendingMemberIds.has(m.id)
+      ? {
+          ...m,
+          district: {
+            id: districtId,
+            name: currentDistrict?.name,
+            color,
+          },
+        }
+      : m,
+  )
+
+  // For the map's districts list, mirror the form's pending leader/assistant
+  // so the Leader-/Assistant- icons follow the current selection.
+  const mapDistricts = (districts ?? []).map((d) => {
+    if (d.id !== districtId) return d
+    return {
+      ...(d as any),
+      lat: lat ?? (d as any).lat,
+      lng: lng ?? (d as any).lng,
+      color,
+      leaderId: leader?.id ?? (d as any).leaderId ?? null,
+      assistantId: assistant?.id ?? (d as any).assistantId ?? null,
+    }
+  })
 
   const handleMapClick = (clickedLat: number, clickedLng: number) => {
     if (!pickingCenter) return
@@ -77,30 +109,24 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
     form.setValue('lng', clickedLng, { shouldDirty: true })
     setPickingCenter(false)
   }
-  if (currentDistrict) {
-    currentDistrict.members = districtMembers.map((m) => m.id)
-    if (leader) {
-      currentDistrict.members.push(leader.id)
-    }
-    if (assistant) {
-      currentDistrict.members.push(assistant.id)
-    }
-    if (currentDistrict.color) {
-      currentDistrict.color = color
-    }
-  }
 
   const memberClicked = (member: Member) => {
     if (readOnly) return
-    if (districtMembers.find((m) => m.id === member.id)) {
-      districtMembers.forEach((m, idx) => {
-        if (m.id === member.id) {
-          remove(idx)
-        }
-      })
+    // Leaders/assistants of any district are locked; ignore clicks on them.
+    const isLeaderOrAssistant = (districts ?? []).some(
+      (d) =>
+        (d as any).leaderId === member.id ||
+        (d as any).assistantId === member.id,
+    )
+    if (isLeaderOrAssistant) return
+    const existingIdx = districtMembers.findIndex((m) => m.id === member.id)
+    if (existingIdx >= 0) {
+      // Already in this district's pending roster → click again to detach.
+      remove(existingIdx)
     } else {
+      // Move into this district. The previous district loses them
+      // automatically on save (PUT memberIds reassigns to this district).
       append(member)
-      // TODO remove member from other districts
     }
   }
 
@@ -384,18 +410,8 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
         {districts && (
           <div className="w-2/3 ml-2 h-[600px]">
             <MapDisplay
-              districts={
-                currentDistrict
-                  ? [
-                      {
-                        ...(currentDistrict as any),
-                        lat: lat ?? (currentDistrict as any)?.lat,
-                        lng: lng ?? (currentDistrict as any)?.lng,
-                      } as District,
-                    ]
-                  : []
-              }
-              members={districtMemberList}
+              districts={mapDistricts as District[]}
+              members={mapMembers as Member[]}
               lat={lat ?? (currentDistrict as any)?.lat ?? leader?.lat}
               lng={lng ?? (currentDistrict as any)?.lng ?? leader?.lng}
               leader={leader}

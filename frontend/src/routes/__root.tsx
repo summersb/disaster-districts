@@ -8,6 +8,7 @@ import {
   redirect,
   useLocation,
 } from '@tanstack/react-router'
+import { useEffect } from 'react'
 
 type RouterContext = {
   user: User
@@ -19,6 +20,7 @@ let needsSetup = false
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   beforeLoad: async ({ location, context }) => {
+
     const isSetupPage = location.pathname === '/setup' || location.pathname === '/setup/'
     const isLoginPage = location.pathname === '/login' || location.pathname === '/signup'
 
@@ -37,7 +39,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       throw redirect({ to: '/login' })
     }
 
-    if (isSetupPage || isLoginPage) return
+    if (isSetupPage || isLoginPage) {
+      return
+    }
 
     const user = JSON.parse(window.localStorage.getItem('user') ?? '{}') as User
 
@@ -48,16 +52,30 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     if (location.pathname === '/') {
       throw redirect({ to: DashboardRoute.to })
     }
+
+    // Store current page as last visited (but not for login/setup pages)
+    if (!isLoginPage && !isSetupPage && location.pathname !== '/') {
+      const fullPath = location.pathname + (location.searchStr || '')
+      window.localStorage.setItem('lastPage', fullPath)
+    }
   },
   component: RootLayout,
   notFoundComponent: Home,
 })
 
 function RootLayout() {
-  useLocation()
+  const location = useLocation()
   const pathname = window.location.pathname
   const isAuthPage =
     pathname === '/login' || pathname === '/signup' || pathname.startsWith('/setup')
+
+  useEffect(() => {
+    // Track the current page for auto-restore on reload
+    if (!isAuthPage && pathname !== '/') {
+      const fullPath = pathname + location.searchStr
+      window.localStorage.setItem('lastPage', fullPath)
+    }
+  }, [pathname, location.searchStr, isAuthPage])
 
   if (isAuthPage) {
     return <Outlet />

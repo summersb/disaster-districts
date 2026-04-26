@@ -23,6 +23,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { FilePenLine, View } from 'lucide-react'
+import { useMemo } from 'react'
 import DeleteDistrictButton from './DeleteDistrictButton'
 
 const columns: (memberList: Member[]) => ColumnDef<District>[] = (
@@ -95,9 +96,16 @@ export default function Districts() {
 
   const { data: memberList } = useMembers(wardId)
 
+  const sortedDistricts = (districts ?? [])
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  // Memoize columns to prevent useReactTable from triggering re-renders
+  const memoizedColumns = useMemo(() => columns(memberList || []), [memberList])
+
   const table = useReactTable({
-    data: districts || [],
-    columns: columns(memberList || []),
+    data: sortedDistricts,
+    columns: memoizedColumns,
     getCoreRowModel: getCoreRowModel(),
   })
 

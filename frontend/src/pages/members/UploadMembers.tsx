@@ -197,7 +197,7 @@ const UploadMembers = (): React.ReactElement => {
             {(changedMembers.length ?? 0) > 0 && (
               <>
                 Changed Members
-                <MembersUpdate members={changedMembers} />
+                <MembersUpdate members={changedMembers as any} />
                 <StyledButton onClick={updateMembers}>Update</StyledButton>
               </>
             )}

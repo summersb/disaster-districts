@@ -24,7 +24,14 @@ type AuthProviderType = {
 export const UserProvider = ({
   children,
 }: AuthProviderType): React.ReactElement => {
-  const [user, setUser] = useState<User>({})
+  const [user, setUser] = useState<User>(() => {
+    try {
+      const stored = window.localStorage.getItem('user')
+      return stored ? JSON.parse(stored) : {}
+    } catch {
+      return {}
+    }
+  })
 
   return (
     <UserContext.Provider value={{ user, setUser }}>
