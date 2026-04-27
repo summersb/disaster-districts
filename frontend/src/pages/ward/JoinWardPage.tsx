@@ -15,7 +15,7 @@ const JoinWardPage: React.FC = () => {
   const userContext = useContext(UserContext)
   const user = userContext?.user ?? {}
 
-  const { data: wards } = useQuery({
+  const { data: wards, isLoading, error: wardsError } = useQuery({
     queryKey: ['wards'],
     queryFn: async () => {
       const res = await fetch('/api/wards')
@@ -46,6 +46,18 @@ const JoinWardPage: React.FC = () => {
     },
   })
 
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center text-gray-500">Loading wards...</div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <Card className="w-full max-w-md">
@@ -56,10 +68,18 @@ const JoinWardPage: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {wardsError && (
+            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+              Failed to load wards. Please try again.
+            </div>
+          )}
           <div className="space-y-2">
             <label className="block text-sm font-medium">Select a Ward</label>
             <div className="space-y-2">
-              {wards?.map((ward) => (
+              {!wards || wards.length === 0 ? (
+                <div className="text-center text-gray-500 py-4">No wards available</div>
+              ) : (
+                wards.map((ward) => (
                 <button
                   key={ward.id}
                   onClick={() => setSelectedWardId(ward.id ?? null)}
@@ -71,7 +91,8 @@ const JoinWardPage: React.FC = () => {
                 >
                   <div className="font-medium">{ward.name}</div>
                 </button>
-              ))}
+              ))
+              )}
             </div>
           </div>
 
