@@ -41,7 +41,7 @@ Quarkus Dev UI available at http://localhost:8080/q/dev/ in dev mode.
 cd frontend
 yarn dev           # dev server at :5173
 yarn build         # tsc + vite build → dist/
-yarn lint          # eslint with zero warnings tolerance
+yarn lint          # biome with zero warnings tolerance
 ```
 
 ---
