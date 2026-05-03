@@ -2,10 +2,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import UserContext from '@/context/UserContext'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import type React from 'react'
-import { useState, useContext } from 'react'
+import { useContext, useState } from 'react'
 import type { WardDto } from '@/type'
 
 const JoinWardPage: React.FC = () => {
@@ -21,7 +21,7 @@ const JoinWardPage: React.FC = () => {
       const res = await fetch('/api/wards')
       if (!res.ok) throw new Error('Failed to fetch wards')
       return (await res.json()) as WardDto[]
-    },
+    }
   })
 
   const createRequestMutation = useMutation({
@@ -31,7 +31,7 @@ const JoinWardPage: React.FC = () => {
       const res = await fetch('/api/join-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, wardId: selectedWardId, message: message || null }),
+        body: JSON.stringify({ userId: user.id, wardId: selectedWardId, message: message || null })
       })
       if (!res.ok) {
         if (res.status === 409) {
@@ -43,12 +43,12 @@ const JoinWardPage: React.FC = () => {
     },
     onSuccess: () => {
       navigate({ to: '/join-ward-confirmation' })
-    },
+    }
   })
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+      <div className="flex justify-center items-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center text-gray-500">Loading wards...</div>
@@ -59,7 +59,7 @@ const JoinWardPage: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+    <div className="flex justify-center items-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Join a Ward</CardTitle>
@@ -80,18 +80,18 @@ const JoinWardPage: React.FC = () => {
                 <div className="text-center text-gray-500 py-4">No wards available</div>
               ) : (
                 wards.map((ward) => (
-                <button
-                  key={ward.id}
-                  onClick={() => setSelectedWardId(ward.id ?? null)}
-                  className={`w-full rounded-lg border p-3 text-left transition-colors ${
-                    selectedWardId === ward.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="font-medium">{ward.name}</div>
-                </button>
-              ))
+                  <button
+                    key={ward.id}
+                    onClick={() => setSelectedWardId(ward.id ?? null)}
+                    className={`w-full rounded-lg border p-3 text-left transition-colors ${
+                      selectedWardId === ward.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="font-medium">{ward.name}</div>
+                  </button>
+                ))
               )}
             </div>
           </div>

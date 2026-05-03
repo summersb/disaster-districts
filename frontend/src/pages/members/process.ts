@@ -50,7 +50,6 @@ export function parseData(data: string): Member[] {
 
     if (member.familyName && nameAddressMatch && !cityMatch) {
       mode = Mode.unk
-      console.log('Pushed person', member)
       persons.push(member as Member)
       member = {}
     }
@@ -88,7 +87,6 @@ export function parseData(data: string): Member[] {
   })
 
   if (member.familyName) {
-    console.log('last person', member)
     persons.push(member)
   }
   return persons as Member[]
@@ -110,18 +108,18 @@ type LocationProps = {
 const nominatimUrl = 'https://nominatim.openstreetmap.org/search'
 
 export const osmResolveAddress = async ({
-  street,
-  city,
-  state,
-  postalCode,
-}: LocationProps): Promise<LocationResult> => {
+                                          street,
+                                          city,
+                                          state,
+                                          postalCode
+                                        }: LocationProps): Promise<LocationResult> => {
   const url = `${nominatimUrl}?street=${encodeURIComponent(street)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&postalcode=${encodeURIComponent(postalCode)}&format=json&limit=1`
 
   const response = await fetch(url, {
     method: 'GET',
     headers: {
-      'User-Agent': 'DisasterDistricts', // You should provide a custom User-Agent header
-    },
+      'User-Agent': 'DisasterDistricts' // You should provide a custom User-Agent header
+    }
   })
 
   if (response.ok) {
@@ -130,7 +128,7 @@ export const osmResolveAddress = async ({
       return {
         lat: Number(location.lat),
         lon: Number(location.lon),
-        displayName: location.displayName,
+        displayName: location.displayName
       }
     })[0]
   }
@@ -138,14 +136,14 @@ export const osmResolveAddress = async ({
 }
 
 export const getGeo = async (
-  member: Partial<Member>,
+  member: Partial<Member>
 ): Promise<Partial<Member>> => {
   if (member.lat === undefined || member.lng === undefined) {
     const address: LocationProps = {
       street: member.address1 ?? '',
       city: member.city ?? '',
       state: member.state ?? '',
-      postalCode: String(member.postalCode) ?? '',
+      postalCode: String(member.postalCode) ?? ''
     }
 
     return osmResolveAddress(address).then(
@@ -154,7 +152,7 @@ export const getGeo = async (
         member.lat = address?.lat
         member.lng = address?.lon
         return member
-      },
+      }
 
       //      member.postalCode = parseInt(
       //        address?.address_components?.find(

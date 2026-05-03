@@ -4,10 +4,9 @@ import * as z from 'zod'
 
 export const Route = createFileRoute('/login/')({
   validateSearch: z.object({ from: z.string().optional() }),
-  component: RouteComponent,
+  component: RouteComponent
 })
 
 function RouteComponent() {
-  console.log('login route')
   return <LoginForm />
 }

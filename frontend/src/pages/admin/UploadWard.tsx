@@ -1,5 +1,14 @@
 import type React from 'react'
 import { useState } from 'react'
+import StyledButton from '@/components/styled/StyledButton.tsx'
+import useUser from '@/context/useUser.tsx'
+import { useAddDistrict } from '@/hooks/useDistricts'
+import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
+import { useAddMember } from '@/hooks/useMembers'
+import { getWardId } from '@/lib/api'
+import type { District, Member } from '@/type'
+import type { UserRoles } from '@/type/User.ts'
+import type { Ward } from '@/type/Ward.ts'
 // fallback to direct fetch calls for ward admin operations
 const wardApi = {
   getWardList: async () => {
@@ -15,7 +24,7 @@ const wardApi = {
       await fetch('/api/wards/list', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(list),
+        body: JSON.stringify(list)
       })
     } catch (e) {
       console.warn('saveWardList failed', e)
@@ -26,7 +35,7 @@ const wardApi = {
       await fetch('/api/wards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wardName: name, user }),
+        body: JSON.stringify({ wardName: name, user })
       })
     } catch (e) {
       console.warn('createWard failed', e)
@@ -37,22 +46,13 @@ const wardApi = {
       await fetch(`/api/wards/${name}/permissions`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(perms),
+        body: JSON.stringify(perms)
       })
     } catch (e) {
       console.warn('savePermissions failed', e)
     }
-  },
+  }
 }
-import StyledButton from '@/components/styled/StyledButton.tsx'
-import useUser from '@/context/useUser.tsx'
-import { useAddDistrict } from '@/hooks/useDistricts'
-import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
-import { useAddMember } from '@/hooks/useMembers'
-import { getWardId } from '@/lib/api'
-import type { District, Member } from '@/type'
-import type { UserRoles } from '@/type/User.ts'
-import type { Ward } from '@/type/Ward.ts'
 
 type WardDoc = {
   id: number
@@ -73,7 +73,7 @@ const UploadWard = (): React.ReactElement => {
   }
 
   const handleOnSubmit = async (
-    e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => {
     e.preventDefault()
 
@@ -86,16 +86,14 @@ const UploadWard = (): React.ReactElement => {
             const wardList = await ((wardApi as any).getWardList as any)()
             await (wardApi as any).saveWardList([
               ...(wardList || []),
-              { wardName: wardData.name },
+              { wardName: wardData.name }
             ])
             await (wardApi as any).createWard(wardData.name, user as any)
             setActiveWard({ name: wardData.name, wardName: wardData.name })
-            console.log('Created ward', wardData.name)
             await (wardApi as any).savePermissions(
               wardData.name,
-              wardData.permissions,
+              wardData.permissions
             )
-            console.log('Added permissions', wardData.permissions)
             const addMember = useAddMember()
             const addDistrict = useAddDistrict()
 
@@ -108,7 +106,6 @@ const UploadWard = (): React.ReactElement => {
                 console.error('Failed to add member', m, err)
               }
             }
-            console.log('Added members', wardData.members)
 
             for (const d of wardData.districts) {
               try {
@@ -117,7 +114,6 @@ const UploadWard = (): React.ReactElement => {
                 console.error('Failed to add district', d, err)
               }
             }
-            console.log('Added districts', wardData.districts)
           } catch (e) {
             console.error(e)
           }

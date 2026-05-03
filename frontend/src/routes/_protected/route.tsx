@@ -1,25 +1,18 @@
 import type { User } from '@/context/UserContext.tsx'
 import useUser from '@/context/useUser.tsx'
-import Home from '@/pages/home/Home.tsx'
 import Sidebar from '@/pages/nav/Sidebar.tsx'
-import {
-  Outlet,
-  createFileRoute,
-  redirect,
-  useNavigate,
-} from '@tanstack/react-router'
+import { createFileRoute, Outlet, redirect, useNavigate } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_protected')({
   beforeLoad: ({ location, context }) => {
-    const user = JSON.parse(window.localStorage.getItem("user") ?? "{}") as User;
+    const user = JSON.parse(window.localStorage.getItem('user') ?? '{}') as User
 
     // If user is not authenticated and not on login, redirect
     if (!context.user?.email && !user?.email) {
-      throw redirect({ to: "/login", search: { from: location.pathname } });
+      throw redirect({ to: '/login', search: { from: location.pathname } })
     }
   },
-  component: MainLayout,
-  notFoundComponent: Home,
+  component: MainLayout
 })
 
 function MainLayout() {
@@ -27,7 +20,8 @@ function MainLayout() {
   const navigate = useNavigate()
 
   if (!user.email) {
-    navigate({ to: "/login" }).catch((err) => {});
+    navigate({ to: '/login' }).catch((err) => {
+    })
     return null
   }
   return (

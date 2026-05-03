@@ -1,14 +1,11 @@
 import type { User } from '@/context/UserContext.tsx'
 import { checkSetupNeeded } from '@/hooks/useLogin.tsx'
-import Home from '@/pages/home/Home.tsx'
 import { Route as DashboardRoute } from '@/routes/_protected/dashboard/index'
-import {
-  Outlet,
-  createRootRouteWithContext,
-  redirect,
-  useLocation,
-} from '@tanstack/react-router'
-import { useEffect } from 'react'
+import { createRootRouteWithContext, Outlet, redirect, useLocation } from '@tanstack/react-router'
+import React, { useEffect } from 'react'
+import { TanStackDevtools } from '@tanstack/react-devtools'
+import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 
 // Setup global fetch interceptor to handle 401 responses
 const originalFetch = window.fetch
@@ -38,7 +35,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
     const isSetupPage = location.pathname === '/setup' || location.pathname === '/setup/'
     const isLoginPage = location.pathname === '/login' || location.pathname === '/signup'
-    const isJoinWardPage = location.pathname === '/_protected/join-ward' || location.pathname === '/_protected/join-ward/'
+    const isJoinWardPage = location.pathname.startsWith('/join-ward')
 
     if (!setupChecked) {
       needsSetup = await checkSetupNeeded()
@@ -67,7 +64,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
     // If user has no ward ID (or it's 0), redirect to ward selection (unless already there)
     if ((user?.wardId ?? 0) === 0 && !isJoinWardPage) {
-      throw redirect({ to: '/_protected/join-ward' })
+      throw redirect({ to: '/join-ward' })
     }
 
     if (location.pathname === '/') {
@@ -80,8 +77,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       window.localStorage.setItem('lastPage', fullPath)
     }
   },
-  component: RootLayout,
-  notFoundComponent: Home,
+  component: RootLayout
+//  notFoundComponent: Home
 })
 
 function RootLayout() {
@@ -102,7 +99,25 @@ function RootLayout() {
     return <Outlet />
   }
 
-  return <Outlet />
+  return (
+    <>
+      <div className="print:hidden">
+        <TanStackDevtools
+          config={{ hideUntilHover: true, position: 'top-right' }}
+          plugins={[
+            {
+              name: 'TanStack Query',
+              render: <ReactQueryDevtoolsPanel />
+            },
+            {
+              name: 'TanStack Router',
+              render: <TanStackRouterDevtoolsPanel />
+            }
+          ]}
+        />
+      </div>
+      <Outlet />
+    </>)
 }
 
 // Call this after successful setup so the next navigation doesn't re-check

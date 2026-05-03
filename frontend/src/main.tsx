@@ -8,16 +8,13 @@ import { createRouter, RouterProvider as TanStackRouterProvider } from '@tanstac
 import { ThemeProvider } from './components/theme-provider.tsx'
 import { UserProvider } from './context/UserContext.tsx'
 import { routeTree } from './routeTree.gen'
-import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
 
 const client = new QueryClient()
 
 // Create a new router instance
 const router = createRouter({
   routeTree,
-  context: { user: {} as import('@/context/UserContext').User },
+  context: { user: {} as import('@/context/UserContext').User }
 })
 
 // Register the router instance for type safety
@@ -35,29 +32,14 @@ function AppRouter() {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''}>
-    <ThemeProvider defaultTheme="dark" storageKey="disaster">
-      <QueryClientProvider client={client}>
-        <UserProvider>
-          <AppRouter />
-        </UserProvider>
-        <div className="print:hidden">
-          <TanStackDevtools
-            config={{ hideUntilHover: true, position: 'top-right' }}
-            plugins={[
-              {
-                name: 'TanStack Query',
-                render: <ReactQueryDevtoolsPanel />,
-              },
-              {
-                name: 'TanStack Router',
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-            ]}
-            />
-        </div>
-      </QueryClientProvider>
-    </ThemeProvider>
+      <ThemeProvider defaultTheme="dark" storageKey="disaster">
+        <QueryClientProvider client={client}>
+          <UserProvider>
+            <AppRouter />
+          </UserProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     </GoogleOAuthProvider>
-  </React.StrictMode>,
+  </React.StrictMode>
 )
 
