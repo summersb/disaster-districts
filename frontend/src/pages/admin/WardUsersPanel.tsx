@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { type UserRecord, useUpdateUser, useUsers, useWardUsers } from '@/hooks/useUsers'
 import { ALL_ROLES, ROLE_LABELS, isAdmin as checkIsAdmin } from '@/lib/roles'
 import React, { useState } from 'react'
@@ -128,18 +129,18 @@ const WardUsersPanel = ({ wardId, wardName, grantableRoles, canAddUsers }: Props
 
       {canAddUsers && unassigned.length > 0 && (
         <div className="flex items-center gap-2 pt-1">
-          <select
-            className="flex-1 rounded border bg-background px-3 py-1.5 text-sm"
-            value={addUserId}
-            onChange={(e) => setAddUserId(e.target.value)}
-          >
-            <option value="">Add a user to this ward…</option>
-            {unassigned.map((u) => (
-              <option key={u.id} value={String(u.id)}>
-                {u.email}
-              </option>
-            ))}
-          </select>
+          <Select value={addUserId} onValueChange={setAddUserId}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Add a user to this ward…" />
+            </SelectTrigger>
+            <SelectContent>
+              {unassigned.map((u) => (
+                <SelectItem key={u.id} value={String(u.id)}>
+                  {u.email}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button size="sm" onClick={handleAdd} disabled={!addUserId}>
             Add
           </Button>

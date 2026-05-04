@@ -1,4 +1,4 @@
-import Paper from '@/components/styled/Paper'
+import { Card } from '@/components/ui/card'
 import StyledButton from '@/components/styled/StyledButton.tsx'
 import { genId } from '@/lib/utils'
 import type { Member } from '@/type'
@@ -135,7 +135,7 @@ const UploadPdf = ({ setMembers }: UploadPdfProps): React.ReactElement => {
     <>
       <div className="text-xl flex justify-center m-10">Upload PDF</div>
       <div className="flex">
-        <Paper width="w-1/2">
+        <Card className="w-1/2">
           <ul className="mb-6">
             <li>
               From{' '}
@@ -162,7 +162,7 @@ const UploadPdf = ({ setMembers }: UploadPdfProps): React.ReactElement => {
             />
             <StyledButton onClick={onSubmit}>IMPORT PDF</StyledButton>
           </form>
-        </Paper>
+        </Card>
         <div className="w-1/2 p-4">
           <img
             src="/images/print-ward.png"

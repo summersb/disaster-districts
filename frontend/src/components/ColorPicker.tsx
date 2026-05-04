@@ -1,5 +1,5 @@
-import { cn } from '@/lib/utils.ts'
 import React from 'react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 
 const colors = [
   { name: 'Red', value: '#FF5733' },
@@ -24,38 +24,32 @@ const colors = [
   { name: 'Bright Green', value: '#8FFF33' },
 ]
 
-export interface ColorPickerProps
-  extends React.SelectHTMLAttributes<HTMLSelectElement> {
+export interface ColorPickerProps {
   selectedColor: string
   setSelectedColor: (color: string) => void
 }
 
-const ColorPicker = React.forwardRef<HTMLSelectElement, ColorPickerProps>(
-  (
-    { className, selectedColor, setSelectedColor, ...props },
-    ref,
-  ): React.ReactElement => {
-    const selectedColorObj = colors.find(
-      (color) => color.name === selectedColor,
-    )
+const ColorPicker = React.forwardRef<HTMLButtonElement, ColorPickerProps>(
+  ({ selectedColor, setSelectedColor }, ref) => {
     return (
-      <select
-        value={selectedColor}
-        onChange={(e) => setSelectedColor(e.target.value)}
-        className={cn(
-          'flex h-10 w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-          className,
-        )}
-        style={{ color: selectedColorObj?.value ?? 'green' }}
-        ref={ref}
-        {...props}
-      >
-        {colors.map((color, index) => (
-          <option key={index} value={color.name} style={{ color: color.value }}>
-            {color.name}
-          </option>
-        ))}
-      </select>
+      <Select value={selectedColor} onValueChange={setSelectedColor}>
+        <SelectTrigger ref={ref}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {colors.map((color, index) => (
+            <SelectItem key={index} value={color.name}>
+              <span className="flex items-center gap-2">
+                <span
+                  className="h-4 w-4 rounded border"
+                  style={{ backgroundColor: color.value }}
+                />
+                {color.name}
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     )
   },
 )

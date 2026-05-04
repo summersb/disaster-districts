@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -112,15 +113,19 @@ const JoinRequestsPage: React.FC = () => {
                   <TableCell className="max-w-xs truncate text-sm text-gray-600">{request.message}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <select
+                      <Select
                         value={selectedRoles[request.id] || 'user'}
-                        onChange={(e) => setSelectedRoles({ ...selectedRoles, [request.id]: e.target.value })}
-                        className="rounded border border-gray-300 px-2 py-1 text-sm"
+                        onValueChange={(value) => setSelectedRoles({ ...selectedRoles, [request.id]: value })}
                       >
-                        <option value="user">User</option>
-                        <option value="ward_admin">Ward Admin</option>
-                        <option value="district_admin">District Admin</option>
-                      </select>
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user">User</SelectItem>
+                          <SelectItem value="ward_admin">Ward Admin</SelectItem>
+                          <SelectItem value="district_admin">District Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <Button
                         size="sm"
                         onClick={() => handleApprove(request.id)}

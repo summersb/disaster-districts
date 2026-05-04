@@ -1,4 +1,4 @@
-import Paper from '@/components/styled/Paper.tsx'
+import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { useFormContext } from 'react-hook-form'
 
@@ -6,7 +6,7 @@ const ImportDirectoryList = () => {
   const { register } = useFormContext()
 
   return (
-    <Paper>
+    <Card>
       <ul>
         <li>Open https://directory.churchofjesuschrist.org</li>
         <li>
@@ -22,7 +22,7 @@ const ImportDirectoryList = () => {
         <li>Paste the content into the box below (ctrl-v)</li>
       </ul>
       <Textarea {...register('data')} rows={20} />
-    </Paper>
+    </Card>
   )
 }
 

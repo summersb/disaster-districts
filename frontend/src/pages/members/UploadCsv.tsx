@@ -1,4 +1,4 @@
-import Paper from '@/components/styled/Paper.tsx'
+import { Card } from '@/components/ui/card'
 import StyledButton from '@/components/styled/StyledButton.tsx'
 import type { Member } from '@/type'
 import type React from 'react'
@@ -59,7 +59,7 @@ const UploadCsv = ({ setMembers }: UploadCsvProps): React.ReactElement => {
   return (
     <>
       <div className="text-xl flex justify-around m-10">Upload CSV</div>
-      <Paper>
+      <Card>
         <form>
           <input
             type="file"
@@ -70,7 +70,7 @@ const UploadCsv = ({ setMembers }: UploadCsvProps): React.ReactElement => {
           />
           <StyledButton onClick={onSubmit}>IMPORT CSV</StyledButton>
         </form>
-      </Paper>
+      </Card>
     </>
   )
 }

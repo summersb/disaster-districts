@@ -1,3 +1,4 @@
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import OSMMapWithMarkers from '@/components/OSMMapWithMarkers.tsx'
 import { useDistricts } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
@@ -34,7 +35,11 @@ const MapDisplay = ({
   const { data: ward } = useWard(wardId)
 
   if (isError) {
-    return <div className="p-4 text-destructive">Failed to load members.</div>
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>Failed to load members.</AlertDescription>
+      </Alert>
+    )
   }
 
   if (isLoading || districtsLoading) {

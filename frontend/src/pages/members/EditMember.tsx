@@ -1,3 +1,4 @@
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import StyledButton from '@/components/styled/StyledButton.tsx'
 import { Form } from '@/components/ui/form'
 import { useMember, useSaveMember } from '@/hooks/useMembers'
@@ -53,7 +54,11 @@ const EditMember = () => {
   return (
     <>
       <div className="text-xl flex justify-around">Edit Member</div>
-      <div className="text-xl text-red-900">{error && error}</div>
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}

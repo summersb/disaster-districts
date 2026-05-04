@@ -1,3 +1,4 @@
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -69,9 +70,9 @@ const JoinWardPage: React.FC = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {wardsError && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
-              Failed to load wards. Please try again.
-            </div>
+            <Alert variant="destructive">
+              <AlertDescription>Failed to load wards. Please try again.</AlertDescription>
+            </Alert>
           )}
           <div className="space-y-2">
             <label className="block text-sm font-medium">Select a Ward</label>
@@ -110,9 +111,9 @@ const JoinWardPage: React.FC = () => {
           </div>
 
           {createRequestMutation.error && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
-              {createRequestMutation.error.message}
-            </div>
+            <Alert variant="destructive">
+              <AlertDescription>{createRequestMutation.error.message}</AlertDescription>
+            </Alert>
           )}
 
           <Button
