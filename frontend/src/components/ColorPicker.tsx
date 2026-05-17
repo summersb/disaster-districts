@@ -1,5 +1,11 @@
 import React from 'react'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select'
 
 const colors = [
   { name: 'Red', value: '#FF5733' },
@@ -27,13 +33,15 @@ const colors = [
 export interface ColorPickerProps {
   selectedColor: string
   setSelectedColor: (color: string) => void
+  disabled?: boolean
+  className?: string
 }
 
 const ColorPicker = React.forwardRef<HTMLButtonElement, ColorPickerProps>(
-  ({ selectedColor, setSelectedColor }, ref) => {
+  ({ selectedColor, setSelectedColor, disabled, className }, ref) => {
     return (
-      <Select value={selectedColor} onValueChange={setSelectedColor}>
-        <SelectTrigger ref={ref}>
+      <Select value={selectedColor} onValueChange={setSelectedColor} disabled={disabled}>
+        <SelectTrigger ref={ref} className={className} disabled={disabled}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

@@ -8,12 +8,12 @@ import {
   useMapEvents,
 } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
+import { useNavigate } from '@tanstack/react-router'
+import L from 'leaflet'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 import { deClutter } from '@/components/mapUtils.ts'
 import { Route as DistrictRoute } from '@/routes/_protected/district/$id.tsx'
-import type { District, Member } from '@/type'
-import { useNavigate } from '@tanstack/react-router'
-import L from 'leaflet'
+import type { DistrictDto, MemberDto } from '@/type'
 
 type Position = {
   lat: number
@@ -40,24 +40,24 @@ function ClickHandler({
 }
 
 type MapWithMarkersProps = {
-  districts: District[]
-  members: Member[]
+  districts: DistrictDto[]
+  members: MemberDto[]
   center?: Position
-  markerClicked?: (member: Member) => void
+  markerClicked?: (member: MemberDto) => void
   onMapClick?: (lat: number, lng: number) => void
   showLabel: boolean
 }
 
 const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
   const navigate = useNavigate()
-  const markerClicked = (member: Member) => {
+  const markerClicked = (member: MemberDto) => {
     if (isMemberLocked(member)) return
     if (props.markerClicked) {
       props.markerClicked(member)
     }
   }
 
-  const districtClicked = (district?: District) => {
+  const districtClicked = (district?: DistrictDto) => {
     if (district) {
       navigate({
         to: DistrictRoute.to,
@@ -71,25 +71,26 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
   // member of one district. Use leaderId/assistantId from the DTO if present,
   // falling back to the legacy `leader`/`assistant` member objects.
   const findRoleDistrict = (
-    member: Member,
+    member: MemberDto,
   ): { role: 'leader' | 'assistant' | 'member'; color?: string } => {
     const leaderDistrict = props.districts?.find(
-      (d) =>
-        (d as any).leaderId === member.id || d.leader?.id === member.id,
+      (d) => (d as any).leaderId === member.id || d.leader?.id === member.id,
     )
     if (leaderDistrict) return { role: 'leader', color: leaderDistrict.color }
     const assistantDistrict = props.districts?.find(
       (d) =>
         (d as any).assistantId === member.id || d.assistant?.id === member.id,
     )
-    if (assistantDistrict) return { role: 'assistant', color: assistantDistrict.color }
+    if (assistantDistrict)
+      return { role: 'assistant', color: assistantDistrict.color }
     return { role: 'member', color: member.district?.color }
   }
 
-  function getMemberIcon(member: Member): L.Icon {
+  function getMemberIcon(member: MemberDto): L.Icon {
     const { role, color } = findRoleDistrict(member)
     const colorName = color ?? 'Blue'
-    const prefix = role === 'leader' ? 'Leader-' : role === 'assistant' ? 'Assistant-' : ''
+    const prefix =
+      role === 'leader' ? 'Leader-' : role === 'assistant' ? 'Assistant-' : ''
     return new L.Icon({
       iconUrl: `/images/${prefix}${colorName}.svg`,
       iconSize: [25, 41], // size of the icon
@@ -102,7 +103,7 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
   }
 
   // Members who lead or assist any district can't be moved by clicking.
-  const isMemberLocked = (member: Member): boolean => {
+  const isMemberLocked = (member: MemberDto): boolean => {
     return (
       props.districts?.some(
         (d) =>
@@ -126,7 +127,7 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
     })
   }
 
-  const findCenter = (memberList: Member[]) => {
+  const findCenter = (memberList: MemberDto[]) => {
     const latitudes = memberList.map((m) => m.lat ?? 0)
     const longitudes = memberList.map((m) => m.lng ?? 0)
 
@@ -150,7 +151,7 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
       />
       <ChangeView center={center} />
       {props.onMapClick && <ClickHandler onClick={props.onMapClick} />}
-      {deClutter(props.members)?.map((member: Member) => (
+      {deClutter(props.members)?.map((member: MemberDto) => (
         <Marker
           key={member.id}
           position={[member.lat ?? 0, member.lng ?? 0]}
@@ -171,7 +172,7 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
         // Prefer the district's stored lat/lng. If absent, fall back to the
         // average position of the district's own members.
         const distMembers = (d.members ?? []).filter(
-          (m: Member | undefined): m is Member => m != null,
+          (m: MemberDto | undefined): m is MemberDto => m != null,
         )
         const districtCenter =
           d.lat != null && d.lng != null

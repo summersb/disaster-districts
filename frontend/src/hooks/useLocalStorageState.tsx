@@ -25,7 +25,7 @@ export const useLocalStorageState = <T,>(
     )
     return () => {
       window.removeEventListener('storage', handleStorageChange)
-      window.addEventListener(
+      window.removeEventListener(
         'local-storage',
         handleStorageChange as EventListener,
       )

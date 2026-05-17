@@ -1,11 +1,16 @@
+import { TanStackDevtools } from '@tanstack/react-devtools'
+import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
+import {
+  createRootRouteWithContext,
+  Outlet,
+  redirect,
+  useLocation,
+} from '@tanstack/react-router'
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
+import { useEffect } from 'react'
 import type { User } from '@/context/UserContext.tsx'
 import { checkSetupNeeded } from '@/hooks/useLogin.tsx'
 import { Route as DashboardRoute } from '@/routes/_protected/dashboard/index'
-import { createRootRouteWithContext, Outlet, redirect, useLocation } from '@tanstack/react-router'
-import React, { useEffect } from 'react'
-import { TanStackDevtools } from '@tanstack/react-devtools'
-import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 
 // Setup global fetch interceptor to handle 401 responses
 const originalFetch = window.fetch
@@ -32,10 +37,13 @@ let needsSetup = false
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   beforeLoad: async ({ location, context }) => {
-
-    const isSetupPage = location.pathname === '/setup' || location.pathname === '/setup/'
-    const isLoginPage = location.pathname === '/login' || location.pathname === '/signup'
-    const isJoinWardPage = location.pathname === '/_protected/join-ward' || location.pathname === '/_protected/join-ward/'
+    const isSetupPage =
+      location.pathname === '/setup' || location.pathname === '/setup/'
+    const isLoginPage =
+      location.pathname === '/login' || location.pathname === '/signup'
+    const isJoinWardPage =
+      location.pathname === '/_protected/join-ward' ||
+      location.pathname === '/_protected/join-ward/'
 
     if (!setupChecked) {
       needsSetup = await checkSetupNeeded()
@@ -64,7 +72,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
     // If user has no ward ID (or it's 0), redirect to ward selection (unless already there)
     if ((user?.wardId ?? 0) === 0 && !isJoinWardPage) {
-      throw redirect({ to: '/_protected/join-ward/' })
+      throw redirect({ to: '/_protected/join-ward/' as any })
     }
 
     if (location.pathname === '/') {
@@ -77,15 +85,17 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       window.localStorage.setItem('lastPage', fullPath)
     }
   },
-  component: RootLayout
-//  notFoundComponent: Home
+  component: RootLayout,
+  //  notFoundComponent: Home
 })
 
 function RootLayout() {
   const location = useLocation()
   const pathname = window.location.pathname
   const isAuthPage =
-    pathname === '/login' || pathname === '/signup' || pathname.startsWith('/setup')
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname.startsWith('/setup')
 
   useEffect(() => {
     // Track the current page for auto-restore on reload
@@ -107,17 +117,18 @@ function RootLayout() {
           plugins={[
             {
               name: 'TanStack Query',
-              render: <ReactQueryDevtoolsPanel />
+              render: <ReactQueryDevtoolsPanel />,
             },
             {
               name: 'TanStack Router',
-              render: <TanStackRouterDevtoolsPanel />
-            }
+              render: <TanStackRouterDevtoolsPanel />,
+            },
           ]}
         />
       </div>
       <Outlet />
-    </>)
+    </>
+  )
 }
 
 // Call this after successful setup so the next navigation doesn't re-check

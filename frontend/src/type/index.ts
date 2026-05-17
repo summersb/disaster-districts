@@ -1,33 +1,39 @@
 import { districtColors } from './Colors'
+import type { DistrictDto } from './District'
 import { DistrictSchema } from './District'
-import type { District } from './District'
 import type {
   AddressComponent,
   GeoBox,
-  GeoPoint,
   Geometry,
+  GeoPoint,
   Result,
   Results,
 } from './GoogleApi'
+import type { MemberDto } from './Member'
 import { MemberSchema } from './Member'
-import type { Member } from './Member'
 import { UserRequestSchema } from './User'
-import { WardConfigSchema, WardSchema, WardDtoSchema } from './Ward'
+import type { UserDto } from './User'
 import type { WardDto } from './Ward'
+import { WardConfigSchema, WardDtoSchema, WardSchema } from './Ward'
 
 export type {
-  Member,
-  District,
   AddressComponent,
-  GeoPoint,
+  DistrictDto,
   GeoBox,
   Geometry,
+  GeoPoint,
+  MemberDto,
   Result,
   Results,
+  UserDto,
   WardDto,
 }
-
-export { MemberSchema, DistrictSchema }
-export { WardSchema, WardConfigSchema, WardDtoSchema, UserRequestSchema }
-
-export { districtColors }
+export {
+  DistrictSchema,
+  districtColors,
+  MemberSchema,
+  UserRequestSchema,
+  WardConfigSchema,
+  WardDtoSchema,
+  WardSchema,
+}

@@ -2,9 +2,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './index.css'
-import useUser from '@/context/useUser.tsx'
 import { GoogleOAuthProvider } from '@react-oauth/google'
-import { createRouter, RouterProvider as TanStackRouterProvider } from '@tanstack/react-router'
+import {
+  createRouter,
+  RouterProvider as TanStackRouterProvider,
+} from '@tanstack/react-router'
+import useUser from '@/context/useUser.tsx'
 import { ThemeProvider } from './components/theme-provider.tsx'
 import { UserProvider } from './context/UserContext.tsx'
 import { routeTree } from './routeTree.gen'
@@ -14,7 +17,7 @@ const client = new QueryClient()
 // Create a new router instance
 const router = createRouter({
   routeTree,
-  context: { user: {} as import('@/context/UserContext').User }
+  context: { user: {} as import('@/context/UserContext').User },
 })
 
 // Register the router instance for type safety
@@ -40,6 +43,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </QueryClientProvider>
       </ThemeProvider>
     </GoogleOAuthProvider>
-  </React.StrictMode>
+  </React.StrictMode>,
 )
-

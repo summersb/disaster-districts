@@ -1,15 +1,14 @@
-import Home from '@/pages/home/Home.tsx'
 import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_protected/dashboard/')({
-  component: RouteComponent
+  component: RouteComponent,
 })
 
 function RouteComponent() {
   return (
     <div className="p-2">
       dashboard
-      <Home />
+      <div>Home select a ward</div>
     </div>
   )
 }

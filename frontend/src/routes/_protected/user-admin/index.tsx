@@ -1,7 +1,7 @@
-import UserAdminPage from '@/pages/admin/UserAdminPage.tsx'
-import { canManageUsers } from '@/lib/roles'
-import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { canManageUsers } from '@/lib/roles'
+import UserAdminPage from '@/components/admin/UserAdminPage.tsx'
+import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
 
 export const Route = createFileRoute('/_protected/user-admin/')({
   beforeLoad: () => {

@@ -1,7 +1,7 @@
-import type { District } from '@/type'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { DistrictDto } from '@/type'
 
-const loadDistricts = async (wardId: number): Promise<District[]> => {
+const loadDistricts = async (wardId: number): Promise<DistrictDto[]> => {
   const res = await fetch(`/api/wards/${wardId}/districts`)
   if (!res.ok) {
     throw new Error(`Failed to load districts: ${res.status}`)
@@ -13,7 +13,7 @@ const loadDistricts = async (wardId: number): Promise<District[]> => {
 const loadDistrict = async (
   wardId: number,
   districtId: number,
-): Promise<District> => {
+): Promise<DistrictDto> => {
   const res = await fetch(`/api/wards/${wardId}/districts/${districtId}`)
   if (!res.ok) {
     throw new Error(`Failed to load district ${districtId}: ${res.status}`)
@@ -23,13 +23,13 @@ const loadDistrict = async (
 }
 
 export const useDistricts = (wardId: number) =>
-  useQuery<District[]>({
+  useQuery<DistrictDto[]>({
     queryKey: ['districts', wardId],
     queryFn: () => loadDistricts(wardId),
   })
 
 export const useDistrict = (wardId: number, districtId: number) =>
-  useQuery<District>({
+  useQuery<DistrictDto>({
     queryKey: ['district', wardId, districtId],
     queryFn: () => loadDistrict(wardId, districtId),
   })
@@ -47,12 +47,14 @@ export const useAddDistrictMember = () => {
       districtId: number
       memberId: number
     }) =>
-      fetch(`/api/wards/${wardId}/district/${districtId}/members/${memberId}`, {
-        method: 'POST',
-      }),
+      fetch(
+        `/api/wards/${wardId}/districts/${districtId}/members/${memberId}`,
+        {
+          method: 'POST',
+        },
+      ),
     onSuccess: () => {
-      queryClient
-        .invalidateQueries({ queryKey: ['districts'] })
+      queryClient.invalidateQueries({ queryKey: ['districts'] })
     },
   })
 }
@@ -77,8 +79,7 @@ export const useDeleteDistrictMember = () => {
         },
       ),
     onSuccess: () => {
-      queryClient
-        .invalidateQueries({ queryKey: ['districts'] })
+      queryClient.invalidateQueries({ queryKey: ['districts'] })
     },
   })
 }
@@ -92,7 +93,7 @@ export const useAddDistrict = () => {
       district,
     }: {
       wardId: number
-      district: District
+      district: DistrictDto
     }) =>
       fetch(`/api/wards/${wardId}/districts`, {
         method: 'POST',
@@ -100,8 +101,7 @@ export const useAddDistrict = () => {
         body: JSON.stringify(district),
       }),
     onSuccess: () => {
-      queryClient
-        .invalidateQueries({ queryKey: ['districts'] })
+      queryClient.invalidateQueries({ queryKey: ['districts'] })
     },
   })
 }
@@ -121,8 +121,7 @@ export const useDeleteDistrict = () => {
         method: 'DELETE',
       }),
     onSuccess: () => {
-      queryClient
-        .invalidateQueries({ queryKey: ['districts'] })
+      queryClient.invalidateQueries({ queryKey: ['districts'] })
     },
   })
 }

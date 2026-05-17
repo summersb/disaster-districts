@@ -14,4 +14,4 @@ export const DistrictSchema = z.object({
   assistantId: z.number().optional().nullable(),
 })
 
-export type District = z.infer<typeof DistrictSchema>
+export type DistrictDto = z.infer<typeof DistrictSchema>

@@ -1,6 +1,4 @@
-import type { User } from '@/context/UserContext.tsx'
 import type { LoginRequest } from '@/type/User.ts'
-import { useQuery } from '@tanstack/react-query'
 
 export const checkSetupNeeded = async (): Promise<boolean> => {
   try {
@@ -64,11 +62,4 @@ export const signup = async (user: LoginRequest) => {
   if (!res.ok) {
     throw new Error(res.statusText)
   }
-}
-
-export const useLogin = async (user: LoginRequest) => {
-  return useQuery<User>({
-    queryKey: ['user', user.email],
-    queryFn: () => login(user),
-  })
 }

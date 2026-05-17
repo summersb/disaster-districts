@@ -1,10 +1,10 @@
 import type React from 'react'
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 import { deClutter } from '@/components/mapUtils.ts'
-import type { District, Member } from '@/type'
-import L from 'leaflet'
+import type { DistrictDto, MemberDto } from '@/type'
 
 type Position = {
   lat: number
@@ -13,7 +13,7 @@ type Position = {
 
 type ChangeViewProps = {
   center: Position
-  members: Member[]
+  members: MemberDto[]
 }
 
 function ChangeView({ center, members }: ChangeViewProps) {
@@ -33,10 +33,13 @@ function ChangeView({ center, members }: ChangeViewProps) {
     const maxLng = Math.max(...lngs)
 
     // Fit bounds with padding
-    map.fitBounds([
-      [minLat, minLng],
-      [maxLat, maxLng],
-    ], { padding: [50, 50] })
+    map.fitBounds(
+      [
+        [minLat, minLng],
+        [maxLat, maxLng],
+      ],
+      { padding: [50, 50] },
+    )
   } else {
     // Single member or no members, just set view to center
     map.setView([center.lat, center.lng], 13)
@@ -45,8 +48,8 @@ function ChangeView({ center, members }: ChangeViewProps) {
 }
 
 type MapWithMarkersProps = {
-  district: District
-  members: Member[]
+  district: DistrictDto
+  members: MemberDto[]
   bounds?: React.ReactElement
   showDistrictMarker?: boolean
 }
@@ -78,8 +81,10 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
     })
   }
 
-  const findCenter = (memberList: Member[]) => {
-    const validMembers = memberList.filter((m) => m.lat != null && m.lng != null)
+  const findCenter = (memberList: MemberDto[]) => {
+    const validMembers = memberList.filter(
+      (m) => m.lat != null && m.lng != null,
+    )
     if (validMembers.length === 0) {
       return { lat: 33.1928423, lng: -117.2413057 } // Default fallback
     }
@@ -106,7 +111,9 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <ChangeView center={center} members={props.members} />
-      {deClutter(props.members.filter((m) => m.lat != null && m.lng != null))?.map((member: Member) => (
+      {deClutter(
+        props.members.filter((m) => m.lat != null && m.lng != null),
+      )?.map((member: MemberDto) => (
         <Marker
           key={member.id}
           position={[member.lat as number, member.lng as number]}

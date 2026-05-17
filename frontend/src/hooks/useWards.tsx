@@ -1,5 +1,5 @@
-import type { Ward } from '@/type/Ward.ts'
 import { useQuery } from '@tanstack/react-query'
+import type { Ward } from '@/type/Ward.ts'
 
 const loadWards = async () => {
   const res = await fetch('/api/wards')

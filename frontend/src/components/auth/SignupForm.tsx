@@ -1,15 +1,28 @@
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card.tsx'
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { login, signup } from '@/hooks/useLogin.tsx'
-import UserContext from '@/context/UserContext'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
-import { useForm } from 'react-hook-form'
 import { useContext } from 'react'
+import { useForm } from 'react-hook-form'
 import * as z from 'zod'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card.tsx'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import UserContext from '@/context/UserContext'
+import { login, signup } from '@/hooks/useLogin.tsx'
 
 // ✅ Define schema with password verification
 const formSchema = z
@@ -18,11 +31,11 @@ const formSchema = z
     password: z
       .string()
       .min(6, { message: 'Password must be at least 6 characters' }),
-    confirmPassword: z.string()
+    confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
-    path: ['confirmPassword']
+    path: ['confirmPassword'],
   })
 
 export function SignupForm() {
@@ -31,8 +44,8 @@ export function SignupForm() {
     defaultValues: {
       email: '',
       password: '',
-      confirmPassword: ''
-    }
+      confirmPassword: '',
+    },
   })
 
   const navigate = useNavigate()
@@ -41,24 +54,32 @@ export function SignupForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       await signup(values)
-      const authResponse = await login({ email: values.email, password: values.password })
+      const authResponse = await login({
+        email: values.email,
+        password: values.password,
+      })
       if (userContext) {
         userContext.setUser({
           id: authResponse.id,
           email: authResponse.email,
           token: authResponse.token,
           wardId: authResponse.wardId,
-          roles: authResponse.roles
+          roles: authResponse.roles,
         })
-        window.localStorage.setItem('user', JSON.stringify({
-          id: authResponse.id,
-          email: authResponse.email,
-          token: authResponse.token,
-          wardId: authResponse.wardId,
-          roles: authResponse.roles
-        }))
+        window.localStorage.setItem(
+          'user',
+          JSON.stringify({
+            id: authResponse.id,
+            email: authResponse.email,
+            token: authResponse.token,
+            wardId: authResponse.wardId,
+            roles: authResponse.roles,
+          }),
+        )
       }
-      navigate({ to: '/_protected/join-ward/test' }).catch((error) => console.error(error))
+      navigate({ to: '/_protected/join-ward/' as any }).catch((error) =>
+        console.error(error),
+      )
       return
     } catch (err: any) {
       console.error('Signup failed', err)

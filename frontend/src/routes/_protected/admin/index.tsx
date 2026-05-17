@@ -1,8 +1,8 @@
-import AdminDashboard from '@/pages/admin/AdminDashboard.tsx'
-import { isAdmin } from '@/lib/roles'
-import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Suspense } from 'react'
+import { isAdmin } from '@/lib/roles'
+import AdminDashboard from '@/components/admin/AdminDashboard.tsx'
+import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
 
 export const Route = createFileRoute('/_protected/admin/')({
   beforeLoad: () => {

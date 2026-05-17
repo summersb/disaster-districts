@@ -1,3 +1,9 @@
+import { zodResolver } from '@hookform/resolvers/zod'
+import { GoogleLogin } from '@react-oauth/google'
+import { useNavigate } from '@tanstack/react-router'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import * as z from 'zod'
 import { Button } from '@/components/ui/button.tsx'
 import {
   Card,
@@ -20,14 +26,8 @@ import type { User } from '@/context/UserContext.tsx'
 import useUser from '@/context/useUser.tsx'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
 import { setupAdmin } from '@/hooks/useLogin.tsx'
-import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
 import { invalidateSetupCache } from '@/routes/__root'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { GoogleLogin } from '@react-oauth/google'
-import { useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import * as z from 'zod'
+import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
 
 const SetupSchema = z
   .object({
@@ -52,41 +52,72 @@ export function SetupForm() {
     defaultValues: { email: '', password: '', confirmPassword: '' },
   })
 
-  const handleAuthSuccess = async (json: { token: string; id?: number; email: string; roles?: string[]; wardId?: number }) => {
-    auth.setUser({ id: json.id, email: json.email, token: json.token, roles: json.roles, wardId: json.wardId })
-    setStoredUser({ id: json.id, email: json.email, token: json.token, roles: json.roles, wardId: json.wardId })
+  const handleAuthSuccess = async (json: {
+    token: string
+    id?: number
+    email: string
+    roles?: string[]
+    wardId?: number
+  }) => {
+    auth.setUser({
+      id: json.id,
+      email: json.email,
+      token: json.token,
+      roles: json.roles,
+      wardId: json.wardId,
+    })
+    setStoredUser({
+      id: json.id,
+      email: json.email,
+      token: json.token,
+      roles: json.roles,
+      wardId: json.wardId,
+    })
     invalidateSetupCache()
     await navigate({ to: DashboardRoute.to, replace: true })
   }
 
   const onSubmit = async (values: SetupRequest) => {
     try {
-      const json = await setupAdmin({ email: values.email, password: values.password })
+      const json = await setupAdmin({
+        email: values.email,
+        password: values.password,
+      })
       await handleAuthSuccess(json)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Setup failed')
     }
   }
 
-  const onGoogleSuccess = async (credentialResponse: { credential?: string }) => {
+  const onGoogleSuccess = async (credentialResponse: {
+    credential?: string
+  }) => {
     try {
-      if (!credentialResponse.credential) throw new Error('No credential returned')
-      const json = await setupAdmin({ credential: credentialResponse.credential })
+      if (!credentialResponse.credential)
+        throw new Error('No credential returned')
+      const json = await setupAdmin({
+        credential: credentialResponse.credential,
+      })
       await handleAuthSuccess(json)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Google setup failed')
     }
   }
 
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as
+    | string
+    | undefined
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl text-center">Create Admin Account</CardTitle>
+          <CardTitle className="text-2xl text-center">
+            Create Admin Account
+          </CardTitle>
           <CardDescription className="text-center">
-            No accounts exist yet. Set up the administrator account to get started.
+            No accounts exist yet. Set up the administrator account to get
+            started.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -102,7 +133,11 @@ export function SetupForm() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="admin@example.com" {...field} />
+                      <Input
+                        type="email"
+                        placeholder="admin@example.com"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -115,7 +150,11 @@ export function SetupForm() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -128,7 +167,11 @@ export function SetupForm() {
                   <FormItem>
                     <FormLabel>Confirm Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -146,7 +189,9 @@ export function SetupForm() {
                       <span className="w-full border-t" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">or</span>
+                      <span className="bg-card px-2 text-muted-foreground">
+                        or
+                      </span>
                     </div>
                   </div>
                   <div className="flex justify-center w-full">

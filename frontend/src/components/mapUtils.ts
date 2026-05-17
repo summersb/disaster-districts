@@ -1,13 +1,11 @@
-import type { Member } from '@/type'
 import haversine from 'haversine'
+import type { MemberDto } from '@/type'
 
-export const deClutter = (members: Member[]): Member[] => {
+export const deClutter = (members: MemberDto[]): MemberDto[] => {
   if (!members) {
     return []
   }
-  const validLatLng = members.filter(
-    (m) => m?.lat != null && m?.lng != null,
-  )
+  const validLatLng = members.filter((m) => m?.lat != null && m?.lng != null)
 
   return validLatLng.map((m) => {
     if (m.lat == null || m.lng == null) {

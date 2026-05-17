@@ -29,4 +29,4 @@ export const MemberSchema = z.object({
   district: DistrictRefSchema.nullish(),
 })
 
-export type Member = z.infer<typeof MemberSchema>
+export type MemberDto = z.infer<typeof MemberSchema>

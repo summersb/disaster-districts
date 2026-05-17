@@ -1,21 +1,15 @@
-import { authFetch } from '@/lib/api'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { authFetch } from '@/lib/api'
+import type { UserDto } from '@/type/User'
 
-export type UserRecord = {
-  id: number
-  email: string
-  roles: string[]
-  wardId?: number
-}
-
-const fetchUsers = async (): Promise<UserRecord[]> => {
+const fetchUsers = async (): Promise<UserDto[]> => {
   const res = await authFetch('/api/users')
   if (!res.ok) return []
   const json = await res.json()
   return Array.isArray(json) ? json : []
 }
 
-const fetchWardUsers = async (wardId: number): Promise<UserRecord[]> => {
+const fetchWardUsers = async (wardId: number): Promise<UserDto[]> => {
   const res = await authFetch(`/api/wards/${wardId}/users`)
   if (!res.ok) return []
   const json = await res.json()
@@ -23,10 +17,10 @@ const fetchWardUsers = async (wardId: number): Promise<UserRecord[]> => {
 }
 
 export const useUsers = () =>
-  useQuery<UserRecord[]>({ queryKey: ['users'], queryFn: fetchUsers })
+  useQuery<UserDto[]>({ queryKey: ['users'], queryFn: fetchUsers })
 
 export const useWardUsers = (wardId: number) =>
-  useQuery<UserRecord[]>({
+  useQuery<UserDto[]>({
     queryKey: ['wardUsers', wardId],
     queryFn: () => fetchWardUsers(wardId),
     enabled: wardId > 0,

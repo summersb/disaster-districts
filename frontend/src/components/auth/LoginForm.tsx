@@ -1,3 +1,8 @@
+import { zodResolver } from '@hookform/resolvers/zod'
+import { GoogleLogin } from '@react-oauth/google'
+import { Link, useNavigate, useSearch } from '@tanstack/react-router'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button.tsx'
 import {
   Card,
@@ -23,11 +28,6 @@ import { googleLogin, login } from '@/hooks/useLogin.tsx'
 import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
 import { Route as SignupRoute } from '@/routes/signup'
 import { type LoginRequest, LoginSchema } from '@/type/User.ts'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { GoogleLogin } from '@react-oauth/google'
-import { Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
 
 export function LoginForm() {
   const [error, setError] = useState<string>()
@@ -40,9 +40,27 @@ export function LoginForm() {
     defaultValues: { email: '', password: '' },
   })
 
-  const handleAuthSuccess = async (json: { token: string; id?: number; email: string; roles?: string[]; wardId?: number }) => {
-    auth.setUser({ id: json.id, email: json.email, token: json.token, roles: json.roles, wardId: json.wardId })
-    setUser({ id: json.id, email: json.email, token: json.token, roles: json.roles, wardId: json.wardId })
+  const handleAuthSuccess = async (json: {
+    token: string
+    id?: number
+    email: string
+    roles?: string[]
+    wardId?: number
+  }) => {
+    auth.setUser({
+      id: json.id,
+      email: json.email,
+      token: json.token,
+      roles: json.roles,
+      wardId: json.wardId,
+    })
+    setUser({
+      id: json.id,
+      email: json.email,
+      token: json.token,
+      roles: json.roles,
+      wardId: json.wardId,
+    })
     const from = search.from || DashboardRoute.to
     await navigate({ to: from, replace: true })
   }
@@ -56,9 +74,12 @@ export function LoginForm() {
     }
   }
 
-  const onGoogleSuccess = async (credentialResponse: { credential?: string }) => {
+  const onGoogleSuccess = async (credentialResponse: {
+    credential?: string
+  }) => {
     try {
-      if (!credentialResponse.credential) throw new Error('No credential returned')
+      if (!credentialResponse.credential)
+        throw new Error('No credential returned')
       const json = await googleLogin(credentialResponse.credential)
       await handleAuthSuccess(json)
     } catch (err) {
@@ -66,7 +87,9 @@ export function LoginForm() {
     }
   }
 
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as
+    | string
+    | undefined
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
@@ -129,7 +152,9 @@ export function LoginForm() {
                       <span className="w-full border-t" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">or</span>
+                      <span className="bg-card px-2 text-muted-foreground">
+                        or
+                      </span>
                     </div>
                   </div>
                   <div className="flex justify-center w-full">

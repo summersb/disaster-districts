@@ -1,5 +1,5 @@
-import { Button, type ButtonProps } from '@/components/ui/button.tsx'
 import type React from 'react'
+import { Button, type ButtonProps } from '@/components/ui/button.tsx'
 
 type StyledButtonProps = ButtonProps & {
   children: React.ReactNode // Type for children

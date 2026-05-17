@@ -1,7 +1,12 @@
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useNavigate,
+} from '@tanstack/react-router'
+import Sidebar from '@/components/Sidebar.tsx'
 import type { User } from '@/context/UserContext.tsx'
 import useUser from '@/context/useUser.tsx'
-import Sidebar from '@/pages/nav/Sidebar.tsx'
-import { createFileRoute, Outlet, redirect, useNavigate } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_protected')({
   beforeLoad: ({ location, context }) => {
@@ -12,7 +17,7 @@ export const Route = createFileRoute('/_protected')({
       throw redirect({ to: '/login', search: { from: location.pathname } })
     }
   },
-  component: MainLayout
+  component: MainLayout,
 })
 
 function MainLayout() {
@@ -20,8 +25,7 @@ function MainLayout() {
   const navigate = useNavigate()
 
   if (!user.email) {
-    navigate({ to: '/login' }).catch((err) => {
-    })
+    navigate({ to: '/login' }).catch((_err) => {})
     return null
   }
   return (

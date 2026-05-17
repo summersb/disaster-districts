@@ -25,3 +25,10 @@ export const UserRequestSchema = z.object({
 })
 
 export type UserRequest = z.infer<typeof UserRequestSchema>
+
+export type UserDto = {
+  id: number
+  email: string
+  roles: string[]
+  wardId?: number
+}
