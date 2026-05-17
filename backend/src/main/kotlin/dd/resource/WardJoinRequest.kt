@@ -15,13 +15,13 @@ data class WardJoinRequestDto(
     val assignedRole: String? = null,
 )
 
-data class WardJoinRequestInput(
+data class WardJoinCreateRequest(
     val userId: Long,
     val wardId: Long,
     val message: String? = null,
 )
 
-data class WardJoinRequestResolve(
+data class WardJoinResolveRequest(
     val approve: Boolean,
     val assignedRole: String? = "user",
 )

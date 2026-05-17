@@ -103,14 +103,14 @@ class AuthResource(
     @Path("/login")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    fun login(user: User): Response {
-        val foundUser = userAccountRepository.findByEmail(user.email)
+    fun login(request: UserRequest): Response {
+        val foundUser = userAccountRepository.findByEmail(request.email)
             ?: return Response.status(Response.Status.UNAUTHORIZED).build()
 
         val storedHash = foundUser.passwordHash
             ?: return Response.status(Response.Status.UNAUTHORIZED).build()
 
-        if (user.password == null || !verifyPassword(user.password, storedHash)) {
+        if (request.password == null || !verifyPassword(request.password, storedHash)) {
             return Response.status(Response.Status.UNAUTHORIZED).build()
         }
 

@@ -21,7 +21,6 @@ import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.Response.Status
 import jakarta.ws.rs.core.UriInfo
 
-@RequestScoped
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 class DistrictsResource(
@@ -29,10 +28,9 @@ class DistrictsResource(
     val wardRepository: WardRepository,
     val memberRepository: MemberRepository,
     val entityManager: EntityManager,
-    @field:Context val uriInfo: UriInfo
+    val uriInfo: UriInfo,
+    val wardId: Long,
 ) {
-    var wardId: Long? = null
-
     private fun toDto(d: DistrictDao) = DistrictDto(
         id = d.id,
         name = d.name,
@@ -49,7 +47,7 @@ class DistrictsResource(
         // wardId == 0 is the frontend's "no ward" convention used by system /
         // ward admins who aren't tied to a single ward; in that case return
         // every district instead of scoping by ward.
-        val scope = wardId?.takeIf { it > 0 }
+        val scope = wardId.takeIf { it > 0 }
         val districts = scope?.let { districtRepository.list("ward.id", it) }
             ?: districtRepository.listAll()
         return Response.ok(districts.map { toDto(it) }).build()
@@ -64,7 +62,7 @@ class DistrictsResource(
 
     @POST
     @Transactional
-    fun createDistrict(district: District): Response {
+    fun createDistrict(district: DistrictRequest): Response {
         if (district.name == null) {
             return Response.status(Status.BAD_REQUEST).build()
         }
@@ -87,7 +85,7 @@ class DistrictsResource(
     @PUT
     @Path("/{id}")
     @Transactional
-    fun updateDistrict(@PathParam("id") id: Long, district: District): Response {
+    fun updateDistrict(@PathParam("id") id: Long, district: DistrictRequest): Response {
         val dbDistrict = districtRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
         district.name?.let { dbDistrict.name = it }
         district.color?.let { dbDistrict.color = it }

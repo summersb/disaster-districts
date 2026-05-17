@@ -47,7 +47,7 @@ class WardJoinRequestResource(
 
     @POST
     @Transactional
-    fun createRequest(input: WardJoinRequestInput): Response {
+    fun createRequest(input: WardJoinCreateRequest): Response {
         val user = userAccountRepository.findById(input.userId)
             ?: return Response.status(Status.NOT_FOUND).build()
 
@@ -87,7 +87,7 @@ class WardJoinRequestResource(
     @PUT
     @Path("/{id}")
     @Transactional
-    fun resolveRequest(@PathParam("id") id: Long, resolve: WardJoinRequestResolve): Response {
+    fun resolveRequest(@PathParam("id") id: Long, resolve: WardJoinResolveRequest): Response {
         val request = wardJoinRequestRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
 
         if (resolve.approve) {

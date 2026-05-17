@@ -28,7 +28,7 @@ class UsersResource(
     @field:Context val uriInfo: UriInfo,
 ) {
 
-    private fun toDto(u: UserAccountDao) = User(
+    private fun toDto(u: UserAccountDao) = UserDto(
         id = u.id,
         email = u.email,
         roles = u.getRoleList(),
@@ -49,7 +49,7 @@ class UsersResource(
 
     @POST
     @Transactional
-    fun createUser(user: User): Response {
+    fun createUser(user: UserRequest): Response {
         val userExists = userAccountRepository.findByEmail(user.email)
         if (userExists != null) return Response.status(Status.CONFLICT).build()
         if (user.password == null) return Response.status(Status.BAD_REQUEST).build()
@@ -70,7 +70,7 @@ class UsersResource(
     @PUT
     @Path("/{id}")
     @Transactional
-    fun updateUser(@PathParam("id") id: Long, update: UserUpdate): Response {
+    fun updateUser(@PathParam("id") id: Long, update: UserUpdateRequest): Response {
         val dbUser = userAccountRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
 
         update.roles?.let { newRoles ->

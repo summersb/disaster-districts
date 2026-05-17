@@ -16,15 +16,13 @@ import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.Response.Status
 import jakarta.ws.rs.core.UriInfo
 
-@RequestScoped
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 class MembersResource(
     val memberRepository: MemberRepository,
-    @field:Context val uriInfo: UriInfo
+    val uriInfo: UriInfo,
+    val wardId: Long,
 ) {
-    var wardId: Long? = null
-
     private fun toDto(m: MemberDao) = MemberDto(
         id = m.id,
         wardId = m.ward?.id,
@@ -48,7 +46,7 @@ class MembersResource(
         // wardId == 0 is the frontend's "no ward" convention used by system /
         // ward admins who aren't tied to a single ward; in that case return
         // every member instead of scoping by ward.
-        val scope = wardId?.takeIf { it > 0 }
+        val scope = wardId.takeIf { it > 0 }
         val members = scope?.let { memberRepository.findByWard(it) }
             ?: memberRepository.listAll()
         return Response.ok(members.map { toDto(it) }).build()
@@ -63,7 +61,7 @@ class MembersResource(
 
     @POST
     @Transactional
-    fun createMember(member: Member): Response {
+    fun createMember(member: MemberRequest): Response {
         val memberExists = memberRepository.findByName(member.name)
         if (memberExists != null) {
             return Response.status(Status.CONFLICT).build()

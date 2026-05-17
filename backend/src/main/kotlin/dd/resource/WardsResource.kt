@@ -1,19 +1,22 @@
 package dd.resource
 
 import dd.dao.WardDao
+import dd.repository.DistrictRepository
+import dd.repository.MemberRepository
 import dd.repository.UserAccountRepository
+import dd.repository.WardRepository
+import jakarta.enterprise.context.RequestScoped
+import jakarta.persistence.EntityManager
+import jakarta.transaction.Transactional
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
+import jakarta.ws.rs.POST
 import jakarta.ws.rs.Produces
+import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import dd.repository.WardRepository
-import jakarta.enterprise.context.RequestScoped
-import jakarta.transaction.Transactional
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.Response.Status
 import jakarta.ws.rs.core.UriInfo
 
@@ -24,8 +27,9 @@ import jakarta.ws.rs.core.UriInfo
 class WardsResource(
     val wardRepository: WardRepository,
     val userAccountRepository: UserAccountRepository,
-    val membersResource: MembersResource,
-    val districtsResource: DistrictsResource,
+    val districtRepository: DistrictRepository,
+    val memberRepository: MemberRepository,
+    val entityManager: EntityManager,
     @field:Context val uriInfo: UriInfo,
 ) {
 
@@ -45,7 +49,7 @@ class WardsResource(
 
     @POST
     @Transactional
-    fun createWard(ward: Ward): Response {
+    fun createWard(ward: WardRequest): Response {
         val wardExists = wardRepository.findByName(ward.name)
         if (wardExists != null) {
             return Response.status(Status.CONFLICT).build()
@@ -62,14 +66,12 @@ class WardsResource(
 
     @Path("{wardId}/districts")
     fun getDistricts(@PathParam("wardId") wardId: Long): DistrictsResource {
-        districtsResource.wardId = wardId
-        return districtsResource
+        return DistrictsResource(districtRepository, wardRepository, memberRepository, entityManager, uriInfo, wardId)
     }
 
     @Path("{wardId}/members")
     fun getMembers(@PathParam("wardId") wardId: Long): MembersResource {
-        membersResource.wardId = wardId
-        return membersResource
+        return MembersResource(memberRepository, uriInfo, wardId)
     }
 
     @GET
@@ -77,7 +79,7 @@ class WardsResource(
     @Produces(MediaType.APPLICATION_JSON)
     fun getWardUsers(@PathParam("wardId") wardId: Long): Response {
         val users = userAccountRepository.findByWardId(wardId).map { u ->
-            User(id = u.id, email = u.email, roles = u.getRoleList(), wardId = u.getWard()?.id)
+            UserDto(id = u.id, email = u.email, roles = u.getRoleList(), wardId = u.getWard()?.id)
         }
         return Response.ok(users).build()
     }

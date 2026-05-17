@@ -1,22 +1,19 @@
 package dd.resource
 
-import dd.dao.DistrictDao
-
-open class Member (
-    var id: Long?,
-    var familyName: String,
-    var formattedAddress: String?,
-    var name: String,
-    var address1: String?,
-    var address2: String?,
-    var city: String?,
-    var state: String?,
-    var postalCode: String?,
-    var phone: String?,
-    var lat: Double?,
-    var lng: Double?,
-    var notes: String?,
-    var district: DistrictDao?,
+data class MemberRequest(
+    val id: Long? = null,
+    val familyName: String = "",
+    val formattedAddress: String? = null,
+    val name: String = "",
+    val address1: String? = null,
+    val address2: String? = null,
+    val city: String? = null,
+    val state: String? = null,
+    val postalCode: String? = null,
+    val phone: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    val notes: String? = null,
 )
 
 data class DistrictRefDto(

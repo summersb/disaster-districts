@@ -1,16 +1,11 @@
 package dd.resource
 
-import dd.dao.MemberDao
-import dd.dao.WardDao
-
-open class District (
+data class DistrictRequest(
     val id: Long? = null,
     val name: String? = null,
     val color: String? = null,
     val lat: Double? = null,
     val lng: Double? = null,
-    val members: MutableList<MemberDao>? = null,
-    val ward: WardDao? = null,
     val leaderId: Long? = null,
     val assistantId: Long? = null,
     val memberIds: List<Long>? = null,
