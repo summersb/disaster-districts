@@ -4,7 +4,9 @@ import dd.dao.MemberDao
 import dd.repository.MemberRepository
 import dd.repository.WardRepository
 import io.quarkus.narayana.jta.QuarkusTransaction
+import jakarta.persistence.EntityManager
 import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
@@ -21,6 +23,7 @@ import jakarta.ws.rs.core.UriInfo
 class MembersResource(
     val memberRepository: MemberRepository,
     val wardRepository: WardRepository,
+    val entityManager: EntityManager,
     val uriInfo: UriInfo,
     val wardId: Long,
 ) {
@@ -88,5 +91,19 @@ class MembersResource(
         dbuser.persist()
         val uri = uriInfo.getAbsolutePathBuilder().path(dbuser.id.toString())
         Response.created(uri.build()).build()
+    }
+
+    @DELETE
+    @Path("/{id}")
+    fun deleteMember(@PathParam("id") id: Long): Response = QuarkusTransaction.call<Response> {
+        val member = memberRepository.findById(id) ?: return@call Response.status(Status.NOT_FOUND).build()
+        // Districts referencing this member as leader/assistant would
+        // otherwise block the delete via FK constraint.
+        entityManager.createQuery("update District d set d.leader = null where d.leader.id = :id")
+            .setParameter("id", id).executeUpdate()
+        entityManager.createQuery("update District d set d.assistant = null where d.assistant.id = :id")
+            .setParameter("id", id).executeUpdate()
+        memberRepository.delete(member)
+        Response.noContent().build()
     }
 }

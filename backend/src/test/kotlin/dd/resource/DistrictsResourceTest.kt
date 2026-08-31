@@ -107,4 +107,31 @@ class DistrictsResourceTest {
             .then().statusCode(200)
             .body("find { it.id == $memberId }.district", equalTo(null))
     }
+
+    @Test
+    fun `deleting a member who leads a district clears the reference instead of failing`() {
+        val wardId = createTestWard()
+        val districtId = createDistrict(wardId, "Leader Test District")
+        val memberId = createMember(wardId, "Leader Test Member")
+
+        given()
+            .contentType(ContentType.JSON)
+            .body("""{"leaderId": $memberId}""")
+            .`when`().put("/wards/$wardId/districts/$districtId")
+            .then().statusCode(200)
+            .body("leaderId", equalTo(memberId))
+
+        given()
+            .`when`().delete("/wards/$wardId/members/$memberId")
+            .then().statusCode(204)
+
+        given()
+            .`when`().get("/wards/$wardId/districts/$districtId")
+            .then().statusCode(200)
+            .body("leaderId", equalTo(null))
+
+        given()
+            .`when`().get("/wards/$wardId/members/$memberId")
+            .then().statusCode(404)
+    }
 }
