@@ -9,3 +9,4 @@ frontend/*.tsbuildinfo
 /frontend/yarn.lock
 /.claude/settings.local.json
 /.env
+/.idea
