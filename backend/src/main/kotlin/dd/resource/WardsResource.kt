@@ -9,6 +9,7 @@ import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.EntityManager
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
@@ -62,6 +63,29 @@ class WardsResource(
         dbWard.persist()
         val uri = uriInfo.getAbsolutePathBuilder().path(dbWard.id.toString())
         return Response.created(uri.build()).build()
+    }
+
+    @DELETE
+    @Path("/{id}")
+    @Transactional
+    fun deleteWard(@PathParam("id") id: Long): Response {
+        val ward = wardRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
+        // Detach/remove everything scoped to this ward before removing it -
+        // members reference districts, and districts/user roles/join
+        // requests all reference the ward, so the FKs would otherwise block
+        // the delete.
+        entityManager.createQuery("delete from WardJoinRequest r where r.ward.id = :id")
+            .setParameter("id", id).executeUpdate()
+        entityManager.createQuery("update Member m set m.district = null where m.ward.id = :id")
+            .setParameter("id", id).executeUpdate()
+        entityManager.createQuery("delete from District d where d.ward.id = :id")
+            .setParameter("id", id).executeUpdate()
+        entityManager.createQuery("delete from Member m where m.ward.id = :id")
+            .setParameter("id", id).executeUpdate()
+        entityManager.createQuery("delete from UserRole r where r.ward.id = :id")
+            .setParameter("id", id).executeUpdate()
+        wardRepository.delete(ward)
+        return Response.noContent().build()
     }
 
     @Path("{wardId}/districts")

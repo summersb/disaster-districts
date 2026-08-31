@@ -105,4 +105,58 @@ class WardsResourceTest {
             "expected all 20 members to be assigned to a district, got north=$northCount south=$southCount"
         }
     }
+
+    @Test
+    fun `DELETE wards id cascades districts, members, and join requests`() {
+        val wardId = given()
+            .contentType(ContentType.JSON)
+            .body("""{"name": "Cascade Delete Test ${System.nanoTime()}"}""")
+            .`when`().post("/wards")
+            .then().statusCode(201)
+            .extract().header("Location").substringAfterLast("/").toInt()
+
+        given()
+            .contentType(ContentType.JSON)
+            .body("""{"name": "Cascade District"}""")
+            .`when`().post("/wards/$wardId/districts")
+            .then().statusCode(201)
+
+        given()
+            .contentType(ContentType.JSON)
+            .body("""{"name": "Cascade Member", "familyName": "Cascade", "formattedAddress": "1 Test St"}""")
+            .`when`().post("/wards/$wardId/members")
+            .then().statusCode(201)
+
+        val email = "cascade-${System.nanoTime()}@example.com"
+        val userId = given()
+            .contentType(ContentType.JSON)
+            .body("""{"email": "$email", "password": "password123"}""")
+            .`when`().post("/users")
+            .then().statusCode(201)
+            .extract().header("Location").substringAfterLast("/").toInt()
+
+        given()
+            .contentType(ContentType.JSON)
+            .body("""{"userId": $userId, "wardId": $wardId}""")
+            .`when`().post("/join-requests")
+            .then().statusCode(201)
+
+        given()
+            .`when`().delete("/wards/$wardId")
+            .then().statusCode(204)
+
+        given()
+            .`when`().get("/wards/$wardId")
+            .then().statusCode(404)
+
+        given()
+            .`when`().get("/wards/$wardId/districts")
+            .then().statusCode(200)
+            .body("$", hasSize<Any>(0))
+
+        given()
+            .`when`().get("/wards/$wardId/members")
+            .then().statusCode(200)
+            .body("$", hasSize<Any>(0))
+    }
 }

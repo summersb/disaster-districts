@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { WardDto } from '@/type/Ward.ts'
 
 const loadWards = async () => {
@@ -23,5 +23,31 @@ export const useWard = (wardId: number) => {
     queryKey: ['ward', wardId],
     queryFn: () => loadWard(wardId),
     enabled: wardId > 0,
+  })
+}
+
+export const useCreateWard = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (ward: { name: string }): Promise<{ id?: number }> => {
+      const res = await fetch('/api/wards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ward),
+      })
+      if (!res.ok) {
+        throw new Error(
+          res.status === 409
+            ? 'A ward with that name already exists'
+            : 'Failed to create ward',
+        )
+      }
+      const location = res.headers.get('location')
+      const id = location ? Number(location.split('/').pop()) : undefined
+      return { id }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wards'] })
+    },
   })
 }

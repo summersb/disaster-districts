@@ -7,10 +7,17 @@ test('a user can request to join more than one ward at once', async ({
   const suffix = Date.now()
   const email = `e2e-multiward-${suffix}@example.com`
   const password = 'password123'
+  const secondWardName = 'E2E Second Ward'
 
-  await request.post('/api/wards', {
-    data: { name: `Second Ward ${suffix}`, lat: 41.0, lng: -75.0 },
-  })
+  // Reuse a fixed-name ward across runs instead of creating a new one every
+  // time - there's no ward delete endpoint, so a unique name per run would
+  // leave permanent clutter behind.
+  const existingWards = await (await request.get('/api/wards')).json()
+  if (!existingWards.some((w: { name: string }) => w.name === secondWardName)) {
+    await request.post('/api/wards', {
+      data: { name: secondWardName, lat: 41.0, lng: -75.0 },
+    })
+  }
 
   await page.goto('/signup')
   await page.getByPlaceholder('you@example.com').fill(email)
@@ -37,7 +44,6 @@ test('a user can request to join more than one ward at once', async ({
   // replaced by a "you already have a pending request" notice.
   await expect(page.getByRole('button', { name: 'Join Ward' })).toBeVisible()
   await page.getByRole('combobox').click()
-  const secondWardName = `Second Ward ${suffix}`
   await expect(page.getByRole('option', { name: secondWardName })).toBeVisible()
   // Sample Ward must not be offered again - it already has a pending request.
   await expect(page.getByRole('option', { name: 'Sample Ward' })).toHaveCount(0)
