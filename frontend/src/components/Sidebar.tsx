@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import type { User as UserType } from '@/context/UserContext.tsx'
 import useUser from '@/context/useUser.tsx'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState'
+import { useWard } from '@/hooks/useWards'
 import { canManageUsers, isAdmin } from '@/lib/roles'
 import { Route as AdminRoute } from '@/routes/_protected/admin'
 import { Route as JoinRequestsRoute } from '@/routes/_protected/admin/join-requests'
@@ -28,7 +29,6 @@ import { Route as PrintRoute } from '@/routes/_protected/print'
 import { Route as SettingsRoute } from '@/routes/_protected/settings'
 import { Route as UploadRoute } from '@/routes/_protected/upload'
 import { Route as LoginRoute } from '@/routes/login'
-import type { Ward } from '@/type/Ward.ts'
 
 type Props = {
   user: UserType
@@ -37,7 +37,7 @@ type Props = {
 const Sidebar = ({ user }: Props): React.ReactElement => {
   const auth = useUser()
   const [, setUser] = useLocalStorageState<UserType>('user', undefined)
-  const [wardDoc] = useLocalStorageState<Ward>('ward', undefined)
+  const { data: ward } = useWard(user.wardId ?? 0)
 
   const logout = async () => {
     auth.setUser({})
@@ -61,7 +61,7 @@ const Sidebar = ({ user }: Props): React.ReactElement => {
         Districts
       </div>
       <div className="flex flex-row">
-        <Link to={DashboardRoute.to}>{wardDoc?.wardName ?? 'Dashboard'}</Link>
+        <Link to={DashboardRoute.to}>{ward?.name ?? 'Dashboard'}</Link>
       </div>
 
       {canManageUsers(user.roles) && (
