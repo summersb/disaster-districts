@@ -4,6 +4,7 @@ import dd.dao.DistrictDao
 import dd.repository.DistrictRepository
 import dd.repository.MemberRepository
 import dd.repository.WardRepository
+import io.quarkus.narayana.jta.QuarkusTransaction
 import jakarta.persistence.EntityManager
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.GET
@@ -12,8 +13,6 @@ import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import jakarta.enterprise.context.RequestScoped
-import jakarta.transaction.Transactional
 import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.PUT
@@ -60,15 +59,19 @@ class DistrictsResource(
         return Response.ok(toDto(district)).build()
     }
 
+    // This class is a JAX-RS sub-resource locator (see WardsResource.getDistricts),
+    // returned via a plain `new` rather than CDI, so @Transactional interceptors
+    // never get woven in here. QuarkusTransaction.call() opens/commits a
+    // transaction programmatically instead.
+
     @POST
-    @Transactional
-    fun createDistrict(district: DistrictRequest): Response {
+    fun createDistrict(district: DistrictRequest): Response = QuarkusTransaction.call<Response> {
         if (district.name == null) {
-            return Response.status(Status.BAD_REQUEST).build()
+            return@call Response.status(Status.BAD_REQUEST).build()
         }
         val districtExists = districtRepository.findByName(district.name)
         if (districtExists != null) {
-            return Response.status(Status.CONFLICT).build()
+            return@call Response.status(Status.CONFLICT).build()
         }
         val dbDistrict = DistrictDao().apply {
             name = district.name
@@ -79,14 +82,13 @@ class DistrictsResource(
         }
         dbDistrict.persist()
         val uri = uriInfo.getAbsolutePathBuilder().path(dbDistrict.id.toString())
-        return Response.created(uri.build()).build()
+        Response.created(uri.build()).build()
     }
 
     @PUT
     @Path("/{id}")
-    @Transactional
-    fun updateDistrict(@PathParam("id") id: Long, district: DistrictRequest): Response {
-        val dbDistrict = districtRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
+    fun updateDistrict(@PathParam("id") id: Long, district: DistrictRequest): Response = QuarkusTransaction.call<Response> {
+        val dbDistrict = districtRepository.findById(id) ?: return@call Response.status(Status.NOT_FOUND).build()
         district.name?.let { dbDistrict.name = it }
         district.color?.let { dbDistrict.color = it }
         district.lat?.let { dbDistrict.lat = it }
@@ -127,14 +129,13 @@ class DistrictsResource(
                     .executeUpdate()
             }
         }
-        return Response.ok(toDto(dbDistrict)).build()
+        Response.ok(toDto(dbDistrict)).build()
     }
 
     @DELETE
     @Path("/{id}")
-    @Transactional
-    fun deleteDistrict(@PathParam("id") id: Long): Response {
-        val dbDistrict = districtRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
+    fun deleteDistrict(@PathParam("id") id: Long): Response = QuarkusTransaction.call<Response> {
+        val dbDistrict = districtRepository.findById(id) ?: return@call Response.status(Status.NOT_FOUND).build()
         // Detach any members pointing at this district before delete; otherwise
         // the members.district_id FK blocks the delete. The schema's leader and
         // assistant columns belong to districts itself and go away with the row.
@@ -143,6 +144,6 @@ class DistrictsResource(
             .setParameter("id", id)
             .executeUpdate()
         districtRepository.delete(dbDistrict)
-        return Response.noContent().build()
+        Response.noContent().build()
     }
 }

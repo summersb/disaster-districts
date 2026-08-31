@@ -2,6 +2,8 @@ package dd.resource
 
 import dd.dao.MemberDao
 import dd.repository.MemberRepository
+import dd.repository.WardRepository
+import io.quarkus.narayana.jta.QuarkusTransaction
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.Path
@@ -9,8 +11,6 @@ import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import jakarta.enterprise.context.RequestScoped
-import jakarta.transaction.Transactional
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.Response.Status
@@ -20,6 +20,7 @@ import jakarta.ws.rs.core.UriInfo
 @Produces(MediaType.APPLICATION_JSON)
 class MembersResource(
     val memberRepository: MemberRepository,
+    val wardRepository: WardRepository,
     val uriInfo: UriInfo,
     val wardId: Long,
 ) {
@@ -59,18 +60,33 @@ class MembersResource(
         return Response.ok(toDto(member)).build()
     }
 
+    // This class is a JAX-RS sub-resource locator (see WardsResource.getMembers),
+    // returned via a plain `new` rather than CDI, so @Transactional interceptors
+    // never get woven in here. QuarkusTransaction.call() opens/commits a
+    // transaction programmatically instead.
     @POST
-    @Transactional
-    fun createMember(member: MemberRequest): Response {
+    fun createMember(member: MemberRequest): Response = QuarkusTransaction.call<Response> {
         val memberExists = memberRepository.findByName(member.name)
         if (memberExists != null) {
-            return Response.status(Status.CONFLICT).build()
+            return@call Response.status(Status.CONFLICT).build()
         }
         val dbuser = MemberDao().apply {
+            familyName = member.familyName
+            formattedAddress = member.formattedAddress
             name = member.name
+            address1 = member.address1
+            address2 = member.address2
+            city = member.city
+            state = member.state
+            postalCode = member.postalCode
+            phone = member.phone
+            lat = member.lat
+            lng = member.lng
+            notes = member.notes
+            ward = wardId.takeIf { it > 0 }?.let { wardRepository.findById(it) }
         }
         dbuser.persist()
         val uri = uriInfo.getAbsolutePathBuilder().path(dbuser.id.toString())
-        return Response.created(uri.build()).build()
+        Response.created(uri.build()).build()
     }
 }

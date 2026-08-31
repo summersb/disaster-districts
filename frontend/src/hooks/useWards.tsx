@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import type { Ward } from '@/type/Ward.ts'
+import type { WardDto } from '@/type/Ward.ts'
 
 const loadWards = async () => {
   const res = await fetch('/api/wards')
@@ -12,14 +12,14 @@ const loadWard = async (wardId: number) => {
 }
 
 export const useWards = () => {
-  return useQuery<Ward[]>({
+  return useQuery<WardDto[]>({
     queryKey: ['wards'],
     queryFn: loadWards,
   })
 }
 
 export const useWard = (wardId: number) => {
-  return useQuery<Ward>({
+  return useQuery<WardDto>({
     queryKey: ['ward', wardId],
     queryFn: () => loadWard(wardId),
     enabled: wardId > 0,

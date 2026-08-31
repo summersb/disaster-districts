@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useFieldArray, useFormContext } from 'react-hook-form'
 import { ColorPicker } from '@/components/ColorPicker.tsx'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
+import OSMMapWithMarkers from '@/components/OSMMapWithMarkers'
 import { Button } from '@/components/ui/button'
 import {
   Command,
@@ -29,7 +30,6 @@ import { useDistricts } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
 import { getWardId } from '@/lib/api'
 import { cn } from '@/lib/utils'
-import OSMMapWithMarkers from '@/components/OSMMapWithMarkers'
 import type { DistrictDto, MemberDto } from '@/type'
 
 type DistrictFormProps = {
@@ -88,6 +88,15 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
         }
       : m,
   )
+
+  // Only pass a center when we actually have coordinates; otherwise leave it
+  // undefined so OSMMapWithMarkers falls back to the ward members' average.
+  const resolvedLat = lat ?? (currentDistrict as any)?.lat ?? leader?.lat
+  const resolvedLng = lng ?? (currentDistrict as any)?.lng ?? leader?.lng
+  const resolvedCenter =
+    resolvedLat != null && resolvedLng != null
+      ? { lat: resolvedLat, lng: resolvedLng }
+      : undefined
 
   // For the map's districts list, mirror the form's pending leader/assistant
   // so the Leader-/Assistant- icons follow the current selection.
@@ -412,7 +421,7 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
           <OSMMapWithMarkers
             districts={mapDistricts as DistrictDto[]}
             members={mapMembers as MemberDto[]}
-            center={{ lat: lat ?? (currentDistrict as any)?.lat ?? leader?.lat, lng: lng ?? (currentDistrict as any)?.lng ?? leader?.lng }}
+            center={resolvedCenter}
             markerClicked={readOnly ? undefined : memberClicked}
             onMapClick={!readOnly && pickingCenter ? handleMapClick : undefined}
             showLabel

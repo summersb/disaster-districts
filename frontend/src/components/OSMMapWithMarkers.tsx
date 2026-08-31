@@ -127,7 +127,10 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
     })
   }
 
-  const findCenter = (memberList: MemberDto[]) => {
+  const DEFAULT_CENTER: Position = { lat: 0, lng: 0 }
+
+  const findCenter = (memberList: MemberDto[]): Position => {
+    if (memberList.length === 0) return DEFAULT_CENTER
     const latitudes = memberList.map((m) => m.lat ?? 0)
     const longitudes = memberList.map((m) => m.lng ?? 0)
 

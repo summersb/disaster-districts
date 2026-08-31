@@ -21,6 +21,7 @@ const EditDistrict = ({
   readOnly = false,
 }: EditDistrictProps): React.ReactElement => {
   const [saving, setSaving] = useState<boolean>(false)
+  const [formReady, setFormReady] = useState<boolean>(false)
   const wardId = getWardId()
 
   const form = useForm<DistrictDto>({
@@ -81,6 +82,7 @@ const EditDistrict = ({
         members: (members ?? []).filter((m) => m.district?.id === db.id),
       }
       form.reset(district)
+      setFormReady(true)
     }
   }, [data?.id, members?.length, data, members, form.reset])
 
@@ -124,7 +126,11 @@ const EditDistrict = ({
           {readOnly ? 'View District' : 'Edit District'}
         </h2>
 
-        {data && (
+        {data && !formReady && (
+          <p className="text-sm text-muted-foreground">Loading district…</p>
+        )}
+
+        {data && formReady && (
           <Form {...form}>
             <form
               action="#"

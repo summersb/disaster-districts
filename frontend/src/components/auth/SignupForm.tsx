@@ -77,9 +77,7 @@ export function SignupForm() {
           }),
         )
       }
-      navigate({ to: '/_protected/join-ward/' as any }).catch((error) =>
-        console.error(error),
-      )
+      navigate({ to: '/join-ward' }).catch((error) => console.error(error))
       return
     } catch (err: any) {
       console.error('Signup failed', err)

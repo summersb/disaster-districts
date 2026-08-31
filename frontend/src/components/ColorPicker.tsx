@@ -39,8 +39,21 @@ export interface ColorPickerProps {
 
 const ColorPicker = React.forwardRef<HTMLButtonElement, ColorPickerProps>(
   ({ selectedColor, setSelectedColor, disabled, className }, ref) => {
+    // Radix's Select fires onValueChange("") from its hidden native <select>
+    // bubble proxy before its SelectItem collection has registered the
+    // programmatically-set value (e.g. right after a react-hook-form reset).
+    // No color name is ever legitimately empty, so ignore that spurious call
+    // instead of clobbering the real value.
+    const handleValueChange = (color: string) => {
+      if (!color) return
+      setSelectedColor(color)
+    }
     return (
-      <Select value={selectedColor} onValueChange={setSelectedColor} disabled={disabled}>
+      <Select
+        value={selectedColor}
+        onValueChange={handleValueChange}
+        disabled={disabled}
+      >
         <SelectTrigger ref={ref} className={className} disabled={disabled}>
           <SelectValue />
         </SelectTrigger>

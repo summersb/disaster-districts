@@ -71,7 +71,7 @@ class WardsResource(
 
     @Path("{wardId}/members")
     fun getMembers(@PathParam("wardId") wardId: Long): MembersResource {
-        return MembersResource(memberRepository, uriInfo, wardId)
+        return MembersResource(memberRepository, wardRepository, uriInfo, wardId)
     }
 
     @GET

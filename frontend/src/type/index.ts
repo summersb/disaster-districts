@@ -11,10 +11,11 @@ import type {
 } from './GoogleApi'
 import type { MemberDto } from './Member'
 import { MemberSchema } from './Member'
-import { UserRequestSchema } from './User'
 import type { UserDto } from './User'
+import { UserRequestSchema } from './User'
 import type { WardDto } from './Ward'
 import { WardConfigSchema, WardDtoSchema, WardSchema } from './Ward'
+import type { WardJoinRequestDto } from './WardJoinRequest'
 
 export type {
   AddressComponent,
@@ -27,6 +28,7 @@ export type {
   Results,
   UserDto,
   WardDto,
+  WardJoinRequestDto,
 }
 export {
   DistrictSchema,

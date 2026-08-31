@@ -1,7 +1,6 @@
 services:
   db:
     image: postgres:17
-    restart: once
     environment:
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}

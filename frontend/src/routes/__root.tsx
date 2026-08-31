@@ -10,6 +10,7 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { useEffect } from 'react'
 import type { User } from '@/context/UserContext.tsx'
 import { checkSetupNeeded } from '@/hooks/useLogin.tsx'
+import { isAdmin } from '@/lib/roles'
 import { Route as DashboardRoute } from '@/routes/_protected/dashboard/index'
 
 // Setup global fetch interceptor to handle 401 responses
@@ -42,8 +43,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     const isLoginPage =
       location.pathname === '/login' || location.pathname === '/signup'
     const isJoinWardPage =
-      location.pathname === '/_protected/join-ward' ||
-      location.pathname === '/_protected/join-ward/'
+      location.pathname === '/join-ward' || location.pathname === '/join-ward/'
 
     if (!setupChecked) {
       needsSetup = await checkSetupNeeded()
@@ -70,9 +70,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       throw redirect({ to: '/login', search: { from: location.pathname } })
     }
 
-    // If user has no ward ID (or it's 0), redirect to ward selection (unless already there)
-    if ((user?.wardId ?? 0) === 0 && !isJoinWardPage) {
-      throw redirect({ to: '/_protected/join-ward/' as any })
+    // If user has no ward ID (or it's 0), redirect to ward selection (unless already there).
+    // System admins aren't tied to a ward, so they're exempt from this gate.
+    if ((user?.wardId ?? 0) === 0 && !isJoinWardPage && !isAdmin(user?.roles)) {
+      throw redirect({ to: '/join-ward' })
     }
 
     if (location.pathname === '/') {
