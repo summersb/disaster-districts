@@ -4,18 +4,20 @@ import dd.dao.DistrictDao
 import dd.repository.DistrictRepository
 import dd.repository.MemberRepository
 import dd.repository.WardRepository
+import dd.security.requireWardManager
 import io.quarkus.narayana.jta.QuarkusTransaction
+import io.quarkus.security.identity.SecurityIdentity
 import jakarta.persistence.EntityManager
 import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.GET
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.DELETE
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.PUT
 import jakarta.ws.rs.core.Response.Status
 import jakarta.ws.rs.core.UriInfo
 
@@ -26,6 +28,7 @@ class DistrictsResource(
     val wardRepository: WardRepository,
     val memberRepository: MemberRepository,
     val entityManager: EntityManager,
+    val identity: SecurityIdentity,
     val uriInfo: UriInfo,
     val wardId: Long,
 ) {
@@ -61,10 +64,14 @@ class DistrictsResource(
     // This class is a JAX-RS sub-resource locator (see WardsResource.getDistricts),
     // returned via a plain `new` rather than CDI, so @Transactional interceptors
     // never get woven in here. QuarkusTransaction.call() opens/commits a
-    // transaction programmatically instead.
+    // transaction programmatically instead. The same applies to @RolesAllowed,
+    // so mutating methods below check identity.requireWardManager() by hand -
+    // WardsResource.getDistricts already verified ward membership before this
+    // instance was even constructed.
 
     @POST
     fun createDistrict(district: DistrictRequest): Response = QuarkusTransaction.call<Response> {
+        identity.requireWardManager(wardId)
         if (district.name == null) {
             return@call Response.status(Status.BAD_REQUEST).build()
         }
@@ -87,6 +94,7 @@ class DistrictsResource(
     @PUT
     @Path("/{id}")
     fun updateDistrict(@PathParam("id") id: Long, district: DistrictRequest): Response = QuarkusTransaction.call<Response> {
+        identity.requireWardManager(wardId)
         val dbDistrict = districtRepository.findById(id) ?: return@call Response.status(Status.NOT_FOUND).build()
         district.name?.let { dbDistrict.name = it }
         district.color?.let { dbDistrict.color = it }
@@ -134,6 +142,7 @@ class DistrictsResource(
     @DELETE
     @Path("/{id}")
     fun deleteDistrict(@PathParam("id") id: Long): Response = QuarkusTransaction.call<Response> {
+        identity.requireWardManager(wardId)
         if (districtRepository.findById(id) == null) return@call Response.status(Status.NOT_FOUND).build()
         // Detach any members pointing at this district before delete; otherwise
         // the members.district_id FK blocks the delete. The schema's leader and

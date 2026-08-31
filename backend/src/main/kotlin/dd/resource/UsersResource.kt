@@ -5,8 +5,13 @@ import dd.dao.UserAccountDao
 import dd.dao.UserRoleDao
 import dd.repository.UserAccountRepository
 import dd.repository.WardRepository
+import dd.security.isSystemAdmin
+import dd.security.wardId
+import io.quarkus.security.identity.SecurityIdentity
+import jakarta.annotation.security.RolesAllowed
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.ForbiddenException
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.PUT
@@ -25,6 +30,7 @@ import jakarta.ws.rs.core.UriInfo
 class UsersResource(
     val userAccountRepository: UserAccountRepository,
     val wardRepository: WardRepository,
+    val identity: SecurityIdentity,
     @field:Context val uriInfo: UriInfo,
 ) {
 
@@ -37,17 +43,21 @@ class UsersResource(
     )
 
     @GET
+    @RolesAllowed("admin", "ward_admin")
     fun getUsers(): Response {
         return Response.ok(userAccountRepository.listAll().map { toDto(it) }).build()
     }
 
     @GET
     @Path("/{id}")
+    @RolesAllowed("admin", "ward_admin")
     fun getUser(@PathParam("id") id: Long): Response {
         val user = userAccountRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
         return Response.ok(toDto(user)).build()
     }
 
+    // Deliberately unauthenticated - this is the signup endpoint, called by
+    // people who don't have an account (and therefore no token) yet.
     @POST
     @Transactional
     fun createUser(user: UserRequest): Response {
@@ -71,9 +81,21 @@ class UsersResource(
 
     @PUT
     @Path("/{id}")
+    @RolesAllowed("admin", "ward_admin")
     @Transactional
     fun updateUser(@PathParam("id") id: Long, update: UserUpdateRequest): Response {
         val dbUser = userAccountRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
+
+        if (!identity.isSystemAdmin()) {
+            // A ward_admin may only manage users already in their own ward,
+            // can't grant system-admin, and can't move someone to a
+            // different ward than their own (that's an admin-only action,
+            // used when creating a brand new ward and assigning it an
+            // admin).
+            if (dbUser.getWard()?.id != identity.wardId()) throw ForbiddenException()
+            if (update.roles?.contains("admin") == true) throw ForbiddenException()
+            if (update.wardId != null && update.wardId != identity.wardId()) throw ForbiddenException()
+        }
 
         update.roles?.let { newRoles ->
             val currentWard = dbUser.getWard()

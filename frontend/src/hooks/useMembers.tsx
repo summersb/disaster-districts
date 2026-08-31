@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { authFetch } from '@/lib/api'
 import type { MemberDto } from '@/type'
 
 const loadMembers = async (wardId: number): Promise<MemberDto[]> => {
-  const res = await fetch(`/api/wards/${wardId}/members`)
+  const res = await authFetch(`/api/wards/${wardId}/members`)
   if (!res.ok) {
     return []
   }
@@ -14,7 +15,7 @@ const loadMember = async (
   wardId: number,
   memberId: number,
 ): Promise<MemberDto> => {
-  const res = await fetch(`/api/wards/${wardId}/members/${memberId}`)
+  const res = await authFetch(`/api/wards/${wardId}/members/${memberId}`)
   if (!res.ok) throw new Error(`Failed to load member ${memberId}`)
   return res.json()
 }
@@ -37,7 +38,7 @@ export const useAddMember = () => {
 
   return useMutation({
     mutationFn: ({ wardId, member }: { wardId: number; member: MemberDto }) =>
-      fetch(`/api/wards/${wardId}/members`, {
+      authFetch(`/api/wards/${wardId}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(member),
@@ -61,7 +62,7 @@ export const useSaveMember = () => {
       memberId: number
       member: MemberDto
     }) =>
-      fetch(`/api/wards/${wardId}/members/${memberId}`, {
+      authFetch(`/api/wards/${wardId}/members/${memberId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(member),
@@ -77,7 +78,7 @@ export const useDeleteMember = () => {
 
   return useMutation({
     mutationFn: ({ wardId, memberId }: { wardId: number; memberId: number }) =>
-      fetch(`/api/wards/${wardId}/members/${memberId}`, {
+      authFetch(`/api/wards/${wardId}/members/${memberId}`, {
         method: 'DELETE',
       }),
     onSuccess: () => {

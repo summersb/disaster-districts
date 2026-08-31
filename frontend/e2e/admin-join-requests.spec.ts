@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { adminAuthHeaders } from './helpers'
 
 test('admin can view and approve a pending ward join request', async ({
   page,
@@ -6,6 +7,7 @@ test('admin can view and approve a pending ward join request', async ({
 }) => {
   const email = `e2e-approve-${Date.now()}@example.com`
   const password = 'password123'
+  const headers = await adminAuthHeaders(request)
 
   await request.post('/api/users', { data: { email, password } })
   const loginRes = await request.post('/api/auth/login', {
@@ -13,10 +15,11 @@ test('admin can view and approve a pending ward join request', async ({
   })
   const { id: userId } = await loginRes.json()
 
-  const wards = await (await request.get('/api/wards')).json()
+  const wards = await (await request.get('/api/wards', { headers })).json()
   const ward = wards[0]
 
   const joinRes = await request.post('/api/join-requests', {
+    headers,
     data: { userId, wardId: ward.id },
   })
   expect(joinRes.status()).toBe(201)

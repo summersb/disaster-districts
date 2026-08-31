@@ -6,7 +6,7 @@ import SaveButton from '@/components/styled/SaveButton.tsx'
 import { Form } from '@/components/ui/form'
 import { useDistrict } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
-import { getWardId } from '@/lib/api'
+import { authFetch, getWardId } from '@/lib/api'
 import type { DistrictDto } from '@/type'
 import { DistrictSchema } from '@/type'
 import DistrictForm from './DistrictForm'
@@ -99,7 +99,7 @@ const EditDistrict = ({
     }
 
     try {
-      const res = await fetch(`/api/wards/${wardId}/districts/${data.id}`, {
+      const res = await authFetch(`/api/wards/${wardId}/districts/${data.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

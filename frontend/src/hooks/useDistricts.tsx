@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { authFetch } from '@/lib/api'
 import type { DistrictDto } from '@/type'
 
 const loadDistricts = async (wardId: number): Promise<DistrictDto[]> => {
-  const res = await fetch(`/api/wards/${wardId}/districts`)
+  const res = await authFetch(`/api/wards/${wardId}/districts`)
   if (!res.ok) {
     throw new Error(`Failed to load districts: ${res.status}`)
   }
@@ -14,7 +15,7 @@ const loadDistrict = async (
   wardId: number,
   districtId: number,
 ): Promise<DistrictDto> => {
-  const res = await fetch(`/api/wards/${wardId}/districts/${districtId}`)
+  const res = await authFetch(`/api/wards/${wardId}/districts/${districtId}`)
   if (!res.ok) {
     throw new Error(`Failed to load district ${districtId}: ${res.status}`)
   }
@@ -47,7 +48,7 @@ export const useAddDistrictMember = () => {
       districtId: number
       memberId: number
     }) =>
-      fetch(
+      authFetch(
         `/api/wards/${wardId}/districts/${districtId}/members/${memberId}`,
         {
           method: 'POST',
@@ -72,7 +73,7 @@ export const useDeleteDistrictMember = () => {
       districtId: number
       memberId: number
     }) =>
-      fetch(
+      authFetch(
         `/api/wards/${wardId}/districts/${districtId}/members/${memberId}`,
         {
           method: 'DELETE',
@@ -95,7 +96,7 @@ export const useAddDistrict = () => {
       wardId: number
       district: DistrictDto
     }) =>
-      fetch(`/api/wards/${wardId}/districts`, {
+      authFetch(`/api/wards/${wardId}/districts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(district),
@@ -117,7 +118,7 @@ export const useDeleteDistrict = () => {
       wardId: number
       districtId: number
     }) =>
-      fetch(`/api/wards/${wardId}/districts/${districtId}`, {
+      authFetch(`/api/wards/${wardId}/districts/${districtId}`, {
         method: 'DELETE',
       }),
     onSuccess: () => {

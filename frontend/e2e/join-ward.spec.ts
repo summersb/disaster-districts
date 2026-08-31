@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { adminAuthHeaders } from './helpers'
 
 test('a new signup can see the ward list and submit a join request', async ({
   page,
@@ -58,9 +59,11 @@ test('a new signup can see the ward list and submit a join request', async ({
   }
 
   // Reject the request so it doesn't linger in the admin's pending queue.
+  // Resolving a request (even your own) requires admin/ward_admin.
   const location = await response.headerValue('location')
   const requestId = location?.split('/').pop()
   await request.put(`/api/join-requests/${requestId}`, {
+    headers: await adminAuthHeaders(request),
     data: { approve: false },
   })
 })

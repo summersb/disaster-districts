@@ -1,7 +1,6 @@
 package dd.resource
 
 import io.quarkus.test.junit.QuarkusTest
-import io.restassured.RestAssured.given
 import io.restassured.http.ContentType
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
@@ -14,7 +13,7 @@ import org.junit.jupiter.api.Test
 class MembersResourceTest {
 
     private fun createTestWard(): Int =
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"name": "Members Test Ward ${System.nanoTime()}"}""")
             .`when`().post("/wards")
@@ -22,7 +21,7 @@ class MembersResourceTest {
             .extract().header("Location").substringAfterLast("/").toInt()
 
     private fun createMember(wardId: Int, name: String): Int =
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"name": "$name", "familyName": "$name", "formattedAddress": "1 Test St"}""")
             .`when`().post("/wards/$wardId/members")
@@ -35,7 +34,7 @@ class MembersResourceTest {
         val name = "Get Member Test ${System.nanoTime()}"
         val memberId = createMember(wardId, name)
 
-        given()
+        asAdmin()
             .`when`().get("/wards/$wardId/members/$memberId")
             .then().statusCode(200)
             .body("name", equalTo(name))
@@ -46,7 +45,7 @@ class MembersResourceTest {
     fun `GET member by id returns 404 when missing`() {
         val wardId = createTestWard()
 
-        given()
+        asAdmin()
             .`when`().get("/wards/$wardId/members/999999")
             .then().statusCode(404)
     }
@@ -57,7 +56,7 @@ class MembersResourceTest {
         val name = "Duplicate Member ${System.nanoTime()}"
         createMember(wardId, name)
 
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"name": "$name", "familyName": "$name", "formattedAddress": "1 Test St"}""")
             .`when`().post("/wards/$wardId/members")
@@ -69,7 +68,7 @@ class MembersResourceTest {
         val wardId = createTestWard()
         val memberId = createMember(wardId, "Original Member ${System.nanoTime()}")
 
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body(
                 """{"name": "Updated Member", "familyName": "Updated", "formattedAddress": "2 New St", "city": "Metropolis"}""",
@@ -81,7 +80,7 @@ class MembersResourceTest {
 
         // Re-fetch on a fresh request to prove it was actually flushed to the
         // database, not just mutated in memory.
-        given()
+        asAdmin()
             .`when`().get("/wards/$wardId/members/$memberId")
             .then().statusCode(200)
             .body("name", equalTo("Updated Member"))
@@ -92,7 +91,7 @@ class MembersResourceTest {
     fun `PUT member returns 404 when missing`() {
         val wardId = createTestWard()
 
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"name": "Ghost", "familyName": "Ghost", "formattedAddress": "1 Test St"}""")
             .`when`().put("/wards/$wardId/members/999999")
@@ -106,7 +105,7 @@ class MembersResourceTest {
         createMember(wardId, takenName)
         val memberId = createMember(wardId, "Renamable Member ${System.nanoTime()}")
 
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"name": "$takenName", "familyName": "X", "formattedAddress": "1 Test St"}""")
             .`when`().put("/wards/$wardId/members/$memberId")
@@ -118,15 +117,15 @@ class MembersResourceTest {
         val wardId = createTestWard()
         val memberId = createMember(wardId, "Delete Member ${System.nanoTime()}")
 
-        given()
+        asAdmin()
             .`when`().delete("/wards/$wardId/members/$memberId")
             .then().statusCode(204)
 
-        given()
+        asAdmin()
             .`when`().get("/wards/$wardId/members/$memberId")
             .then().statusCode(404)
 
-        given()
+        asAdmin()
             .`when`().delete("/wards/$wardId/members/$memberId")
             .then().statusCode(404)
     }

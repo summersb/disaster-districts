@@ -1,11 +1,14 @@
 import { expect, test } from '@playwright/test'
+import { adminAuthHeaders } from './helpers'
 
 test('edit member navigates from the list, loads existing data, and saves', async ({
   page,
   request,
 }) => {
+  const headers = await adminAuthHeaders(request)
   const memberName = `Edit Flow Test Member ${Date.now()}`
   const createRes = await request.post('/api/wards/1/members', {
+    headers,
     data: {
       name: memberName,
       familyName: 'FlowTest',
@@ -51,5 +54,5 @@ test('edit member navigates from the list, loads existing data, and saves', asyn
   expect(pageErrors).toHaveLength(0)
   await expect(page).toHaveURL(/\/member$/)
 
-  await request.delete(`/api/wards/1/members/${memberId}`)
+  await request.delete(`/api/wards/1/members/${memberId}`, { headers })
 })

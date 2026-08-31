@@ -41,7 +41,7 @@ export const useCreateJoinRequest = () => {
       userId: number
       wardId: number
     }) => {
-      const res = await fetch('/api/join-requests', {
+      const res = await authFetch('/api/join-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, wardId }),

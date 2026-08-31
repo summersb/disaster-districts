@@ -1,15 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useNavigate } from '@tanstack/react-router'
 import type React from 'react'
 import { useState } from 'react'
 import { type SubmitHandler, useForm } from 'react-hook-form'
-import { useNavigate } from '@tanstack/react-router'
 import SaveButton from '@/components/styled/SaveButton.tsx'
 import { Form } from '@/components/ui/form'
-import { getWardId } from '@/lib/api'
+import { authFetch, getWardId } from '@/lib/api'
+import { Route } from '@/routes/_protected/district/index'
 import type { DistrictDto } from '@/type'
 import { DistrictSchema } from '@/type'
 import DistrictForm from './DistrictForm'
-import { Route } from '@/routes/_protected/district/index'
 
 const AddDistrict = (): React.ReactElement => {
   const [saving, setSaving] = useState<boolean>(false)
@@ -40,7 +40,7 @@ const AddDistrict = (): React.ReactElement => {
     }
 
     try {
-      const res = await fetch(`/api/wards/${wardId}/districts`, {
+      const res = await authFetch(`/api/wards/${wardId}/districts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -63,19 +63,11 @@ const AddDistrict = (): React.ReactElement => {
         <h2 className="text-xl font-semibold mb-4">Add District</h2>
 
         <Form {...form}>
-          <form
-            action="#"
-            onSubmit={form.handleSubmit(onSubmit)}
-            method="POST"
-          >
+          <form action="#" onSubmit={form.handleSubmit(onSubmit)} method="POST">
             <DistrictForm districtId={0} />
 
             <div className="text-gray-700 mb-4">
-              <SaveButton
-                saving={saving}
-                name="Save"
-                disableName="Saving"
-              />
+              <SaveButton saving={saving} name="Save" disableName="Saving" />
             </div>
           </form>
         </Form>

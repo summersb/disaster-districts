@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { adminAuthHeaders } from './helpers'
 
 test('admin dashboard shows wards with user counts and admins, and can create a ward', async ({
   page,
@@ -43,5 +44,7 @@ test('admin dashboard shows wards with user counts and admins, and can create a 
   // Clean up the ward this test created.
   const location = await response.headerValue('location')
   const wardId = location?.split('/').pop()
-  await request.delete(`/api/wards/${wardId}`)
+  await request.delete(`/api/wards/${wardId}`, {
+    headers: await adminAuthHeaders(request),
+  })
 })

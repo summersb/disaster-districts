@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { adminAuthHeaders } from './helpers'
 
 test('a user can request to join more than one ward at once', async ({
   page,
@@ -8,13 +9,17 @@ test('a user can request to join more than one ward at once', async ({
   const email = `e2e-multiward-${suffix}@example.com`
   const password = 'password123'
   const secondWardName = 'E2E Second Ward'
+  const headers = await adminAuthHeaders(request)
 
   // Reuse a fixed-name ward across runs instead of creating a new one every
   // time - there's no ward delete endpoint, so a unique name per run would
   // leave permanent clutter behind.
-  const existingWards = await (await request.get('/api/wards')).json()
+  const existingWards = await (
+    await request.get('/api/wards', { headers })
+  ).json()
   if (!existingWards.some((w: { name: string }) => w.name === secondWardName)) {
     await request.post('/api/wards', {
+      headers,
       data: { name: secondWardName, lat: 41.0, lng: -75.0 },
     })
   }
@@ -66,14 +71,17 @@ test('a user can request to join more than one ward at once', async ({
   await expect(page.getByRole('cell', { name: 'Pending' })).toHaveCount(2)
 
   // Clean up: reject both requests so nothing lingers in the admin queue.
+  // Resolving a join request (even your own) requires admin/ward_admin, so
+  // this uses the admin token rather than the new user's own.
   const loginRes = await (
     await request.post('/api/auth/login', { data: { email, password } })
   ).json()
   const myRequests: { id: number; status: string }[] = await (
-    await request.get(`/api/join-requests?userId=${loginRes.id}`)
+    await request.get(`/api/join-requests?userId=${loginRes.id}`, { headers })
   ).json()
   for (const r of myRequests.filter((r) => r.status === 'PENDING')) {
     await request.put(`/api/join-requests/${r.id}`, {
+      headers,
       data: { approve: false },
     })
   }

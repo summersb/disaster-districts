@@ -1,7 +1,6 @@
 package dd.resource
 
 import io.quarkus.test.junit.QuarkusTest
-import io.restassured.RestAssured.given
 import io.restassured.http.ContentType
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.hasItem
@@ -13,14 +12,14 @@ import org.junit.jupiter.api.Test
 class WardsResourceTest {
 
     private fun sampleWardId(): Int =
-        given()
+        asAdmin()
             .`when`().get("/wards")
             .then().statusCode(200)
             .extract().jsonPath().getInt("find { it.name == 'Sample Ward' }.id")
 
     @Test
     fun `GET wards returns the seeded Sample Ward`() {
-        given()
+        asAdmin()
             .`when`().get("/wards")
             .then()
             .statusCode(200)
@@ -31,7 +30,7 @@ class WardsResourceTest {
     @Test
     fun `GET wards id returns ward dto with lat lng`() {
         val id = sampleWardId()
-        given()
+        asAdmin()
             .`when`().get("/wards/$id")
             .then()
             .statusCode(200)
@@ -42,7 +41,7 @@ class WardsResourceTest {
 
     @Test
     fun `GET wards id returns 404 when missing`() {
-        given()
+        asAdmin()
             .`when`().get("/wards/999999")
             .then()
             .statusCode(404)
@@ -51,7 +50,7 @@ class WardsResourceTest {
     @Test
     fun `GET wards wardId members returns 20 seeded members scoped to the ward`() {
         val id = sampleWardId()
-        given()
+        asAdmin()
             .`when`().get("/wards/$id/members")
             .then()
             .statusCode(200)
@@ -65,7 +64,7 @@ class WardsResourceTest {
     fun `member dto includes flat district ref without recursive members list`() {
         val id = sampleWardId()
         // Anderson, James was seeded as the leader of North District.
-        given()
+        asAdmin()
             .`when`().get("/wards/$id/members")
             .then()
             .statusCode(200)
@@ -78,7 +77,7 @@ class WardsResourceTest {
     @Test
     fun `GET wards wardId districts returns the two seeded districts`() {
         val id = sampleWardId()
-        given()
+        asAdmin()
             .`when`().get("/wards/$id/districts")
             .then()
             .statusCode(200)
@@ -91,7 +90,7 @@ class WardsResourceTest {
     @Test
     fun `seeded members are split between North and South districts`() {
         val id = sampleWardId()
-        val members = given()
+        val members = asAdmin()
             .`when`().get("/wards/$id/members")
             .then().statusCode(200)
             .extract().jsonPath().getList<Map<String, Any>>("$")
@@ -110,14 +109,14 @@ class WardsResourceTest {
     fun `POST wards creates a ward and rejects a duplicate name`() {
         val name = "New Ward ${System.nanoTime()}"
 
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"name": "$name"}""")
             .`when`().post("/wards")
             .then().statusCode(201)
             .header("Location", notNullValue())
 
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"name": "$name"}""")
             .`when`().post("/wards")
@@ -126,7 +125,7 @@ class WardsResourceTest {
 
     @Test
     fun `GET wards wardId users returns only users assigned to that ward`() {
-        val wardId = given()
+        val wardId = asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"name": "Ward Users Test ${System.nanoTime()}"}""")
             .`when`().post("/wards")
@@ -134,25 +133,25 @@ class WardsResourceTest {
             .extract().header("Location").substringAfterLast("/").toInt()
 
         val email = "ward-users-${System.nanoTime()}@example.com"
-        val userId = given()
+        val userId = asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"email": "$email", "name": "Test Person", "password": "password123"}""")
             .`when`().post("/users")
             .then().statusCode(201)
             .extract().header("Location").substringAfterLast("/").toInt()
 
-        given()
+        asAdmin()
             .`when`().get("/wards/$wardId/users")
             .then().statusCode(200)
             .body("$", hasSize<Any>(0))
 
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"wardId": $wardId}""")
             .`when`().put("/users/$userId")
             .then().statusCode(200)
 
-        given()
+        asAdmin()
             .`when`().get("/wards/$wardId/users")
             .then().statusCode(200)
             .body("email", hasItem(email))
@@ -161,53 +160,53 @@ class WardsResourceTest {
 
     @Test
     fun `DELETE wards id cascades districts, members, and join requests`() {
-        val wardId = given()
+        val wardId = asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"name": "Cascade Delete Test ${System.nanoTime()}"}""")
             .`when`().post("/wards")
             .then().statusCode(201)
             .extract().header("Location").substringAfterLast("/").toInt()
 
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"name": "Cascade District"}""")
             .`when`().post("/wards/$wardId/districts")
             .then().statusCode(201)
 
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"name": "Cascade Member", "familyName": "Cascade", "formattedAddress": "1 Test St"}""")
             .`when`().post("/wards/$wardId/members")
             .then().statusCode(201)
 
         val email = "cascade-${System.nanoTime()}@example.com"
-        val userId = given()
+        val userId = asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"email": "$email", "password": "password123"}""")
             .`when`().post("/users")
             .then().statusCode(201)
             .extract().header("Location").substringAfterLast("/").toInt()
 
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"userId": $userId, "wardId": $wardId}""")
             .`when`().post("/join-requests")
             .then().statusCode(201)
 
-        given()
+        asAdmin()
             .`when`().delete("/wards/$wardId")
             .then().statusCode(204)
 
-        given()
+        asAdmin()
             .`when`().get("/wards/$wardId")
             .then().statusCode(404)
 
-        given()
+        asAdmin()
             .`when`().get("/wards/$wardId/districts")
             .then().statusCode(200)
             .body("$", hasSize<Any>(0))
 
-        given()
+        asAdmin()
             .`when`().get("/wards/$wardId/members")
             .then().statusCode(200)
             .body("$", hasSize<Any>(0))

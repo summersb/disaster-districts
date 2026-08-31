@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { authFetch } from '@/lib/api'
 import type { WardDto } from '@/type/Ward.ts'
 
 const loadWards = async () => {
-  const res = await fetch('/api/wards')
+  const res = await authFetch('/api/wards')
   return await res.json()
 }
 
 const loadWard = async (wardId: number) => {
-  const res = await fetch(`/api/wards/${wardId}`)
+  const res = await authFetch(`/api/wards/${wardId}`)
   return await res.json()
 }
 
@@ -30,7 +31,7 @@ export const useCreateWard = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (ward: { name: string }): Promise<{ id?: number }> => {
-      const res = await fetch('/api/wards', {
+      const res = await authFetch('/api/wards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(ward),

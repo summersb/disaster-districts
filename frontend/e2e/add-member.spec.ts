@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { adminAuthHeaders } from './helpers'
 
 test('add member renders and can create a member', async ({
   page,
@@ -40,6 +41,8 @@ test('add member renders and can create a member', async ({
   const location = await response.headerValue('location')
   const segments = location?.split('/').slice(-4)
   if (segments) {
-    await request.delete(`/api/${segments.join('/')}`)
+    await request.delete(`/api/${segments.join('/')}`, {
+      headers: await adminAuthHeaders(request),
+    })
   }
 })

@@ -5,6 +5,10 @@ import dd.repository.DistrictRepository
 import dd.repository.MemberRepository
 import dd.repository.UserAccountRepository
 import dd.repository.WardRepository
+import dd.security.requireWard
+import io.quarkus.security.Authenticated
+import io.quarkus.security.identity.SecurityIdentity
+import jakarta.annotation.security.RolesAllowed
 import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.EntityManager
 import jakarta.transaction.Transactional
@@ -31,24 +35,28 @@ class WardsResource(
     val districtRepository: DistrictRepository,
     val memberRepository: MemberRepository,
     val entityManager: EntityManager,
+    val identity: SecurityIdentity,
     @field:Context val uriInfo: UriInfo,
 ) {
 
     private fun toDto(w: WardDao) = WardDto(id = w.id, name = w.name ?: "", lat = w.lat, lng = w.lng)
 
     @GET
+    @Authenticated
     fun getWards(): Response {
         return Response.ok(wardRepository.listAll().map { toDto(it) }).build()
     }
 
     @GET
     @Path("/{id}")
+    @Authenticated
     fun getWard(@PathParam("id") id: Long): Response {
         val ward = wardRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
         return Response.ok(toDto(ward)).build()
     }
 
     @POST
+    @RolesAllowed("admin")
     @Transactional
     fun createWard(ward: WardRequest): Response {
         val wardExists = wardRepository.findByName(ward.name)
@@ -67,6 +75,7 @@ class WardsResource(
 
     @DELETE
     @Path("/{id}")
+    @RolesAllowed("admin")
     @Transactional
     fun deleteWard(@PathParam("id") id: Long): Response {
         val ward = wardRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
@@ -88,20 +97,32 @@ class WardsResource(
         return Response.noContent().build()
     }
 
+    // DistrictsResource/MembersResource are plain sub-resource locators
+    // returned via `new`, not CDI beans - @RolesAllowed on their methods
+    // never gets woven in (same reason @Transactional needs
+    // QuarkusTransaction.call there instead). Gate ward access here, where
+    // CDI security interceptors do apply, and hand the checked identity down
+    // for the per-method role checks those classes still need to make.
     @Path("{wardId}/districts")
+    @Authenticated
     fun getDistricts(@PathParam("wardId") wardId: Long): DistrictsResource {
-        return DistrictsResource(districtRepository, wardRepository, memberRepository, entityManager, uriInfo, wardId)
+        identity.requireWard(wardId)
+        return DistrictsResource(districtRepository, wardRepository, memberRepository, entityManager, identity, uriInfo, wardId)
     }
 
     @Path("{wardId}/members")
+    @Authenticated
     fun getMembers(@PathParam("wardId") wardId: Long): MembersResource {
-        return MembersResource(memberRepository, wardRepository, entityManager, uriInfo, wardId)
+        identity.requireWard(wardId)
+        return MembersResource(memberRepository, wardRepository, entityManager, identity, uriInfo, wardId)
     }
 
     @GET
     @Path("{wardId}/users")
+    @RolesAllowed("admin", "ward_admin")
     @Produces(MediaType.APPLICATION_JSON)
     fun getWardUsers(@PathParam("wardId") wardId: Long): Response {
+        identity.requireWard(wardId)
         val users = userAccountRepository.findByWardId(wardId).map { u ->
             UserDto(id = u.id, email = u.email, name = u.name, roles = u.getRoleList(), wardId = u.getWard()?.id)
         }

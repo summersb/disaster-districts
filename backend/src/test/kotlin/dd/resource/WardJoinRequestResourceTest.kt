@@ -1,7 +1,6 @@
 package dd.resource
 
 import io.quarkus.test.junit.QuarkusTest
-import io.restassured.RestAssured.given
 import io.restassured.http.ContentType
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.everyItem
@@ -17,7 +16,7 @@ import org.junit.jupiter.api.Test
 class WardJoinRequestResourceTest {
 
     private fun createTestWard(): Int =
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"name": "Join Request Ward ${System.nanoTime()}"}""")
             .`when`().post("/wards")
@@ -25,7 +24,7 @@ class WardJoinRequestResourceTest {
             .extract().header("Location").substringAfterLast("/").toInt()
 
     private fun createTestUser(): Int =
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"email": "join-${System.nanoTime()}@example.com", "password": "password123"}""")
             .`when`().post("/users")
@@ -33,7 +32,7 @@ class WardJoinRequestResourceTest {
             .extract().header("Location").substringAfterLast("/").toInt()
 
     private fun createRequest(userId: Int, wardId: Int): Int =
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"userId": $userId, "wardId": $wardId}""")
             .`when`().post("/join-requests")
@@ -47,7 +46,7 @@ class WardJoinRequestResourceTest {
 
         val requestId = createRequest(userId, wardId)
 
-        given()
+        asAdmin()
             .`when`().get("/join-requests?userId=$userId")
             .then().statusCode(200)
             .body("find { it.id == $requestId }.status", equalTo("PENDING"))
@@ -59,7 +58,7 @@ class WardJoinRequestResourceTest {
     fun `POST join-requests returns 404 for an unknown user`() {
         val wardId = createTestWard()
 
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"userId": 999999, "wardId": $wardId}""")
             .`when`().post("/join-requests")
@@ -70,7 +69,7 @@ class WardJoinRequestResourceTest {
     fun `POST join-requests returns 404 for an unknown ward`() {
         val userId = createTestUser()
 
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"userId": $userId, "wardId": 999999}""")
             .`when`().post("/join-requests")
@@ -83,7 +82,7 @@ class WardJoinRequestResourceTest {
         val userId = createTestUser()
         createRequest(userId, wardId)
 
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"userId": $userId, "wardId": $wardId}""")
             .`when`().post("/join-requests")
@@ -96,7 +95,7 @@ class WardJoinRequestResourceTest {
         val userId = createTestUser()
         val requestId = createRequest(userId, wardId)
 
-        given()
+        asAdmin()
             .`when`().get("/join-requests")
             .then().statusCode(200)
             .body("id", hasItem(requestId))
@@ -109,7 +108,7 @@ class WardJoinRequestResourceTest {
         val userId = createTestUser()
         val requestId = createRequest(userId, wardId)
 
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"approve": true, "assignedRole": "ward_admin"}""")
             .`when`().put("/join-requests/$requestId")
@@ -117,12 +116,12 @@ class WardJoinRequestResourceTest {
             .body("status", equalTo("APPROVED"))
             .body("assignedRole", equalTo("ward_admin"))
 
-        given()
+        asAdmin()
             .`when`().get("/wards/$wardId/users")
             .then().statusCode(200)
             .body("find { it.id == $userId }.roles", hasItem("ward_admin"))
 
-        given()
+        asAdmin()
             .`when`().get("/join-requests")
             .then().statusCode(200)
             .body("id", not(hasItem(requestId)))
@@ -134,14 +133,14 @@ class WardJoinRequestResourceTest {
         val userId = createTestUser()
         val requestId = createRequest(userId, wardId)
 
-        given()
+        asAdmin()
             .contentType(ContentType.JSON)
             .body("""{"approve": false}""")
             .`when`().put("/join-requests/$requestId")
             .then().statusCode(200)
             .body("status", equalTo("REJECTED"))
 
-        given()
+        asAdmin()
             .`when`().get("/wards/$wardId/users")
             .then().statusCode(200)
             .body("id", not(hasItem(userId)))
