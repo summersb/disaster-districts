@@ -1,7 +1,7 @@
 import type React from 'react'
-import { Button, type ButtonProps } from '@/components/ui/button.tsx'
+import { Button } from '@/components/ui/button.tsx'
 
-type StyledButtonProps = ButtonProps & {
+type StyledButtonProps = React.ComponentProps<typeof Button> & {
   children: React.ReactNode // Type for children
   isPressed?: boolean
 }
