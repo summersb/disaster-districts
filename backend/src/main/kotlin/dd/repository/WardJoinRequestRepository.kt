@@ -15,10 +15,15 @@ class WardJoinRequestRepository : PanacheRepository<WardJoinRequestDao> {
     }
 
     fun findByUserId(userId: Long): List<WardJoinRequestDao> {
-        return find("user.id", userId).list()
+        return find("user.id = ?1 order by requestedAt desc", userId).list()
     }
 
-    fun findPendingByUserId(userId: Long): WardJoinRequestDao? {
-        return find("user.id = ?1 and status = ?2", userId, "PENDING").firstResult()
+    fun findPendingByUserIdAndWardId(userId: Long, wardId: Long): WardJoinRequestDao? {
+        return find(
+            "user.id = ?1 and ward.id = ?2 and status = ?3",
+            userId,
+            wardId,
+            "PENDING",
+        ).firstResult()
     }
 }

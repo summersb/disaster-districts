@@ -14,6 +14,7 @@ import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
+import jakarta.ws.rs.QueryParam
 import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
@@ -54,8 +55,12 @@ class WardJoinRequestResource(
         val ward = wardRepository.findById(input.wardId)
             ?: return Response.status(Status.NOT_FOUND).build()
 
-        // Check if user already has a pending request
-        val existingRequest = wardJoinRequestRepository.findPendingByUserId(input.userId)
+        // Users may have pending requests to several wards at once; only
+        // block a duplicate request to the same ward.
+        val existingRequest = wardJoinRequestRepository.findPendingByUserIdAndWardId(
+            input.userId,
+            input.wardId,
+        )
         if (existingRequest != null) {
             return Response.status(Status.CONFLICT).build()
         }
@@ -72,8 +77,15 @@ class WardJoinRequestResource(
     }
 
     @GET
-    fun getRequests(): Response {
-        val requests = wardJoinRequestRepository.find("status", "PENDING").list()
+    fun getRequests(@QueryParam("userId") userId: Long?): Response {
+        // With a userId, return that user's own requests across all statuses
+        // (so they can see approvals/rejections, not just pending ones).
+        // Without one, this is the admin queue: pending requests only.
+        val requests = if (userId != null) {
+            wardJoinRequestRepository.findByUserId(userId)
+        } else {
+            wardJoinRequestRepository.find("status", "PENDING").list()
+        }
         return Response.ok(requests.map { toDto(it) }).build()
     }
 

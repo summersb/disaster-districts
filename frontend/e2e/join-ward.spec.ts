@@ -33,6 +33,29 @@ test('a new signup can see the ward list and submit a join request', async ({
   expect(response.status()).toBe(201)
   await expect(page.getByText('Failed to join ward')).toHaveCount(0)
 
+  // The page should stay put and give feedback: a success message and the
+  // request showing up in the "Your requests" table with Pending status.
+  await expect(page.getByText('Request submitted')).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Sample Ward' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Pending' })).toBeVisible()
+
+  // Sample Ward now has a pending request, so it must not be offered again -
+  // requesting the same ward twice while pending is a conflict.
+  const stillHasForm = await page
+    .getByRole('button', { name: 'Join Ward' })
+    .count()
+  if (stillHasForm > 0) {
+    await wardSelect.click()
+    await expect(page.getByRole('option', { name: 'Sample Ward' })).toHaveCount(
+      0,
+    )
+    await page.keyboard.press('Escape')
+  } else {
+    await expect(
+      page.getByText('You have a pending request for every ward'),
+    ).toBeVisible()
+  }
+
   // Reject the request so it doesn't linger in the admin's pending queue.
   const location = await response.headerValue('location')
   const requestId = location?.split('/').pop()

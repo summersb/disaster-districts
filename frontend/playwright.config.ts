@@ -2,7 +2,12 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: true,
+  // These tests hit the persistent dev docker-compose Postgres, not a fresh
+  // per-run database (unlike the backend's @QuarkusTest DevServices
+  // container), so tests that create shared records (wards, etc.) can
+  // interfere with each other's assumptions if run concurrently.
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: 'html',
