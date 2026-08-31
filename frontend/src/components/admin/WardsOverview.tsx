@@ -1,7 +1,9 @@
+import type { ColumnDef } from '@tanstack/react-table'
 import type React from 'react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -10,17 +12,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { useUpdateUser, useUsers } from '@/hooks/useUsers'
 import { useCreateWard, useWards } from '@/hooks/useWards'
 import { isAdmin } from '@/lib/roles'
+
+type WardRow = {
+  id: number
+  name: string
+  userCount: number
+  wardAdminEmails: string
+}
+
+const WARD_COLUMNS: ColumnDef<WardRow>[] = [
+  { accessorKey: 'name', header: 'Ward' },
+  { accessorKey: 'userCount', header: 'Users' },
+  {
+    accessorKey: 'wardAdminEmails',
+    header: 'Ward Admin',
+    cell: ({ row }) =>
+      row.original.wardAdminEmails || (
+        <span className="italic text-muted-foreground">None assigned</span>
+      ),
+  },
+]
 
 const WardsOverview = (): React.ReactElement => {
   const { data: wards = [], isLoading: wardsLoading } = useWards()
@@ -34,6 +48,17 @@ const WardsOverview = (): React.ReactElement => {
 
   // System admins keep their own role; anyone else can be handed a new ward.
   const assignableUsers = users.filter((u) => !isAdmin(u.roles))
+
+  const wardRows: WardRow[] = wards.map((ward) => {
+    const wardUsers = users.filter((u) => u.wardId === ward.id)
+    const wardAdmins = wardUsers.filter((u) => u.roles.includes('ward_admin'))
+    return {
+      id: ward.id ?? 0,
+      name: ward.name,
+      userCount: wardUsers.length,
+      wardAdminEmails: wardAdmins.map((a) => a.email).join(', '),
+    }
+  })
 
   const handleCreateWard = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -65,38 +90,11 @@ const WardsOverview = (): React.ReactElement => {
         {wardsLoading ? (
           <p className="text-sm text-muted-foreground">Loading wards...</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Ward</TableHead>
-                <TableHead>Users</TableHead>
-                <TableHead>Ward Admin</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {wards.map((ward) => {
-                const wardUsers = users.filter((u) => u.wardId === ward.id)
-                const wardAdmins = wardUsers.filter((u) =>
-                  u.roles.includes('ward_admin'),
-                )
-                return (
-                  <TableRow key={ward.id}>
-                    <TableCell className="font-medium">{ward.name}</TableCell>
-                    <TableCell>{wardUsers.length}</TableCell>
-                    <TableCell>
-                      {wardAdmins.length > 0 ? (
-                        wardAdmins.map((a) => a.email).join(', ')
-                      ) : (
-                        <span className="text-muted-foreground italic">
-                          None assigned
-                        </span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+          <DataTable
+            columns={WARD_COLUMNS}
+            data={wardRows}
+            searchPlaceholder="Search wards..."
+          />
         )}
       </Card>
 
@@ -109,7 +107,7 @@ const WardsOverview = (): React.ReactElement => {
             onChange={(e) => setNewWardName(e.target.value)}
           />
           <Select value={newWardAdminId} onValueChange={setNewWardAdminId}>
-            <SelectTrigger>
+            <SelectTrigger aria-label="Assign a ward admin">
               <SelectValue placeholder="Assign a ward admin (optional)" />
             </SelectTrigger>
             <SelectContent>

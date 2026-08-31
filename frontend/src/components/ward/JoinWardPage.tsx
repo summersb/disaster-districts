@@ -1,7 +1,9 @@
+import type { ColumnDef } from '@tanstack/react-table'
 import type React from 'react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { DataTable } from '@/components/ui/data-table'
 import {
   Select,
   SelectContent,
@@ -9,20 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import useUser from '@/context/useUser.tsx'
 import {
   useCreateJoinRequest,
   useMyJoinRequests,
 } from '@/hooks/useJoinRequests'
 import { useWards } from '@/hooks/useWards'
+import type { WardJoinRequestDto } from '@/type/WardJoinRequest'
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'Pending',
@@ -35,6 +30,27 @@ const STATUS_STYLES: Record<string, string> = {
   APPROVED: 'text-green-600',
   REJECTED: 'text-red-600',
 }
+
+const REQUEST_COLUMNS: ColumnDef<WardJoinRequestDto>[] = [
+  { accessorKey: 'wardName', header: 'Ward' },
+  {
+    accessorKey: 'status',
+    header: 'Status',
+    cell: ({ row }) => {
+      const status = row.original.status
+      return (
+        <span className={STATUS_STYLES[status] ?? ''}>
+          {STATUS_LABELS[status] ?? status}
+        </span>
+      )
+    },
+  },
+  {
+    accessorKey: 'requestedAt',
+    header: 'Requested',
+    cell: ({ row }) => new Date(row.original.requestedAt).toLocaleString(),
+  },
+]
 
 const JoinWardPage = (): React.ReactElement => {
   const { user } = useUser()
@@ -85,7 +101,7 @@ const JoinWardPage = (): React.ReactElement => {
         ) : (
           <form onSubmit={handleJoin} className="space-y-4">
             <Select value={wardId} onValueChange={setWardId}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Select a ward">
                 <SelectValue
                   placeholder={
                     wardsLoading ? 'Loading wards...' : 'Select a ward'
@@ -113,28 +129,12 @@ const JoinWardPage = (): React.ReactElement => {
         {myRequests.length > 0 && (
           <div className="mt-8">
             <h2 className="text-sm font-semibold mb-2">Your requests</h2>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ward</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Requested</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {myRequests.map((request) => (
-                  <TableRow key={request.id}>
-                    <TableCell>{request.wardName}</TableCell>
-                    <TableCell className={STATUS_STYLES[request.status] ?? ''}>
-                      {STATUS_LABELS[request.status] ?? request.status}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(request.requestedAt).toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTable
+              columns={REQUEST_COLUMNS}
+              data={myRequests}
+              searchPlaceholder="Search your requests..."
+              pageSize={5}
+            />
           </div>
         )}
       </Card>

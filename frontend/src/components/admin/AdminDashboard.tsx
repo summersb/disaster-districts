@@ -48,7 +48,7 @@ const AdminDashboard = (): React.ReactElement => {
             onValueChange={setSelectedWardId}
             disabled={!isAdmin(user.roles)}
           >
-            <SelectTrigger className="w-64">
+            <SelectTrigger className="w-64" aria-label="Select a ward">
               <SelectValue
                 placeholder={
                   wardsLoading ? 'Loading wards...' : 'Select a ward'

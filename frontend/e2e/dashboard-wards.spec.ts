@@ -23,7 +23,7 @@ test('admin dashboard shows wards with user counts and admins, and can create a 
 
   const wardName = `E2E Dashboard Ward ${Date.now()}`
   await page.getByPlaceholder('Ward name').fill(wardName)
-  await page.getByRole('combobox').click()
+  await page.getByRole('combobox', { name: 'Assign a ward admin' }).click()
   await page.getByRole('option', { name: email }).click()
 
   const [response] = await Promise.all([

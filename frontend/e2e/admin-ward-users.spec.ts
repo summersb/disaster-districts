@@ -29,6 +29,10 @@ test('admin can pick a ward, add a user, change their role, and remove them', as
   await page.getByRole('option', { name: email }).click()
   await page.getByRole('button', { name: 'Add' }).click()
 
+  // The ward has 50+ users, so the new row may be off the first page -
+  // search for it, which also exercises the table's search box.
+  await page.getByPlaceholder('Search users...').fill(email)
+
   const row = page.locator('tr', { hasText: email })
   await expect(row).toBeVisible()
   await expect(row.getByRole('cell', { name: 'Member' })).toBeVisible()

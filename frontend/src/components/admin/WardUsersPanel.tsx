@@ -1,5 +1,8 @@
-import React, { useState } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
+import type React from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { DataTable } from '@/components/ui/data-table'
 import {
   Select,
   SelectContent,
@@ -69,6 +72,83 @@ const WardUsersPanel = ({
     )
   }
 
+  const columns: ColumnDef<UserDto>[] = [
+    { accessorKey: 'id', header: 'User ID' },
+    { accessorKey: 'email', header: 'Email' },
+    {
+      id: 'roles',
+      header: 'Roles',
+      accessorFn: (user) =>
+        user.roles.map((r) => ROLE_LABELS[r] ?? r).join(', '),
+      cell: ({ row }) => {
+        const user = row.original
+        if (editingId !== user.id) {
+          return (
+            <span>{user.roles.map((r) => ROLE_LABELS[r] ?? r).join(', ')}</span>
+          )
+        }
+        return (
+          <div className="flex flex-wrap gap-3">
+            {ALL_ROLES.filter((r) => grantableRoles.includes(r)).map((role) => (
+              <label
+                key={role}
+                className="flex items-center gap-1.5 text-xs cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={editRoles.includes(role)}
+                  onChange={() => toggleEditRole(role)}
+                />
+                {ROLE_LABELS[role]}
+              </label>
+            ))}
+          </div>
+        )
+      },
+    },
+    {
+      id: 'ward',
+      header: 'Ward',
+      accessorFn: (user) => (checkIsAdmin(user.roles) ? '' : wardName),
+      cell: ({ row }) => (checkIsAdmin(row.original.roles) ? '—' : wardName),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      enableGlobalFilter: false,
+      cell: ({ row }) => {
+        const user = row.original
+        if (editingId === user.id) {
+          return (
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => saveEdit(user)}>
+                Save
+              </Button>
+              <Button size="sm" variant="outline" onClick={cancelEdit}>
+                Cancel
+              </Button>
+            </div>
+          )
+        }
+        if (checkIsAdmin(user.roles)) return null
+        return (
+          <div className="flex gap-1">
+            <Button size="sm" variant="outline" onClick={() => startEdit(user)}>
+              Edit Roles
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => handleRemove(user)}
+            >
+              Remove
+            </Button>
+          </div>
+        )
+      },
+    },
+  ]
+
   if (isLoading)
     return <p className="text-sm text-muted-foreground p-2">Loading...</p>
 
@@ -79,7 +159,10 @@ const WardUsersPanel = ({
       {canAddUsers && unassigned.length > 0 && (
         <div className="flex items-center gap-2 pt-1">
           <Select value={addUserId} onValueChange={setAddUserId}>
-            <SelectTrigger className="flex-1">
+            <SelectTrigger
+              className="flex-1"
+              aria-label="Add a user to this ward"
+            >
               <SelectValue placeholder="Add a user to this ward…" />
             </SelectTrigger>
             <SelectContent>
@@ -101,88 +184,11 @@ const WardUsersPanel = ({
           No users assigned yet.
         </p>
       ) : (
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="border-b text-left text-xs text-muted-foreground">
-              <th className="pb-1 pr-4 font-medium">User ID</th>
-              <th className="pb-1 pr-4 font-medium">Email</th>
-              <th className="pb-1 pr-4 font-medium">Roles</th>
-              <th className="pb-1 pr-4 font-medium">Ward ID</th>
-              <th className="pb-1 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {wardUsers.map((user) => (
-              <React.Fragment key={user.id}>
-                <tr className="border-b last:border-0 align-top">
-                  <td className="py-2 pr-4 text-muted-foreground">{user.id}</td>
-                  <td className="py-2 pr-4 font-medium">{user.email}</td>
-                  <td className="py-2 pr-4">
-                    {editingId === user.id ? (
-                      <div className="flex flex-wrap gap-3">
-                        {ALL_ROLES.filter((r) =>
-                          grantableRoles.includes(r),
-                        ).map((role) => (
-                          <label
-                            key={role}
-                            className="flex items-center gap-1.5 text-xs cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={editRoles.includes(role)}
-                              onChange={() => toggleEditRole(role)}
-                            />
-                            {ROLE_LABELS[role]}
-                          </label>
-                        ))}
-                      </div>
-                    ) : (
-                      <span>
-                        {user.roles.map((r) => ROLE_LABELS[r] ?? r).join(', ')}
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-2 pr-4 text-muted-foreground">
-                    {checkIsAdmin(user.roles) ? '—' : (user.wardId ?? wardId)}
-                  </td>
-                  <td className="py-2">
-                    {editingId === user.id ? (
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={() => saveEdit(user)}>
-                          Save
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={cancelEdit}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    ) : !checkIsAdmin(user.roles) ? (
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => startEdit(user)}
-                        >
-                          Edit Roles
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleRemove(user)}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    ) : null}
-                  </td>
-                </tr>
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          columns={columns}
+          data={wardUsers}
+          searchPlaceholder="Search users..."
+        />
       )}
     </div>
   )

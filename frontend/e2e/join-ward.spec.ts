@@ -16,7 +16,7 @@ test('a new signup can see the ward list and submit a join request', async ({
   await expect(page.getByRole('heading', { name: 'Join a Ward' })).toBeVisible()
 
   // The ward select should be populated from GET /api/wards, not empty.
-  const wardSelect = page.getByRole('combobox')
+  const wardSelect = page.getByRole('combobox', { name: 'Select a ward' })
   await wardSelect.click()
   await expect(page.getByRole('option', { name: 'Sample Ward' })).toBeVisible()
   await page.getByRole('option', { name: 'Sample Ward' }).click()

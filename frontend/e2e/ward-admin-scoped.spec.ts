@@ -42,5 +42,9 @@ test('a ward_admin sees the Admin page scoped to their own ward only', async ({
   const wardSelect = page.getByRole('combobox').first()
   await expect(wardSelect).toHaveText(ward.name)
   await expect(wardSelect).toBeDisabled()
+
+  // Sample Ward has 50+ users, so search for this one rather than assuming
+  // it's on the first page.
+  await page.getByPlaceholder('Search users...').fill(email)
   await expect(page.getByRole('cell', { name: email })).toBeVisible()
 })

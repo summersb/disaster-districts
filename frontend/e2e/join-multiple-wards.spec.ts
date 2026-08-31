@@ -28,7 +28,7 @@ test('a user can request to join more than one ward at once', async ({
   await expect(page.getByRole('heading', { name: 'Join a Ward' })).toBeVisible()
 
   // Request Sample Ward first.
-  await page.getByRole('combobox').click()
+  await page.getByRole('combobox', { name: 'Select a ward' }).click()
   await page.getByRole('option', { name: 'Sample Ward' }).click()
   await Promise.all([
     page.waitForResponse(
@@ -43,7 +43,7 @@ test('a user can request to join more than one ward at once', async ({
   // The form should still be usable, offering the second ward - not
   // replaced by a "you already have a pending request" notice.
   await expect(page.getByRole('button', { name: 'Join Ward' })).toBeVisible()
-  await page.getByRole('combobox').click()
+  await page.getByRole('combobox', { name: 'Select a ward' }).click()
   await expect(page.getByRole('option', { name: secondWardName })).toBeVisible()
   // Sample Ward must not be offered again - it already has a pending request.
   await expect(page.getByRole('option', { name: 'Sample Ward' })).toHaveCount(0)
