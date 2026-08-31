@@ -135,7 +135,7 @@ class DistrictsResource(
     @DELETE
     @Path("/{id}")
     fun deleteDistrict(@PathParam("id") id: Long): Response = QuarkusTransaction.call<Response> {
-        val dbDistrict = districtRepository.findById(id) ?: return@call Response.status(Status.NOT_FOUND).build()
+        if (districtRepository.findById(id) == null) return@call Response.status(Status.NOT_FOUND).build()
         // Detach any members pointing at this district before delete; otherwise
         // the members.district_id FK blocks the delete. The schema's leader and
         // assistant columns belong to districts itself and go away with the row.
@@ -143,6 +143,15 @@ class DistrictsResource(
             .createQuery("update Member m set m.district = null where m.district.id = :id")
             .setParameter("id", id)
             .executeUpdate()
+        // The district's leader/assistant (@ManyToOne, eager by default) were
+        // loaded into the session by the findById above. That Member's
+        // .district field is now stale relative to the bulk update just run
+        // (which bypasses the persistence context), so without clearing,
+        // Hibernate finds a persistent Member still pointing at the
+        // about-to-be-deleted district at flush time and throws
+        // TransientPropertyValueException. Clear and re-fetch fresh.
+        entityManager.clear()
+        val dbDistrict = districtRepository.findById(id) ?: return@call Response.status(Status.NOT_FOUND).build()
         districtRepository.delete(dbDistrict)
         Response.noContent().build()
     }

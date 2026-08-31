@@ -109,6 +109,35 @@ class DistrictsResourceTest {
     }
 
     @Test
+    fun `deleting a district with a leader and assistant assigned does not throw`() {
+        // District.leader/assistant are eager @ManyToOne, so loading the
+        // district for the delete also loads those Members into the session.
+        // The bulk "detach members" update runs straight against the DB and
+        // bypasses that already-loaded, now-stale Member entity - regression
+        // coverage for the TransientPropertyValueException that caused.
+        val wardId = createTestWard()
+        val districtId = createDistrict(wardId, "District With Leader")
+        val leaderId = createMember(wardId, "Leader Member")
+        val assistantId = createMember(wardId, "Assistant Member")
+
+        given()
+            .contentType(ContentType.JSON)
+            .body("""{"leaderId": $leaderId, "assistantId": $assistantId, "memberIds": [$leaderId, $assistantId]}""")
+            .`when`().put("/wards/$wardId/districts/$districtId")
+            .then().statusCode(200)
+            .body("leaderId", equalTo(leaderId))
+            .body("assistantId", equalTo(assistantId))
+
+        given()
+            .`when`().delete("/wards/$wardId/districts/$districtId")
+            .then().statusCode(204)
+
+        given()
+            .`when`().get("/wards/$wardId/districts/$districtId")
+            .then().statusCode(404)
+    }
+
+    @Test
     fun `deleting a member who leads a district clears the reference instead of failing`() {
         val wardId = createTestWard()
         val districtId = createDistrict(wardId, "Leader Test District")

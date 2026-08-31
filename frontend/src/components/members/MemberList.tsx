@@ -1,11 +1,22 @@
 import { useNavigate } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Edit2, Plus } from 'lucide-react'
+import { Edit2, Plus, Trash2 } from 'lucide-react'
 import type React from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
-import { useMembers } from '@/hooks/useMembers'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog.tsx'
+import useUser from '@/context/useUser.tsx'
+import { useDeleteMember, useMembers } from '@/hooks/useMembers'
 import { getWardId } from '@/lib/api'
+import { isWardAdmin } from '@/lib/roles'
 import { Route as MemberEditRoute } from '@/routes/_protected/member/$id'
 import { Route as MemberAddRoute } from '@/routes/_protected/member/add'
 import type { MemberDto } from '@/type'
@@ -14,6 +25,16 @@ const MemberList = (): React.ReactElement => {
   const navigate = useNavigate()
   const wardId = getWardId()
   const { data: members = [] } = useMembers(wardId)
+  const { user } = useUser()
+  const canDelete = isWardAdmin(user.roles)
+  const deleteMember = useDeleteMember()
+  const [deletingMember, setDeletingMember] = useState<MemberDto | null>(null)
+
+  const handleDelete = async () => {
+    if (!deletingMember?.id) return
+    await deleteMember.mutateAsync({ wardId, memberId: deletingMember.id })
+    setDeletingMember(null)
+  }
 
   const columns: ColumnDef<MemberDto>[] = [
     {
@@ -33,7 +54,7 @@ const MemberList = (): React.ReactElement => {
       header: 'Actions',
       enableGlobalFilter: false,
       cell: ({ row }) => (
-        <div className="text-center">
+        <div className="flex justify-center gap-1">
           <Button
             size="sm"
             variant="ghost"
@@ -46,6 +67,15 @@ const MemberList = (): React.ReactElement => {
           >
             <Edit2 className="w-4 h-4" />
           </Button>
+          {canDelete && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setDeletingMember(row.original)}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       ),
     },
@@ -66,6 +96,38 @@ const MemberList = (): React.ReactElement => {
         data={members}
         searchPlaceholder="Search members..."
       />
+
+      <Dialog
+        open={deletingMember != null}
+        onOpenChange={(open) => !open && setDeletingMember(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete member?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete &quot;{deletingMember?.familyName},{' '}
+              {deletingMember?.name}&quot;. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleteMember.isPending}
+            >
+              {deleteMember.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setDeletingMember(null)}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
