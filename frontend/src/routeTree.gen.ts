@@ -10,24 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProtectedRouteRouteImport } from './routes/_protected/route'
-import { Route as SignupIndexRouteImport } from './routes/signup/index'
-import { Route as SetupIndexRouteImport } from './routes/setup/index'
-import { Route as LoginIndexRouteImport } from './routes/login/index'
-import { Route as JoinWardConfirmationIndexRouteImport } from './routes/join-ward-confirmation/index'
 import { Route as ProtectedUploadRouteImport } from './routes/_protected/upload'
-import { Route as ProtectedSettingsIndexRouteImport } from './routes/_protected/settings/index'
-import { Route as ProtectedPrintIndexRouteImport } from './routes/_protected/print/index'
-import { Route as ProtectedMemberIndexRouteImport } from './routes/_protected/member/index'
-import { Route as ProtectedJoinWardIndexRouteImport } from './routes/_protected/join-ward/index'
-import { Route as ProtectedDistrictIndexRouteImport } from './routes/_protected/district/index'
-import { Route as ProtectedDashboardIndexRouteImport } from './routes/_protected/dashboard/index'
+import { Route as JoinWardConfirmationIndexRouteImport } from './routes/join-ward-confirmation/index'
+import { Route as LoginIndexRouteImport } from './routes/login/index'
+import { Route as SetupIndexRouteImport } from './routes/setup/index'
+import { Route as SignupIndexRouteImport } from './routes/signup/index'
 import { Route as ProtectedAdminIndexRouteImport } from './routes/_protected/admin/index'
-import { Route as ProtectedPrintDistrictIdRouteImport } from './routes/_protected/print/$districtId'
-import { Route as ProtectedMemberAddRouteImport } from './routes/_protected/member/add'
-import { Route as ProtectedMemberIdRouteImport } from './routes/_protected/member/$id'
-import { Route as ProtectedDistrictAddRouteImport } from './routes/_protected/district/add'
-import { Route as ProtectedDistrictIdRouteImport } from './routes/_protected/district/$id'
+import { Route as ProtectedDashboardIndexRouteImport } from './routes/_protected/dashboard/index'
 import { Route as ProtectedDashboardMapRouteImport } from './routes/_protected/dashboard/map'
+import { Route as ProtectedDistrictIndexRouteImport } from './routes/_protected/district/index'
+import { Route as ProtectedDistrictIdRouteImport } from './routes/_protected/district/$id'
+import { Route as ProtectedDistrictAddRouteImport } from './routes/_protected/district/add'
+import { Route as ProtectedJoinWardIndexRouteImport } from './routes/_protected/join-ward/index'
+import { Route as ProtectedMemberIndexRouteImport } from './routes/_protected/member/index'
+import { Route as ProtectedMemberIdRouteImport } from './routes/_protected/member/$id'
+import { Route as ProtectedMemberAddRouteImport } from './routes/_protected/member/add'
+import { Route as ProtectedPrintIndexRouteImport } from './routes/_protected/print/index'
+import { Route as ProtectedPrintDistrictIdRouteImport } from './routes/_protected/print/$districtId'
+import { Route as ProtectedSettingsIndexRouteImport } from './routes/_protected/settings/index'
 import { Route as ProtectedAdminJoinRequestsIndexRouteImport } from './routes/_protected/admin/join-requests/index'
 import { Route as ProtectedDistrictViewIdRouteImport } from './routes/_protected/district/view.$id'
 
@@ -35,20 +35,10 @@ const ProtectedRouteRoute = ProtectedRouteRouteImport.update({
   id: '/_protected',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SignupIndexRoute = SignupIndexRouteImport.update({
-  id: '/signup/',
-  path: '/signup/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SetupIndexRoute = SetupIndexRouteImport.update({
-  id: '/setup/',
-  path: '/setup/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginIndexRoute = LoginIndexRouteImport.update({
-  id: '/login/',
-  path: '/login/',
-  getParentRoute: () => rootRouteImport,
+const ProtectedUploadRoute = ProtectedUploadRouteImport.update({
+  id: '/upload',
+  path: '/upload',
+  getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const JoinWardConfirmationIndexRoute =
   JoinWardConfirmationIndexRouteImport.update({
@@ -56,34 +46,24 @@ const JoinWardConfirmationIndexRoute =
     path: '/join-ward-confirmation/',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ProtectedUploadRoute = ProtectedUploadRouteImport.update({
-  id: '/upload',
-  path: '/upload',
-  getParentRoute: () => ProtectedRouteRoute,
+const LoginIndexRoute = LoginIndexRouteImport.update({
+  id: '/login/',
+  path: '/login/',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ProtectedSettingsIndexRoute = ProtectedSettingsIndexRouteImport.update({
-  id: '/settings/',
-  path: '/settings/',
-  getParentRoute: () => ProtectedRouteRoute,
+const SetupIndexRoute = SetupIndexRouteImport.update({
+  id: '/setup/',
+  path: '/setup/',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ProtectedPrintIndexRoute = ProtectedPrintIndexRouteImport.update({
-  id: '/print/',
-  path: '/print/',
-  getParentRoute: () => ProtectedRouteRoute,
+const SignupIndexRoute = SignupIndexRouteImport.update({
+  id: '/signup/',
+  path: '/signup/',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ProtectedMemberIndexRoute = ProtectedMemberIndexRouteImport.update({
-  id: '/member/',
-  path: '/member/',
-  getParentRoute: () => ProtectedRouteRoute,
-} as any)
-const ProtectedJoinWardIndexRoute = ProtectedJoinWardIndexRouteImport.update({
-  id: '/join-ward/',
-  path: '/join-ward/',
-  getParentRoute: () => ProtectedRouteRoute,
-} as any)
-const ProtectedDistrictIndexRoute = ProtectedDistrictIndexRouteImport.update({
-  id: '/district/',
-  path: '/district/',
+const ProtectedAdminIndexRoute = ProtectedAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const ProtectedDashboardIndexRoute = ProtectedDashboardIndexRouteImport.update({
@@ -91,9 +71,49 @@ const ProtectedDashboardIndexRoute = ProtectedDashboardIndexRouteImport.update({
   path: '/dashboard/',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
-const ProtectedAdminIndexRoute = ProtectedAdminIndexRouteImport.update({
-  id: '/admin/',
-  path: '/admin/',
+const ProtectedDashboardMapRoute = ProtectedDashboardMapRouteImport.update({
+  id: '/dashboard/map',
+  path: '/dashboard/map',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedDistrictIndexRoute = ProtectedDistrictIndexRouteImport.update({
+  id: '/district/',
+  path: '/district/',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedDistrictIdRoute = ProtectedDistrictIdRouteImport.update({
+  id: '/district/$id',
+  path: '/district/$id',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedDistrictAddRoute = ProtectedDistrictAddRouteImport.update({
+  id: '/district/add',
+  path: '/district/add',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedJoinWardIndexRoute = ProtectedJoinWardIndexRouteImport.update({
+  id: '/join-ward/',
+  path: '/join-ward/',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedMemberIndexRoute = ProtectedMemberIndexRouteImport.update({
+  id: '/member/',
+  path: '/member/',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedMemberIdRoute = ProtectedMemberIdRouteImport.update({
+  id: '/member/$id',
+  path: '/member/$id',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedMemberAddRoute = ProtectedMemberAddRouteImport.update({
+  id: '/member/add',
+  path: '/member/add',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedPrintIndexRoute = ProtectedPrintIndexRouteImport.update({
+  id: '/print/',
+  path: '/print/',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const ProtectedPrintDistrictIdRoute =
@@ -102,29 +122,9 @@ const ProtectedPrintDistrictIdRoute =
     path: '/print/$districtId',
     getParentRoute: () => ProtectedRouteRoute,
   } as any)
-const ProtectedMemberAddRoute = ProtectedMemberAddRouteImport.update({
-  id: '/member/add',
-  path: '/member/add',
-  getParentRoute: () => ProtectedRouteRoute,
-} as any)
-const ProtectedMemberIdRoute = ProtectedMemberIdRouteImport.update({
-  id: '/member/$id',
-  path: '/member/$id',
-  getParentRoute: () => ProtectedRouteRoute,
-} as any)
-const ProtectedDistrictAddRoute = ProtectedDistrictAddRouteImport.update({
-  id: '/district/add',
-  path: '/district/add',
-  getParentRoute: () => ProtectedRouteRoute,
-} as any)
-const ProtectedDistrictIdRoute = ProtectedDistrictIdRouteImport.update({
-  id: '/district/$id',
-  path: '/district/$id',
-  getParentRoute: () => ProtectedRouteRoute,
-} as any)
-const ProtectedDashboardMapRoute = ProtectedDashboardMapRouteImport.update({
-  id: '/dashboard/map',
-  path: '/dashboard/map',
+const ProtectedSettingsIndexRoute = ProtectedSettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const ProtectedAdminJoinRequestsIndexRoute =
@@ -298,18 +298,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/signup/': {
-      id: '/signup/'
-      path: '/signup'
-      fullPath: '/signup/'
-      preLoaderRoute: typeof SignupIndexRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_protected/upload': {
+      id: '/_protected/upload'
+      path: '/upload'
+      fullPath: '/upload'
+      preLoaderRoute: typeof ProtectedUploadRouteImport
+      parentRoute: typeof ProtectedRouteRoute
     }
-    '/setup/': {
-      id: '/setup/'
-      path: '/setup'
-      fullPath: '/setup/'
-      preLoaderRoute: typeof SetupIndexRouteImport
+    '/join-ward-confirmation/': {
+      id: '/join-ward-confirmation/'
+      path: '/join-ward-confirmation'
+      fullPath: '/join-ward-confirmation/'
+      preLoaderRoute: typeof JoinWardConfirmationIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login/': {
@@ -319,53 +319,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/join-ward-confirmation/': {
-      id: '/join-ward-confirmation/'
-      path: '/join-ward-confirmation'
-      fullPath: '/join-ward-confirmation/'
-      preLoaderRoute: typeof JoinWardConfirmationIndexRouteImport
+    '/setup/': {
+      id: '/setup/'
+      path: '/setup'
+      fullPath: '/setup/'
+      preLoaderRoute: typeof SetupIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_protected/upload': {
-      id: '/_protected/upload'
-      path: '/upload'
-      fullPath: '/upload'
-      preLoaderRoute: typeof ProtectedUploadRouteImport
-      parentRoute: typeof ProtectedRouteRoute
+    '/signup/': {
+      id: '/signup/'
+      path: '/signup'
+      fullPath: '/signup/'
+      preLoaderRoute: typeof SignupIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_protected/settings/': {
-      id: '/_protected/settings/'
-      path: '/settings'
-      fullPath: '/settings/'
-      preLoaderRoute: typeof ProtectedSettingsIndexRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/print/': {
-      id: '/_protected/print/'
-      path: '/print'
-      fullPath: '/print/'
-      preLoaderRoute: typeof ProtectedPrintIndexRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/member/': {
-      id: '/_protected/member/'
-      path: '/member'
-      fullPath: '/member/'
-      preLoaderRoute: typeof ProtectedMemberIndexRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/join-ward/': {
-      id: '/_protected/join-ward/'
-      path: '/join-ward'
-      fullPath: '/join-ward/'
-      preLoaderRoute: typeof ProtectedJoinWardIndexRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/district/': {
-      id: '/_protected/district/'
-      path: '/district'
-      fullPath: '/district/'
-      preLoaderRoute: typeof ProtectedDistrictIndexRouteImport
+    '/_protected/admin/': {
+      id: '/_protected/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof ProtectedAdminIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/dashboard/': {
@@ -375,39 +347,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedDashboardIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
-    '/_protected/admin/': {
-      id: '/_protected/admin/'
-      path: '/admin'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof ProtectedAdminIndexRouteImport
+    '/_protected/dashboard/map': {
+      id: '/_protected/dashboard/map'
+      path: '/dashboard/map'
+      fullPath: '/dashboard/map'
+      preLoaderRoute: typeof ProtectedDashboardMapRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
-    '/_protected/print/$districtId': {
-      id: '/_protected/print/$districtId'
-      path: '/print/$districtId'
-      fullPath: '/print/$districtId'
-      preLoaderRoute: typeof ProtectedPrintDistrictIdRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/member/add': {
-      id: '/_protected/member/add'
-      path: '/member/add'
-      fullPath: '/member/add'
-      preLoaderRoute: typeof ProtectedMemberAddRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/member/$id': {
-      id: '/_protected/member/$id'
-      path: '/member/$id'
-      fullPath: '/member/$id'
-      preLoaderRoute: typeof ProtectedMemberIdRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/district/add': {
-      id: '/_protected/district/add'
-      path: '/district/add'
-      fullPath: '/district/add'
-      preLoaderRoute: typeof ProtectedDistrictAddRouteImport
+    '/_protected/district/': {
+      id: '/_protected/district/'
+      path: '/district'
+      fullPath: '/district/'
+      preLoaderRoute: typeof ProtectedDistrictIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/district/$id': {
@@ -417,11 +368,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedDistrictIdRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
-    '/_protected/dashboard/map': {
-      id: '/_protected/dashboard/map'
-      path: '/dashboard/map'
-      fullPath: '/dashboard/map'
-      preLoaderRoute: typeof ProtectedDashboardMapRouteImport
+    '/_protected/district/add': {
+      id: '/_protected/district/add'
+      path: '/district/add'
+      fullPath: '/district/add'
+      preLoaderRoute: typeof ProtectedDistrictAddRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/join-ward/': {
+      id: '/_protected/join-ward/'
+      path: '/join-ward'
+      fullPath: '/join-ward/'
+      preLoaderRoute: typeof ProtectedJoinWardIndexRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/member/': {
+      id: '/_protected/member/'
+      path: '/member'
+      fullPath: '/member/'
+      preLoaderRoute: typeof ProtectedMemberIndexRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/member/$id': {
+      id: '/_protected/member/$id'
+      path: '/member/$id'
+      fullPath: '/member/$id'
+      preLoaderRoute: typeof ProtectedMemberIdRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/member/add': {
+      id: '/_protected/member/add'
+      path: '/member/add'
+      fullPath: '/member/add'
+      preLoaderRoute: typeof ProtectedMemberAddRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/print/': {
+      id: '/_protected/print/'
+      path: '/print'
+      fullPath: '/print/'
+      preLoaderRoute: typeof ProtectedPrintIndexRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/print/$districtId': {
+      id: '/_protected/print/$districtId'
+      path: '/print/$districtId'
+      fullPath: '/print/$districtId'
+      preLoaderRoute: typeof ProtectedPrintDistrictIdRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/settings/': {
+      id: '/_protected/settings/'
+      path: '/settings'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof ProtectedSettingsIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/admin/join-requests/': {
