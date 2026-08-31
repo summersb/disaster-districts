@@ -31,6 +31,7 @@ class UsersResource(
     private fun toDto(u: UserAccountDao) = UserDto(
         id = u.id,
         email = u.email,
+        name = u.name,
         roles = u.getRoleList(),
         wardId = u.getWard()?.id,
     )
@@ -55,6 +56,7 @@ class UsersResource(
         if (user.password == null) return Response.status(Status.BAD_REQUEST).build()
         val dbUser = UserAccountDao().apply {
             email = user.email
+            name = user.name
             passwordHash = BCrypt.withDefaults().hashToString(12, user.password.toCharArray())
         }
         dbUser.persist()

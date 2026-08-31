@@ -74,6 +74,11 @@ const WardUsersPanel = ({
 
   const columns: ColumnDef<UserDto>[] = [
     { accessorKey: 'id', header: 'User ID' },
+    {
+      id: 'name',
+      header: 'Name',
+      accessorFn: (user) => user.name ?? '',
+    },
     { accessorKey: 'email', header: 'Email' },
     {
       id: 'roles',
@@ -116,6 +121,7 @@ const WardUsersPanel = ({
       id: 'actions',
       header: 'Actions',
       enableGlobalFilter: false,
+      enableSorting: false,
       cell: ({ row }) => {
         const user = row.original
         if (editingId === user.id) {
@@ -168,7 +174,7 @@ const WardUsersPanel = ({
             <SelectContent>
               {unassigned.map((u) => (
                 <SelectItem key={u.id} value={String(u.id)}>
-                  {u.email}
+                  {u.name ? `${u.name} (${u.email})` : u.email}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -188,6 +194,7 @@ const WardUsersPanel = ({
           columns={columns}
           data={wardUsers}
           searchPlaceholder="Search users..."
+          defaultSort={[{ id: 'name', desc: false }]}
         />
       )}
     </div>

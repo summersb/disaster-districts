@@ -53,6 +53,7 @@ const MemberList = (): React.ReactElement => {
       id: 'actions',
       header: 'Actions',
       enableGlobalFilter: false,
+      enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-center gap-1">
           <Button
@@ -95,6 +96,7 @@ const MemberList = (): React.ReactElement => {
         columns={columns}
         data={members}
         searchPlaceholder="Search members..."
+        defaultSort={[{ id: 'name', desc: false }]}
       />
 
       <Dialog

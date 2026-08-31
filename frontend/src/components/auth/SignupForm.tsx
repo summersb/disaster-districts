@@ -27,6 +27,7 @@ import { login, signup } from '@/hooks/useLogin.tsx'
 // ✅ Define schema with password verification
 const formSchema = z
   .object({
+    name: z.string().trim().min(1, { message: 'Name is required' }),
     email: z.string().email({ message: 'Invalid email address' }),
     password: z
       .string()
@@ -42,6 +43,7 @@ export function SignupForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: '',
       email: '',
       password: '',
       confirmPassword: '',
@@ -53,7 +55,11 @@ export function SignupForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      await signup(values)
+      await signup({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+      })
       const authResponse = await login({
         email: values.email,
         password: values.password,
@@ -97,6 +103,20 @@ export function SignupForm() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label>Name</Label>
+                    <FormControl>
+                      <Input placeholder="Jane Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="email"

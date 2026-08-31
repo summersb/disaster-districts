@@ -20,6 +20,7 @@ test('a user can request to join more than one ward at once', async ({
   }
 
   await page.goto('/signup')
+  await page.getByPlaceholder('Jane Doe').fill('E2E Test User')
   await page.getByPlaceholder('you@example.com').fill(email)
   const passwordFields = page.getByPlaceholder('••••••••')
   await passwordFields.nth(0).fill(password)

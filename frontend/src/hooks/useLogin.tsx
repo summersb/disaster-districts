@@ -51,7 +51,7 @@ export const googleLogin = async (credential: string) => {
   return await res.json()
 }
 
-export const signup = async (user: LoginRequest) => {
+export const signup = async (user: LoginRequest & { name?: string }) => {
   const res = await fetch('/api/users', {
     method: 'POST',
     headers: {

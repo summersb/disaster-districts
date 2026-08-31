@@ -23,6 +23,9 @@ open class UserAccountDao : PanacheEntityBase {
     @Column(name = "email", length = 255)
     lateinit var email: String
 
+    @Column(name = "name", length = 255)
+    var name: String? = null
+
     @Column(name = "password_hash", length = 255)
     var passwordHash: String? = null
 

@@ -29,6 +29,7 @@ export type UserRequest = z.infer<typeof UserRequestSchema>
 export type UserDto = {
   id: number
   email: string
+  name?: string
   roles: string[]
   wardId?: number
 }

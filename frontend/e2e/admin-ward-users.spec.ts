@@ -19,9 +19,11 @@ test('admin can pick a ward, add a user, change their role, and remove them', as
 
   // The ward select should default to a real ward and load its users table.
   await expect(page.getByRole('combobox').first()).toHaveText('Sample Ward')
+  await page.getByPlaceholder('Search users...').fill('user1@example.com')
   await expect(
-    page.getByRole('cell', { name: 'admin@example.com' }),
+    page.getByRole('cell', { name: 'user1@example.com' }),
   ).toBeVisible()
+  await page.getByPlaceholder('Search users...').fill('')
 
   // Add the new user to this ward via the picker on top of the table.
   const addWardSelect = page.getByRole('combobox').nth(1)

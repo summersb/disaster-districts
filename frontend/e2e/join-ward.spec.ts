@@ -7,6 +7,7 @@ test('a new signup can see the ward list and submit a join request', async ({
   const email = `e2e-${Date.now()}@example.com`
 
   await page.goto('/signup')
+  await page.getByPlaceholder('Jane Doe').fill('E2E Test User')
   await page.getByPlaceholder('you@example.com').fill(email)
   const passwordFields = page.getByPlaceholder('••••••••')
   await passwordFields.nth(0).fill('password123')

@@ -4,8 +4,11 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
+  type SortingState,
   useReactTable,
 } from '@tanstack/react-table'
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import type React from 'react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -38,6 +41,7 @@ type DataTableProps<TData> = {
   searchPlaceholder?: string
   pageSize?: number
   emptyMessage?: string
+  defaultSort?: SortingState
 }
 
 export function DataTable<TData>({
@@ -46,8 +50,10 @@ export function DataTable<TData>({
   searchPlaceholder = 'Search...',
   pageSize = 10,
   emptyMessage = 'No results.',
+  defaultSort = [],
 }: DataTableProps<TData>): React.ReactElement {
   const [globalFilter, setGlobalFilter] = useState('')
+  const [sorting, setSorting] = useState<SortingState>(defaultSort)
   const [pageSizeChoice, setPageSizeChoice] = useState<PageSizeOption>(
     PAGE_SIZE_OPTIONS.includes(String(pageSize) as PageSizeOption)
       ? (String(pageSize) as PageSizeOption)
@@ -57,11 +63,13 @@ export function DataTable<TData>({
   const table = useReactTable({
     data,
     columns,
-    state: { globalFilter },
+    state: { globalFilter, sorting },
     onGlobalFilterChange: setGlobalFilter,
+    onSortingChange: setSorting,
     globalFilterFn: 'includesString',
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: { pagination: { pageSize } },
   })
@@ -99,16 +107,38 @@ export function DataTable<TData>({
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
+              {headerGroup.headers.map((header) => {
+                const canSort = header.column.getCanSort()
+                const sortDirection = header.column.getIsSorted()
+                return (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder ? null : canSort ? (
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 font-medium"
+                        onClick={header.column.getToggleSortingHandler()}
+                      >
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                        {sortDirection === 'asc' ? (
+                          <ArrowUp className="h-3.5 w-3.5" />
+                        ) : sortDirection === 'desc' ? (
+                          <ArrowDown className="h-3.5 w-3.5" />
+                        ) : (
+                          <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />
+                        )}
+                      </button>
+                    ) : (
+                      flexRender(
                         header.column.columnDef.header,
                         header.getContext(),
-                      )}
-                </TableHead>
-              ))}
+                      )
+                    )}
+                  </TableHead>
+                )
+              })}
             </TableRow>
           ))}
         </TableHeader>
