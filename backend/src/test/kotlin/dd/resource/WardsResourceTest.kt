@@ -107,6 +107,59 @@ class WardsResourceTest {
     }
 
     @Test
+    fun `POST wards creates a ward and rejects a duplicate name`() {
+        val name = "New Ward ${System.nanoTime()}"
+
+        given()
+            .contentType(ContentType.JSON)
+            .body("""{"name": "$name"}""")
+            .`when`().post("/wards")
+            .then().statusCode(201)
+            .header("Location", notNullValue())
+
+        given()
+            .contentType(ContentType.JSON)
+            .body("""{"name": "$name"}""")
+            .`when`().post("/wards")
+            .then().statusCode(409)
+    }
+
+    @Test
+    fun `GET wards wardId users returns only users assigned to that ward`() {
+        val wardId = given()
+            .contentType(ContentType.JSON)
+            .body("""{"name": "Ward Users Test ${System.nanoTime()}"}""")
+            .`when`().post("/wards")
+            .then().statusCode(201)
+            .extract().header("Location").substringAfterLast("/").toInt()
+
+        val email = "ward-users-${System.nanoTime()}@example.com"
+        val userId = given()
+            .contentType(ContentType.JSON)
+            .body("""{"email": "$email", "name": "Test Person", "password": "password123"}""")
+            .`when`().post("/users")
+            .then().statusCode(201)
+            .extract().header("Location").substringAfterLast("/").toInt()
+
+        given()
+            .`when`().get("/wards/$wardId/users")
+            .then().statusCode(200)
+            .body("$", hasSize<Any>(0))
+
+        given()
+            .contentType(ContentType.JSON)
+            .body("""{"wardId": $wardId}""")
+            .`when`().put("/users/$userId")
+            .then().statusCode(200)
+
+        given()
+            .`when`().get("/wards/$wardId/users")
+            .then().statusCode(200)
+            .body("email", hasItem(email))
+            .body("find { it.email == '$email' }.name", equalTo("Test Person"))
+    }
+
+    @Test
     fun `DELETE wards id cascades districts, members, and join requests`() {
         val wardId = given()
             .contentType(ContentType.JSON)
