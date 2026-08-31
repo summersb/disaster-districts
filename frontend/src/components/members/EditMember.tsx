@@ -1,13 +1,15 @@
-import { useState } from 'react'
-import type React from 'react'
-import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useNavigate } from '@tanstack/react-router'
+import type React from 'react'
+import { useEffect, useState } from 'react'
+import { FormProvider, useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
-import MemberForm from './MemberForm'
-import { useMembers } from '@/hooks/useMembers'
+import { useMembers, useSaveMember } from '@/hooks/useMembers'
 import { getWardId } from '@/lib/api'
-import { MemberSchema } from '@/type'
+import { Route as MemberRoute } from '@/routes/_protected/member/index'
 import type { MemberDto } from '@/type'
+import { MemberSchema } from '@/type'
+import MemberForm from './MemberForm'
 
 type EditMemberProps = {
   memberId: number
@@ -15,8 +17,10 @@ type EditMemberProps = {
 
 const EditMember = ({ memberId }: EditMemberProps): React.ReactElement => {
   const wardId = getWardId()
+  const navigate = useNavigate()
   const { data: members } = useMembers(wardId)
-  const [saving, setSaving] = useState(false)
+  const saveMember = useSaveMember()
+  const [error, setError] = useState('')
   const member = members?.find((m) => m.id === memberId)
 
   const form = useForm<MemberDto>({
@@ -24,19 +28,34 @@ const EditMember = ({ memberId }: EditMemberProps): React.ReactElement => {
     defaultValues: member || {},
   })
 
+  // members loads asynchronously, so the form's initial defaultValues can be
+  // empty on a direct navigation/refresh - reset once the real data arrives.
+  useEffect(() => {
+    if (member) form.reset(member)
+  }, [member, form.reset])
+
   const onSubmit = async (data: MemberDto) => {
-    setSaving(true)
+    setError('')
+    // formattedAddress has no field of its own in MemberForm but is
+    // required by the backend - derive it from the address parts.
+    const formattedAddress = [
+      data.address1,
+      data.city,
+      [data.state, data.postalCode].filter(Boolean).join(' '),
+    ]
+      .filter(Boolean)
+      .join(', ')
+
     try {
-      const res = await fetch(`/api/members/${memberId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+      const res = await saveMember.mutateAsync({
+        wardId,
+        memberId,
+        member: { ...data, formattedAddress },
       })
-      if (!res.ok) throw new Error('Save failed')
-    } catch (err: any) {
-      form.setError('name', { message: err.message })
-    } finally {
-      setSaving(false)
+      if (!res.ok) throw new Error('Failed to save member')
+      await navigate({ to: MemberRoute.to })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save member')
     }
   }
 
@@ -46,8 +65,9 @@ const EditMember = ({ memberId }: EditMemberProps): React.ReactElement => {
       <FormProvider {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <MemberForm />
-          <Button type="submit" disabled={saving}>
-            {saving ? 'Saving...' : 'Save'}
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          <Button type="submit" disabled={saveMember.isPending}>
+            {saveMember.isPending ? 'Saving...' : 'Save'}
           </Button>
         </form>
       </FormProvider>

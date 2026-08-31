@@ -14,6 +14,7 @@ import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.POST
+import jakarta.ws.rs.PUT
 import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.Response.Status
 import jakarta.ws.rs.core.UriInfo
@@ -91,6 +92,31 @@ class MembersResource(
         dbuser.persist()
         val uri = uriInfo.getAbsolutePathBuilder().path(dbuser.id.toString())
         Response.created(uri.build()).build()
+    }
+
+    @PUT
+    @Path("/{id}")
+    fun updateMember(@PathParam("id") id: Long, member: MemberRequest): Response = QuarkusTransaction.call<Response> {
+        val dbMember = memberRepository.findById(id) ?: return@call Response.status(Status.NOT_FOUND).build()
+        val nameConflict = memberRepository.findByName(member.name)
+        if (nameConflict != null && nameConflict.id != id) {
+            return@call Response.status(Status.CONFLICT).build()
+        }
+        dbMember.apply {
+            familyName = member.familyName
+            formattedAddress = member.formattedAddress
+            name = member.name
+            address1 = member.address1
+            address2 = member.address2
+            city = member.city
+            state = member.state
+            postalCode = member.postalCode
+            phone = member.phone
+            lat = member.lat
+            lng = member.lng
+            notes = member.notes
+        }
+        Response.ok(toDto(dbMember)).build()
     }
 
     @DELETE

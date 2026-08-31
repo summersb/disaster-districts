@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { useMembers } from '@/hooks/useMembers'
 import { getWardId } from '@/lib/api'
+import { Route as MemberEditRoute } from '@/routes/_protected/member/$id'
 import { Route as MemberAddRoute } from '@/routes/_protected/member/add'
-import { Route as MemberEditRoute } from '@/routes/_protected/member/index'
 import type { MemberDto } from '@/type'
 
 const MemberList = (): React.ReactElement => {
