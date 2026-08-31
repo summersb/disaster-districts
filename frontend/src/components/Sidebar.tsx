@@ -7,7 +7,6 @@ import {
   School2,
   Settings,
   User,
-  UserCog,
   Users,
 } from 'lucide-react'
 import type React from 'react'
@@ -28,7 +27,6 @@ import { Route as MemberRouteAdd } from '@/routes/_protected/member/add'
 import { Route as PrintRoute } from '@/routes/_protected/print'
 import { Route as SettingsRoute } from '@/routes/_protected/settings'
 import { Route as UploadRoute } from '@/routes/_protected/upload'
-import { Route as UserAdminRoute } from '@/routes/_protected/user-admin'
 import { Route as LoginRoute } from '@/routes/login'
 import type { Ward } from '@/type/Ward.ts'
 
@@ -66,23 +64,17 @@ const Sidebar = ({ user }: Props): React.ReactElement => {
         <Link to={DashboardRoute.to}>{wardDoc?.wardName ?? 'Dashboard'}</Link>
       </div>
 
-      {isAdmin(user.roles) && (
-        <>
-          <div className="flex flex-row">
-            <Settings />
-            <Link to={AdminRoute.to}>Admin</Link>
-          </div>
-          <div className="flex flex-row">
-            <Users />
-            <Link to={JoinRequestsRoute.to}>Ward Requests</Link>
-          </div>
-        </>
-      )}
-
       {canManageUsers(user.roles) && (
         <div className="flex flex-row">
-          <UserCog />
-          <Link to={UserAdminRoute.to}>User Admin</Link>
+          <Settings />
+          <Link to={AdminRoute.to}>Admin</Link>
+        </div>
+      )}
+
+      {isAdmin(user.roles) && (
+        <div className="flex flex-row">
+          <Users />
+          <Link to={JoinRequestsRoute.to}>Ward Requests</Link>
         </div>
       )}
 

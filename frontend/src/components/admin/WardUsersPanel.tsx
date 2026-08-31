@@ -7,13 +7,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  useUpdateUser,
-  useUsers,
-  useWardUsers,
-} from '@/hooks/useUsers'
-import type { UserDto } from '@/type'
+import { useUpdateUser, useUsers, useWardUsers } from '@/hooks/useUsers'
 import { ALL_ROLES, isAdmin as checkIsAdmin, ROLE_LABELS } from '@/lib/roles'
+import type { UserDto } from '@/type'
 
 type Props = {
   wardId: number
@@ -79,6 +75,26 @@ const WardUsersPanel = ({
   return (
     <div className="space-y-3">
       <p className="text-sm font-semibold">{wardName}</p>
+
+      {canAddUsers && unassigned.length > 0 && (
+        <div className="flex items-center gap-2 pt-1">
+          <Select value={addUserId} onValueChange={setAddUserId}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Add a user to this ward…" />
+            </SelectTrigger>
+            <SelectContent>
+              {unassigned.map((u) => (
+                <SelectItem key={u.id} value={String(u.id)}>
+                  {u.email}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button size="sm" onClick={handleAdd} disabled={!addUserId}>
+            Add
+          </Button>
+        </div>
+      )}
 
       {wardUsers.length === 0 ? (
         <p className="text-sm italic text-muted-foreground">
@@ -167,26 +183,6 @@ const WardUsersPanel = ({
             ))}
           </tbody>
         </table>
-      )}
-
-      {canAddUsers && unassigned.length > 0 && (
-        <div className="flex items-center gap-2 pt-1">
-          <Select value={addUserId} onValueChange={setAddUserId}>
-            <SelectTrigger className="flex-1">
-              <SelectValue placeholder="Add a user to this ward…" />
-            </SelectTrigger>
-            <SelectContent>
-              {unassigned.map((u) => (
-                <SelectItem key={u.id} value={String(u.id)}>
-                  {u.email}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button size="sm" onClick={handleAdd} disabled={!addUserId}>
-            Add
-          </Button>
-        </div>
       )}
     </div>
   )
