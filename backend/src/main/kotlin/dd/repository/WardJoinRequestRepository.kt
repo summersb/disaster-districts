@@ -10,10 +10,6 @@ class WardJoinRequestRepository : PanacheRepository<WardJoinRequestDao> {
         return find("ward.id", wardId).list()
     }
 
-    fun findByWardIdAndStatus(wardId: Long, status: String): List<WardJoinRequestDao> {
-        return find("ward.id = ?1 and status = ?2", wardId, status).list()
-    }
-
     fun findByUserId(userId: Long): List<WardJoinRequestDao> {
         return find("user.id = ?1 order by requestedAt desc", userId).list()
     }
