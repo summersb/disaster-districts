@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './coverage-fixtures'
 import { adminAuthHeaders } from './helpers'
 
 test('a user can request to join more than one ward at once', async ({

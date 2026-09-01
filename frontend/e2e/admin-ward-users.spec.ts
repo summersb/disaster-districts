@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './coverage-fixtures'
 
 test('admin can pick a ward, add a user, change their role, and remove them', async ({
   page,

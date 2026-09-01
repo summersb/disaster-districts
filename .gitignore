@@ -3,6 +3,7 @@ frontend/.idea
 frontend/dist
 frontend/test-results
 frontend/playwright-report
+frontend/coverage
 frontend/playwright/.cache
 frontend/*.tsbuildinfo
 /frontend/package-lock.json

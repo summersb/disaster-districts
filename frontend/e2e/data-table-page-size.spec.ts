@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './coverage-fixtures'
 
 test('the members table shows a total count and a selectable page size', async ({
   page,

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './coverage-fixtures'
 import { adminAuthHeaders } from './helpers'
 
 test('a newly-approved ward member can open Add District without a map crash', async ({

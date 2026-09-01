@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './coverage-fixtures'
 
 test('the members table search box filters across all columns and paginates', async ({
   page,

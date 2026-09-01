@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './coverage-fixtures'
 
 test('saving an existing district preserves its color and full member roster', async ({
   page,
