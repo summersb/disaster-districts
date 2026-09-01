@@ -52,3 +52,16 @@ export const useCreateWard = () => {
     },
   })
 }
+
+export const useDeleteWard = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (wardId: number) =>
+      authFetch(`/api/wards/${wardId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wards'] })
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      queryClient.invalidateQueries({ queryKey: ['wardUsers'] })
+    },
+  })
+}

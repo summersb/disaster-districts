@@ -1,5 +1,4 @@
 import { expect, test } from './coverage-fixtures'
-import { adminAuthHeaders } from './helpers'
 
 test('admin dashboard shows wards with user counts and admins, and can create a ward', async ({
   page,
@@ -41,10 +40,10 @@ test('admin dashboard shows wards with user counts and admins, and can create a 
   await expect(newWardRow.getByRole('cell', { name: email })).toBeVisible()
   await expect(newWardRow.locator('td').nth(1)).toHaveText('1')
 
-  // Clean up the ward this test created.
-  const location = await response.headerValue('location')
-  const wardId = location?.split('/').pop()
-  await request.delete(`/api/wards/${wardId}`, {
-    headers: await adminAuthHeaders(request),
-  })
+  // Clean up the ward this test created via the UI's own delete flow -
+  // exercises the confirm dialog and doubles as regression coverage for it.
+  await newWardRow.getByRole('button').click()
+  await expect(page.getByText('Delete ward?')).toBeVisible()
+  await page.getByRole('button', { name: 'Delete', exact: true }).click()
+  await expect(page.locator('tr', { hasText: wardName })).toHaveCount(0)
 })

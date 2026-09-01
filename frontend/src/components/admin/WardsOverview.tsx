@@ -1,9 +1,18 @@
 import type { ColumnDef } from '@tanstack/react-table'
+import { Trash2 } from 'lucide-react'
 import type React from 'react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog.tsx'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -12,8 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import useUser from '@/context/useUser.tsx'
 import { useUpdateUser, useUsers } from '@/hooks/useUsers'
-import { useCreateWard, useWards } from '@/hooks/useWards'
+import { useCreateWard, useDeleteWard, useWards } from '@/hooks/useWards'
 import { isAdmin } from '@/lib/roles'
 
 type WardRow = {
@@ -23,28 +33,54 @@ type WardRow = {
   wardAdminEmails: string
 }
 
-const WARD_COLUMNS: ColumnDef<WardRow>[] = [
-  { accessorKey: 'name', header: 'Ward' },
-  { accessorKey: 'userCount', header: 'Users' },
-  {
-    accessorKey: 'wardAdminEmails',
-    header: 'Ward Admin',
-    cell: ({ row }) =>
-      row.original.wardAdminEmails || (
-        <span className="italic text-muted-foreground">None assigned</span>
-      ),
-  },
-]
-
 const WardsOverview = (): React.ReactElement => {
   const { data: wards = [], isLoading: wardsLoading } = useWards()
   const { data: users = [] } = useUsers()
+  const { user } = useUser()
+  const canDelete = isAdmin(user.roles)
   const createWard = useCreateWard()
   const updateUser = useUpdateUser()
+  const deleteWard = useDeleteWard()
 
   const [newWardName, setNewWardName] = useState('')
   const [newWardAdminId, setNewWardAdminId] = useState('')
   const [formError, setFormError] = useState('')
+  const [deletingWard, setDeletingWard] = useState<WardRow | null>(null)
+
+  const handleDeleteWard = async () => {
+    if (deletingWard == null) return
+    await deleteWard.mutateAsync(deletingWard.id)
+    setDeletingWard(null)
+  }
+
+  const wardColumns: ColumnDef<WardRow>[] = [
+    { accessorKey: 'name', header: 'Ward' },
+    { accessorKey: 'userCount', header: 'Users' },
+    {
+      accessorKey: 'wardAdminEmails',
+      header: 'Ward Admin',
+      cell: ({ row }) =>
+        row.original.wardAdminEmails || (
+          <span className="italic text-muted-foreground">None assigned</span>
+        ),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      enableGlobalFilter: false,
+      enableSorting: false,
+      cell: ({ row }) =>
+        canDelete && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setDeletingWard(row.original)}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        ),
+    },
+  ]
 
   // System admins keep their own role; anyone else can be handed a new ward.
   const assignableUsers = users.filter((u) => !isAdmin(u.roles))
@@ -91,7 +127,7 @@ const WardsOverview = (): React.ReactElement => {
           <p className="text-sm text-muted-foreground">Loading wards...</p>
         ) : (
           <DataTable
-            columns={WARD_COLUMNS}
+            columns={wardColumns}
             data={wardRows}
             searchPlaceholder="Search wards..."
           />
@@ -133,6 +169,39 @@ const WardsOverview = (): React.ReactElement => {
           </Button>
         </form>
       </Card>
+
+      <Dialog
+        open={deletingWard != null}
+        onOpenChange={(open) => !open && setDeletingWard(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete ward?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete &quot;{deletingWard?.name}&quot;
+              along with all of its districts, members, users' ward assignments,
+              and pending join requests. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDeleteWard}
+              disabled={deleteWard.isPending}
+            >
+              {deleteWard.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setDeletingWard(null)}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
