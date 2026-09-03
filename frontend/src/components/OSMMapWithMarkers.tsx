@@ -46,11 +46,21 @@ type MapWithMarkersProps = {
   markerClicked?: (member: MemberDto) => void
   onMapClick?: (lat: number, lng: number) => void
   showLabel: boolean
+  // When set, clicking a member pin reports the member via onMemberSelected
+  // instead of the normal markerClicked/district-assignment behavior, so the
+  // caller can offer a way to correct that member's location (e.g. an
+  // address lookup).
+  editable?: boolean
+  onMemberSelected?: (member: MemberDto) => void
 }
 
 const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
   const navigate = useNavigate()
   const markerClicked = (member: MemberDto) => {
+    if (props.editable) {
+      props.onMemberSelected?.(member)
+      return
+    }
     if (isMemberLocked(member)) return
     if (props.markerClicked) {
       props.markerClicked(member)
@@ -168,6 +178,7 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
             permanent={props.showLabel}
           >
             <MemberDisplayName member={member} />
+            {props.editable && ' (click to look up address)'}
           </Tooltip>
         </Marker>
       ))}
