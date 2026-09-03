@@ -2,6 +2,7 @@ import type React from 'react'
 import { useState } from 'react'
 import StyledButton from '@/components/styled/StyledButton.tsx'
 import { Card } from '@/components/ui/card'
+import { genId } from '@/lib/utils'
 import type { MemberDto } from '@/type'
 
 type UploadCsvProps = {
@@ -16,12 +17,15 @@ const UploadCsv = ({ setMembers }: UploadCsvProps): React.ReactElement => {
   }
 
   const csvFileToArray = (str: string) => {
-    const csvRows = str.slice(str.indexOf('\n') + 1).split('\n')
+    const csvRows = str
+      .slice(str.indexOf('\n') + 1)
+      .split('\n')
+      .filter((row) => row.trim() !== '')
 
     const array: MemberDto[] = csvRows.map((i) => {
       const values = i.split(';')
       const member: MemberDto = {
-        id: 0,
+        id: genId(),
         familyName: values[0],
         name: values[1],
         formattedAddress: values[2],

@@ -76,7 +76,7 @@ class MembersResource(
     @POST
     fun createMember(member: MemberRequest): Response = QuarkusTransaction.call<Response> {
         identity.requireWardManager(wardId)
-        val memberExists = memberRepository.findByName(member.name)
+        val memberExists = memberRepository.findByWardAndName(wardId, member.familyName, member.name)
         if (memberExists != null) {
             return@call Response.status(Status.CONFLICT).build()
         }
@@ -105,7 +105,7 @@ class MembersResource(
     fun updateMember(@PathParam("id") id: Long, member: MemberRequest): Response = QuarkusTransaction.call<Response> {
         identity.requireWardManager(wardId)
         val dbMember = memberRepository.findById(id) ?: return@call Response.status(Status.NOT_FOUND).build()
-        val nameConflict = memberRepository.findByName(member.name)
+        val nameConflict = memberRepository.findByWardAndName(wardId, member.familyName, member.name)
         if (nameConflict != null && nameConflict.id != id) {
             return@call Response.status(Status.CONFLICT).build()
         }

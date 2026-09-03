@@ -38,34 +38,64 @@ const UploadPdf = ({ setMembers }: UploadPdfProps): React.ReactElement => {
       const pdfData = new Uint8Array(fileReader.result as ArrayBuffer)
       const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise
 
-      const lines = []
+      const rawLines: string[] = []
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i)
 
         const content = await page.getTextContent()
+        // pdf.js splits a single visual line into multiple text items whenever
+        // the font subset changes mid-line (e.g. an accented character like
+        // "ñ" rendered from a different embedded font than its neighbors).
+        // Merge items that share the same baseline and pick up right where
+        // the previous item ended back into one logical line.
+        let lastY: number | null = null
+        let lastEndX: number | null = null
         for (const item of content.items) {
-          if ('str' in item && item.str.trim() !== '') {
-            const val = item.str.trim()
-            if (val === '©') {
-              continue
-            }
-            if (val.includes('All rights reserved')) {
-              continue
-            }
-            if (val.includes('Church Use Only')) {
-              continue
-            }
-            if (headerRegex.exec(val)) {
-              continue
-            }
-            if (separatorRegex.exec(val)) {
-              continue
-            }
-            lines.push(item.str)
-            //console.log(item.str)
+          if (!('str' in item) || item.str === '') {
+            continue
           }
+          const x = item.transform[4]
+          const y = item.transform[5]
+          const continuesLine =
+            lastY !== null &&
+            lastEndX !== null &&
+            Math.abs(y - lastY) < 0.01 &&
+            x - lastEndX < 5
+
+          if (continuesLine && rawLines.length > 0) {
+            rawLines[rawLines.length - 1] += item.str
+          } else {
+            rawLines.push(item.str)
+          }
+          lastY = y
+          lastEndX = x + item.width
         }
       }
+
+      const lines = rawLines
+        .map((line) => line.trim())
+        .filter((val) => {
+          if (val === '') {
+            return false
+          }
+          if (val === '©') {
+            return false
+          }
+          if (val.includes('All rights reserved')) {
+            return false
+          }
+          if (val.includes('Church Use Only')) {
+            return false
+          }
+          if (headerRegex.exec(val)) {
+            return false
+          }
+          if (separatorRegex.exec(val)) {
+            return false
+          }
+          return true
+        })
+
       setMembers(parseMemberList(lines))
     }
 
