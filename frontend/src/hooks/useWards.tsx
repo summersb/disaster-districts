@@ -53,6 +53,28 @@ export const useCreateWard = () => {
   })
 }
 
+export const useSaveWard = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      wardId,
+      ward,
+    }: {
+      wardId: number
+      ward: { name: string; lat?: number; lng?: number }
+    }) =>
+      authFetch(`/api/wards/${wardId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ward),
+      }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['wards'] })
+      queryClient.invalidateQueries({ queryKey: ['ward', variables.wardId] })
+    },
+  })
+}
+
 export const useDeleteWard = () => {
   const queryClient = useQueryClient()
   return useMutation({

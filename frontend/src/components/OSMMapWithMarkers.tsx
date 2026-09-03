@@ -1,4 +1,5 @@
 import type React from 'react'
+import { useEffect } from 'react'
 import {
   MapContainer,
   Marker,
@@ -20,9 +21,35 @@ type Position = {
   lng: number
 }
 
-function ChangeView({ center }: { center: Position }) {
+type ChangeViewProps = {
+  center: Position
+  members: MemberDto[]
+  // Whether `center` was explicitly requested (a district's saved/leader
+  // position) rather than just computed as a fallback average. Only the
+  // fallback case fits the view to every member's bounding box.
+  hasExplicitCenter: boolean
+}
+
+function ChangeView({ center, members, hasExplicitCenter }: ChangeViewProps) {
   const map = useMap()
-  map.setView([center.lat, center.lng], 13)
+  useEffect(() => {
+    if (!hasExplicitCenter) {
+      const validMembers = members.filter((m) => m.lat != null && m.lng != null)
+      if (validMembers.length > 1) {
+        const lats = validMembers.map((m) => m.lat as number)
+        const lngs = validMembers.map((m) => m.lng as number)
+        map.fitBounds(
+          [
+            [Math.min(...lats), Math.min(...lngs)],
+            [Math.max(...lats), Math.max(...lngs)],
+          ],
+          { padding: [50, 50] },
+        )
+        return
+      }
+    }
+    map.setView([center.lat, center.lng], 13)
+  }, [map, center, members, hasExplicitCenter])
   return null
 }
 
@@ -162,7 +189,11 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
         attribution='&copy: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <ChangeView center={center} />
+      <ChangeView
+        center={center}
+        members={props.members}
+        hasExplicitCenter={props.center != null}
+      />
       {props.onMapClick && <ClickHandler onClick={props.onMapClick} />}
       {deClutter(props.members)?.map((member: MemberDto) => (
         <Marker

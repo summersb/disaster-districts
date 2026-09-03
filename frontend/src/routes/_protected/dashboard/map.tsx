@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { MapPin, X } from 'lucide-react'
+import { Crosshair, MapPin, X } from 'lucide-react'
 import { useState } from 'react'
 import {
   type GeocodeResult,
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDistricts } from '@/hooks/useDistricts'
 import { useMembers, useSaveMember } from '@/hooks/useMembers'
+import { useSaveWard, useWard } from '@/hooks/useWards'
 import { getWardId } from '@/lib/api'
 import type { MemberDto } from '@/type'
 
@@ -20,9 +21,11 @@ export const Route = createFileRoute('/_protected/dashboard/map')({
 
 function RouteComponent() {
   const wardId = getWardId()
+  const { data: ward } = useWard(wardId)
   const { data: districts = [] } = useDistricts(wardId)
   const { data: members = [] } = useMembers(wardId)
   const saveMember = useSaveMember()
+  const saveWard = useSaveWard()
 
   const [fixingPins, setFixingPins] = useState(false)
   const [selectedMember, setSelectedMember] = useState<MemberDto | null>(null)
@@ -31,10 +34,41 @@ function RouteComponent() {
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState('')
 
+  const [pickingWardCenter, setPickingWardCenter] = useState(false)
+  const [wardCenterStatus, setWardCenterStatus] = useState('')
+
   const closePanel = () => {
     setSelectedMember(null)
     setResults(null)
     setError('')
+  }
+
+  const toggleFixingPins = () => {
+    setPickingWardCenter(false)
+    setFixingPins((fixing) => !fixing)
+    closePanel()
+  }
+
+  const toggleWardCenterPicker = () => {
+    setFixingPins(false)
+    closePanel()
+    setWardCenterStatus('')
+    setPickingWardCenter((picking) => !picking)
+  }
+
+  const handleWardCenterPick = async (lat: number, lng: number) => {
+    setPickingWardCenter(false)
+    setWardCenterStatus('Saving ward center...')
+    try {
+      const res = await saveWard.mutateAsync({
+        wardId,
+        ward: { name: ward?.name ?? '', lat, lng },
+      })
+      if (!res.ok) throw new Error('Failed to save')
+      setWardCenterStatus('Ward center updated.')
+    } catch {
+      setWardCenterStatus('Failed to update the ward center - try again.')
+    }
   }
 
   const handleMemberSelected = (member: MemberDto) => {
@@ -88,20 +122,39 @@ function RouteComponent() {
   return (
     <div className="h-screen relative">
       <div className="absolute z-[1000] top-2 left-2 flex flex-col items-start gap-2">
-        <Button
-          size="sm"
-          variant={fixingPins ? 'default' : 'outline'}
-          onClick={() => {
-            setFixingPins((fixing) => !fixing)
-            closePanel()
-          }}
-        >
-          {fixingPins ? 'Done Fixing Pins' : 'Fix a Pin'}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant={fixingPins ? 'default' : 'outline'}
+            onClick={toggleFixingPins}
+          >
+            {fixingPins ? 'Done Fixing Pins' : 'Fix a Pin'}
+          </Button>
+          <Button
+            size="sm"
+            variant={pickingWardCenter ? 'default' : 'outline'}
+            onClick={toggleWardCenterPicker}
+          >
+            <Crosshair className="h-4 w-4 mr-1" />
+            {pickingWardCenter ? 'Click on Map…' : 'Set Ward Center'}
+          </Button>
+        </div>
 
         {fixingPins && !selectedMember && (
           <span className="text-xs rounded bg-background/90 px-2 py-1">
             Click a member's pin to look up its address on OpenStreetMap.
+          </span>
+        )}
+
+        {pickingWardCenter && (
+          <span className="text-xs rounded bg-background/90 px-2 py-1">
+            Click anywhere on the map to set the ward's center there.
+          </span>
+        )}
+
+        {!pickingWardCenter && wardCenterStatus && (
+          <span className="text-xs rounded bg-background/90 px-2 py-1">
+            {wardCenterStatus}
           </span>
         )}
 
@@ -157,6 +210,7 @@ function RouteComponent() {
         showLabel={false}
         editable={fixingPins}
         onMemberSelected={handleMemberSelected}
+        onMapClick={pickingWardCenter ? handleWardCenterPick : undefined}
       />
     </div>
   )

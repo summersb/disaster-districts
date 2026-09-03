@@ -6,6 +6,7 @@ import dd.repository.MemberRepository
 import dd.repository.UserAccountRepository
 import dd.repository.WardRepository
 import dd.security.requireWard
+import dd.security.requireWardManager
 import io.quarkus.security.Authenticated
 import io.quarkus.security.identity.SecurityIdentity
 import jakarta.annotation.security.RolesAllowed
@@ -18,6 +19,7 @@ import jakarta.ws.rs.GET
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.POST
+import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.MediaType
@@ -71,6 +73,29 @@ class WardsResource(
         dbWard.persist()
         val uri = uriInfo.getAbsolutePathBuilder().path(dbWard.id.toString())
         return Response.created(uri.build()).build()
+    }
+
+    // Ward admins may correct their own ward's map center; only system
+    // admins may rename it or repoint it to a different ward's data via id
+    // spoofing - checked via requireWardManager since @RolesAllowed alone
+    // can't express "ward_admin of *this* ward".
+    @PUT
+    @Path("/{id}")
+    @Authenticated
+    @Transactional
+    fun updateWard(@PathParam("id") id: Long, ward: WardRequest): Response {
+        identity.requireWardManager(id)
+        val dbWard = wardRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
+        if (ward.name.isNotBlank() && ward.name != dbWard.name) {
+            val nameConflict = wardRepository.findByName(ward.name)
+            if (nameConflict != null && nameConflict.id != id) {
+                return Response.status(Status.CONFLICT).build()
+            }
+            dbWard.name = ward.name
+        }
+        dbWard.lat = ward.lat
+        dbWard.lng = ward.lng
+        return Response.ok(toDto(dbWard)).build()
     }
 
     @DELETE
