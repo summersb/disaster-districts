@@ -13,24 +13,26 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog.tsx'
 import useUser from '@/context/useUser.tsx'
-import { useDeleteDistrict, useDistrict } from '@/hooks/useDistricts'
+import { useDeleteDistrict } from '@/hooks/useDistricts'
 import { getWardId } from '@/lib/api'
 import { districtColorValue } from '@/lib/districtColors'
 import { isWardAdmin } from '@/lib/roles'
 import { Route as DistrictRoute } from '@/routes/_protected/district/$id.tsx'
-import type { DistrictDto } from '@/type'
+import type { DistrictDto, MemberDto } from '@/type'
 
 type DistrictProps = {
   district: DistrictDto
+  memberCount: number
+  leader?: MemberDto
+  assistant?: MemberDto
 }
 
 export default function DistrictCard(props: DistrictProps) {
   const wardId = getWardId()
-  const { data } = useDistrict(wardId, props.district.id)
   const deleteDistrict = useDeleteDistrict()
   const { user } = useUser()
   const canDelete = isWardAdmin(user.roles)
-  const { district: d } = props
+  const { district: d, memberCount, leader, assistant } = props
   const [open, setOpen] = useState<boolean>(false)
 
   const doDelete = async () => {
@@ -81,12 +83,16 @@ export default function DistrictCard(props: DistrictProps) {
           )}
         </p>
         <p>
+          <span className="text-muted-foreground">Members: </span>
+          {memberCount}
+        </p>
+        <p>
           <span className="text-muted-foreground">Leader: </span>
-          <MemberDisplayName member={data?.leader} />
+          <MemberDisplayName member={leader} />
         </p>
         <p>
           <span className="text-muted-foreground">Assistant: </span>
-          <MemberDisplayName member={data?.assistant} />
+          <MemberDisplayName member={assistant} />
         </p>
       </CardContent>
 

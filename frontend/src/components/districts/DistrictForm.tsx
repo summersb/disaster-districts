@@ -427,8 +427,11 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
             Members
           </label>
           <ul>
-            {districtMembers
-              ?.sort((m1, m2) => m1?.familyName?.localeCompare(m2?.familyName))
+            {/* Sort a copy: sorting districtMembers itself reorders the field
+                array in place, so its indexes stop matching the form's and
+                remove() takes out the wrong member. */}
+            {[...districtMembers]
+              .sort((m1, m2) => m1?.familyName?.localeCompare(m2?.familyName))
               .map((field) => (
                 <li className="odd:bg-muted" key={field.id}>
                   <MemberDisplayName member={field as MemberDto} />

@@ -106,6 +106,9 @@ const EditDistrict = ({
         body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error(`Save failed: ${res.status}`)
+      // What was just saved is the new baseline, so the form is no longer
+      // "changed" and Save disables again until the next edit.
+      form.reset(data)
     } catch (err) {
       form.setError('name', {
         type: 'custom',
