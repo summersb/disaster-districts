@@ -162,12 +162,11 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
               <FormItem>
                 <FormLabel>District Name</FormLabel>
                 <FormControl>
-                  <div className="mb-4 text-black bg-slate-500">
+                  <div className="mb-4">
                     <Input
                       placeholder="District name"
                       disabled={readOnly}
                       {...field}
-                      className="text-white bg-gray-900"
                     />
                   </div>
                 </FormControl>
@@ -185,14 +184,13 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
               <FormItem>
                 <FormLabel>Color</FormLabel>
                 <FormControl>
-                  <div className="mb-4 text-black bg-slate-500">
+                  <div className="mb-4">
                     <ColorPicker
                       selectedColor={field.value}
                       setSelectedColor={(color) => {
                         form.setValue('color', color)
                       }}
                       disabled={readOnly}
-                      className="text-white bg-gray-900"
                     />
                   </div>
                 </FormControl>
@@ -346,7 +344,6 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
                           : Number(e.target.value),
                       )
                     }
-                    className="text-white bg-gray-900"
                   />
                 </FormControl>
               </FormItem>
@@ -372,7 +369,6 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
                           : Number(e.target.value),
                       )
                     }
-                    className="text-white bg-gray-900"
                   />
                 </FormControl>
               </FormItem>
@@ -407,10 +403,7 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
             {districtMembers
               ?.sort((m1, m2) => m1?.familyName?.localeCompare(m2?.familyName))
               .map((field) => (
-                <li
-                  className="odd:bg-slate-700 even:bg-slate-900 "
-                  key={field.id}
-                >
+                <li className="odd:bg-muted" key={field.id}>
                   <MemberDisplayName member={field as MemberDto} />
                 </li>
               ))}

@@ -13,7 +13,7 @@ function JoinWardConfirmationPage(): React.ReactElement {
   const navigate = useNavigate()
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Request Submitted</CardTitle>
@@ -22,7 +22,7 @@ function JoinWardConfirmationPage(): React.ReactElement {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             A ward administrator will review your request and get back to you
             soon. You'll be able to access the application once your request is
             approved.

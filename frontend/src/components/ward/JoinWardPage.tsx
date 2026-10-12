@@ -26,9 +26,9 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  PENDING: 'text-amber-600',
-  APPROVED: 'text-green-600',
-  REJECTED: 'text-red-600',
+  PENDING: 'text-amber-700 dark:text-amber-400',
+  APPROVED: 'text-green-700 dark:text-green-400',
+  REJECTED: 'text-red-600 dark:text-red-400',
 }
 
 const REQUEST_COLUMNS: ColumnDef<WardJoinRequestDto>[] = [
@@ -81,12 +81,12 @@ const JoinWardPage = (): React.ReactElement => {
         <h1 className="text-2xl font-bold mb-6">Join a Ward</h1>
 
         {createJoinRequest.isSuccess && (
-          <p className="text-green-600 mb-4">
+          <p className="text-green-700 dark:text-green-400 mb-4">
             Request submitted. An admin will review it shortly.
           </p>
         )}
         {createJoinRequest.isError && (
-          <p className="text-red-500 mb-4">
+          <p className="text-destructive mb-4">
             {createJoinRequest.error instanceof Error
               ? createJoinRequest.error.message
               : 'Failed to join ward'}

@@ -7,9 +7,9 @@ type StyledButtonProps = React.ComponentProps<typeof Button> & {
 }
 
 const StyledButton = (props: StyledButtonProps): React.ReactElement => {
-  const buttonClassName = `p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600
+  const buttonClassName = `p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700
    focus:outline-none focus:ring-2 focus:ring-blue-300
-   ${props.isPressed ? 'bg-blue-700 shadow-inner' : 'shadow-md'}
+   ${props.isPressed ? 'bg-blue-800 shadow-inner' : 'shadow-md'}
   `
   return (
     <Button className={buttonClassName} {...props}>

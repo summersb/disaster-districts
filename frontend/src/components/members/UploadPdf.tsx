@@ -173,7 +173,7 @@ const UploadPdf = ({ setMembers }: UploadPdfProps): React.ReactElement => {
                 href="https://directory.churchofjesuschrist.org"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-400 hover:underline"
+                className="text-blue-600 dark:text-blue-400 hover:underline"
               >
                 https://directory.churchofjesuschrist.org
               </a>
@@ -188,7 +188,7 @@ const UploadPdf = ({ setMembers }: UploadPdfProps): React.ReactElement => {
               id="pdfFileInput"
               accept=".pdf"
               onChange={onChange}
-              className="mb-4 mr-4 p-2 border rounded-md bg-gray-700 text-white cursor-pointer file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-blue-500 file:px-4 file:py-2 file:font-semibold file:text-white file:shadow-md hover:file:bg-blue-600"
+              className="mb-4 mr-4 p-2 border rounded-md bg-gray-700 text-white cursor-pointer file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:font-semibold file:text-white file:shadow-md hover:file:bg-blue-700"
             />
             <StyledButton onClick={onSubmit} disabled={!pdfFile}>
               {pdfFile ? 'IMPORT PDF' : 'Choose a PDF file first'}

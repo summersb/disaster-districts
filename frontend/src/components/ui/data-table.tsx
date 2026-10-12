@@ -127,7 +127,7 @@ export function DataTable<TData>({
                         ) : sortDirection === 'desc' ? (
                           <ArrowDown className="h-3.5 w-3.5" />
                         ) : (
-                          <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />
+                          <ArrowUpDown className="h-3.5 w-3.5 opacity-60" />
                         )}
                       </button>
                     ) : (

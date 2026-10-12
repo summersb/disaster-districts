@@ -309,26 +309,34 @@ const UploadMembers = (): React.ReactElement => {
                     <TableCell>{row.member.city}</TableCell>
                     <TableCell>
                       {row.result === 'created' && (
-                        <span className="text-green-500">Created</span>
+                        <span className="text-green-700 dark:text-green-500">
+                          Created
+                        </span>
                       )}
                       {row.result === 'skipped' && (
-                        <span className="text-yellow-500">
+                        <span className="text-yellow-800 dark:text-yellow-500">
                           Skipped ({row.error})
                         </span>
                       )}
                       {row.result === 'failed' && (
-                        <span className="text-red-500">
+                        <span className="text-red-600 dark:text-red-400">
                           Failed ({row.error})
                         </span>
                       )}
                       {!row.result && row.category === 'existing' && (
-                        <span className="text-yellow-500">Already exists</span>
+                        <span className="text-yellow-800 dark:text-yellow-500">
+                          Already exists
+                        </span>
                       )}
                       {!row.result && row.category === 'new' && (
-                        <span className="text-blue-400">New</span>
+                        <span className="text-blue-600 dark:text-blue-400">
+                          New
+                        </span>
                       )}
                       {!row.result && row.category === 'delete' && (
-                        <span className="text-red-400">Not in file</span>
+                        <span className="text-red-600 dark:text-red-400">
+                          Not in file
+                        </span>
                       )}
                     </TableCell>
                   </TableRow>

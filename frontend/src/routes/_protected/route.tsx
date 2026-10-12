@@ -34,7 +34,7 @@ function MainLayout() {
       <div className="bg-gray-800 text-white w-64 p-2 fixed top-0 left-0 bottom-0 overflow-y-auto print:hidden">
         <Sidebar user={user} />
       </div>
-      <main className="bg-gray-900 overflow-y-auto p-4 ml-64 print:w-full print:ml-0 print:p-0">
+      <main className="bg-background dark:bg-gray-900 overflow-y-auto p-4 ml-64 print:w-full print:ml-0 print:p-0">
         <Outlet />
       </main>
     </div>

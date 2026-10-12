@@ -154,7 +154,7 @@ const WardsOverview = (): React.ReactElement => {
               ))}
             </SelectContent>
           </Select>
-          {formError && <p className="text-sm text-red-500">{formError}</p>}
+          {formError && <p className="text-sm text-destructive">{formError}</p>}
           <Button
             type="submit"
             disabled={

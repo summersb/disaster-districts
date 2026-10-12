@@ -52,7 +52,7 @@ const AddMember = (): React.ReactElement => {
       <FormProvider {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <MemberForm />
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" disabled={addMember.isPending}>
             {addMember.isPending ? 'Saving...' : 'Save'}
           </Button>

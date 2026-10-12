@@ -178,9 +178,12 @@ export function SignupForm() {
                 Sign up
               </Button>
 
-              <p className="text-sm text-gray-400 mt-4 text-center">
+              <p className="text-sm text-muted-foreground mt-4 text-center">
                 Already have an account?{' '}
-                <a href="/login" className="text-blue-400 hover:underline">
+                <a
+                  href="/login"
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
                   Log in
                 </a>
               </p>
