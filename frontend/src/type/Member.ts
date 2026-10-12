@@ -22,8 +22,16 @@ export const MemberSchema = z.object({
   state: z.string().nullish(),
   postalCode: z.string().nullish(),
   phone: z.string().nullish(),
-  lat: z.number().nullish(),
-  lng: z.number().nullish(),
+  lat: z
+    .number({ error: 'Enter latitude as a number, like 33.1714' })
+    .min(-90, 'Latitude must be between -90 and 90')
+    .max(90, 'Latitude must be between -90 and 90')
+    .nullish(),
+  lng: z
+    .number({ error: 'Enter longitude as a number, like -117.2066' })
+    .min(-180, 'Longitude must be between -180 and 180')
+    .max(180, 'Longitude must be between -180 and 180')
+    .nullish(),
   notes: z.string().nullish(),
   wardId: z.number().nullish(),
   district: DistrictRefSchema.nullish(),
