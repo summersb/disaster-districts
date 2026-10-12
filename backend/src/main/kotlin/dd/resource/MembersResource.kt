@@ -1,9 +1,11 @@
 package dd.resource
 
 import dd.dao.MemberDao
+import dd.geo.GeoAddress
 import dd.geo.GeoPoint
 import dd.geo.Geocoder
 import dd.geo.distanceKm
+import dd.geo.stripUnit
 import dd.repository.MemberRepository
 import dd.repository.WardRepository
 import dd.security.requireWardManager
@@ -190,7 +192,7 @@ class MembersResource(
         val center = wardCenter() ?: return noCenterResponse()
         val outliers = memberRepository.findByWard(wardId).mapNotNull { m ->
             // Nothing to look up without an address, so don't offer the member.
-            if (addressQuery(m).isBlank()) return@mapNotNull null
+            if (geoAddress(m).freeText.isBlank()) return@mapNotNull null
             val lat = m.lat
             val lng = m.lng
             if (lat == null || lng == null) {
@@ -221,13 +223,14 @@ class MembersResource(
 
         val results = request.memberIds.distinct().map { id ->
             try {
-                val address = QuarkusTransaction.call<String?> {
-                    memberRepository.findById(id)?.takeIf { it.ward?.id == wardId }?.let { addressQuery(it) }
+                val geoAddress = QuarkusTransaction.call<GeoAddress?> {
+                    memberRepository.findById(id)?.takeIf { it.ward?.id == wardId }?.let { geoAddress(it) }
                 } ?: return@map GeocodeMemberResult(id, GeocodeStatus.failed, error = "Member not found")
+                val address = geoAddress.freeText
                 if (address.isBlank()) {
                     return@map GeocodeMemberResult(id, GeocodeStatus.no_address, error = "No address on file")
                 }
-                val point = geocoder.geocode(address, center)
+                val point = geocoder.geocode(geoAddress, center)
                     ?: return@map GeocodeMemberResult(id, GeocodeStatus.not_found, error = "No match for \"$address\"")
                 val distance = distanceKm(center, point)
                 if (distance > radius) {
@@ -254,10 +257,14 @@ class MembersResource(
 
     // Prefer the structured address parts (cleaner for a geocoder than the
     // display string); fall back to formattedAddress when they're empty.
-    private fun addressQuery(m: MemberDao): String {
-        val parts = listOf(m.address1, m.city, listOfNotNull(m.state, m.postalCode).joinToString(" "))
+    private fun geoAddress(m: MemberDao): GeoAddress {
+        // The unit number ("#9", "Apt 23") is left off: it only stops the
+        // building from being found.
+        val street = m.address1?.takeIf { it.isNotBlank() }?.let { stripUnit(it) }
+        val parts = listOf(street, m.city, listOfNotNull(m.state, m.postalCode).joinToString(" "))
             .mapNotNull { it?.trim()?.takeIf(String::isNotEmpty) }
-        return if (m.address1.isNullOrBlank()) m.formattedAddress?.trim().orEmpty() else parts.joinToString(", ")
+        val freeText = if (street == null) m.formattedAddress?.trim().orEmpty() else parts.joinToString(", ")
+        return GeoAddress(freeText = freeText, street = street, postalCode = m.postalCode)
     }
 
     @PUT

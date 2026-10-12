@@ -2,6 +2,7 @@ package dd.resource
 
 import dd.geo.GeoPoint
 import dd.geo.distanceKm
+import dd.geo.stripUnit
 import io.quarkus.test.junit.QuarkusTest
 import io.restassured.RestAssured.given
 import io.restassured.http.ContentType
@@ -48,6 +49,21 @@ class MemberLocationsTest {
     fun `distanceKm matches a known distance`() {
         // One degree of latitude is ~111.2 km.
         assertEquals(111.2, distanceKm(GeoPoint(40.0, -111.0), GeoPoint(41.0, -111.0)), 0.1)
+    }
+
+    @Test
+    fun `stripUnit removes a trailing apartment or unit number only`() {
+        assertEquals("2130 South Santa Fe", stripUnit("2130 South Santa Fe #9"))
+        assertEquals("2130 South Santa Fe Ave", stripUnit("2130 South Santa Fe Ave, Apt 23"))
+        assertEquals("500 Main St", stripUnit("500 Main St Unit 4-B"))
+        assertEquals("500 Main St", stripUnit("500 Main St Ste. 100"))
+        assertEquals("500 Main St", stripUnit("500 Main St spc 12"))
+        assertEquals("500 Main St", stripUnit("  500 Main St # 7 "))
+        // Nothing to strip, or the designator isn't at the end.
+        assertEquals("2246 Buena Creek Rd", stripUnit("2246 Buena Creek Rd"))
+        assertEquals("1 Space Center Dr", stripUnit("1 Space Center Dr"))
+        assertEquals("12 Suite Life Ln", stripUnit("12 Suite Life Ln"))
+        assertEquals("Unit 5", stripUnit("Unit 5"))
     }
 
     @Test

@@ -21,6 +21,7 @@ import java.util.Optional
  *    through [throttle], which is shared by the whole application;
  *  - an identifying User-Agent rather than a stock HTTP-library one;
  *  - results are cached, so the same address is never requested twice;
+ *  - an address costs at most two requests (free text, then one fallback);
  *  - no bulk geocoding: callers only send the handful of members a user
  *    picked (MembersResource caps each request).
  * Results are OpenStreetMap data (ODbL), so any screen showing them must
@@ -54,34 +55,54 @@ class NominatimGeocoder(
         },
     )
 
-    override fun geocode(address: String, near: GeoPoint?): GeoPoint? {
-        val query = address.trim().replace(Regex("\\s+"), " ")
+    override fun geocode(address: GeoAddress, near: GeoPoint?): GeoPoint? {
+        val query = address.freeText.normalized()
         if (query.isEmpty()) return null
-        val key = query.lowercase() + "|" + (near?.let { "%.1f,%.1f".format(it.lat, it.lng) } ?: "")
+        val street = address.street?.normalized().orEmpty()
+        val postalCode = address.postalCode?.normalized().orEmpty().replace(ZIP_PLUS_4, "$1")
+        val key = listOf(query, street, postalCode).joinToString("|").lowercase() +
+            "|" + (near?.let { "%.1f,%.1f".format(it.lat, it.lng) } ?: "")
         cache[key]?.let { return it.orElse(null) }
 
         // One request at a time, application-wide; the lock is held through
-        // the HTTP call so concurrent callers queue instead of overlapping.
+        // the HTTP calls so concurrent callers queue instead of overlapping.
         synchronized(lock) {
             cache[key]?.let { return it.orElse(null) }
-            throttle()
-            val result = try {
-                search(query, near)
-            } finally {
-                lastRequestAt = System.currentTimeMillis()
+            var result = search(listOf("q" to query), near)
+            // Free-text search needs every word to fit the map's own place
+            // hierarchy, so it misses addresses whose postal city isn't the
+            // boundary they sit in (e.g. "Vista" for a road just outside the
+            // city limits). Street + postcode as separate fields finds those,
+            // at the cost of one more rate-limited request.
+            if (result == null && street.isNotEmpty() && postalCode.isNotEmpty()) {
+                result = search(listOf("street" to street, "postalcode" to postalCode), near)
             }
             cache[key] = Optional.ofNullable(result)
             return result
         }
     }
 
+    private fun String.normalized() = trim().replace(Regex("\\s+"), " ")
+
+    // Every request to the service goes through here, so they are always at
+    // least minIntervalMs apart.
     private fun throttle() {
         val wait = lastRequestAt + minIntervalMs - System.currentTimeMillis()
         if (wait > 0) Thread.sleep(wait)
     }
 
-    private fun search(query: String, near: GeoPoint?): GeoPoint? {
-        val params = mutableListOf("format" to "jsonv2", "limit" to "1", "q" to query)
+    private fun search(terms: List<Pair<String, String>>, near: GeoPoint?): GeoPoint? {
+        throttle()
+        try {
+            return send(terms, near)
+        } finally {
+            lastRequestAt = System.currentTimeMillis()
+        }
+    }
+
+    private fun send(terms: List<Pair<String, String>>, near: GeoPoint?): GeoPoint? {
+        val params = mutableListOf("format" to "jsonv2", "limit" to "1")
+        params += terms
         // A viewbox without `bounded` only ranks nearby matches first - an
         // address that really is elsewhere is still found.
         near?.let {
@@ -115,5 +136,10 @@ class NominatimGeocoder(
         val lat = first.get("lat")?.asText()?.toDoubleOrNull()
         val lng = first.get("lon")?.asText()?.toDoubleOrNull()
         return if (lat != null && lng != null) GeoPoint(lat, lng) else null
+    }
+
+    private companion object {
+        // US ZIP+4 ("92084-7318"): the search only knows the 5-digit part.
+        val ZIP_PLUS_4 = Regex("^(\\d{5})-\\d{4}$")
     }
 }
