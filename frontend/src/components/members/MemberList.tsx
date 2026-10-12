@@ -125,6 +125,7 @@ const MemberList = (): React.ReactElement => {
         columns={columns}
         data={members}
         searchPlaceholder="Search members..."
+        stateKey="members"
         defaultSort={[{ id: 'name', desc: false }]}
       />
 

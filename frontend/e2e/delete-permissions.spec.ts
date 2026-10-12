@@ -51,9 +51,12 @@ test('a ward_admin can delete a district via a confirm dialog with no crash', as
   await page.goto('/district')
   await expect(page.getByText(districtName)).toBeVisible()
 
-  // Sample Ward already has North/South District seeded, so this new one
-  // is the last card in the list.
-  await page.locator('svg.lucide-trash2').last().click()
+  // Sample Ward already has North/South District seeded, so pick the delete
+  // button in this district's own row.
+  await page
+    .locator('tbody tr', { hasText: districtName })
+    .locator('svg.lucide-trash2')
+    .click()
   // This must open a real confirm dialog, not throw (Radix's DialogClose
   // previously wrapped two sibling buttons, which crashes with "Primitive
   // .button failed to slot onto its children").

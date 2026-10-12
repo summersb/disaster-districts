@@ -26,6 +26,3 @@ export const DISTRICT_COLORS = [
 // The pin color the map gives members who aren't in any district. Districts
 // can't choose it, or their members would look unassigned.
 export const UNASSIGNED_COLOR = 'Blue'
-
-export const districtColorValue = (name?: string | null) =>
-  DISTRICT_COLORS.find((color) => color.name === name)?.value

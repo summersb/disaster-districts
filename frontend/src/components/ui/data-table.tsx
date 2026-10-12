@@ -42,6 +42,31 @@ type DataTableProps<TData> = {
   pageSize?: number
   emptyMessage?: string
   defaultSort?: SortingState
+  // When set, the search text, sort order, page size and current page are
+  // remembered under this key and restored the next time the table is shown.
+  stateKey?: string
+}
+
+// What a table remembers between visits when it is given a stateKey.
+type SavedTableState = {
+  globalFilter?: string
+  sorting?: SortingState
+  pageSizeChoice?: string
+  pageIndex?: number
+}
+
+const storageKey = (stateKey: string) => `data-table:${stateKey}`
+
+// sessionStorage: remembered while the tab is open (so coming back from an
+// edit page restores the view) but not carried into the next session.
+const loadSavedState = (stateKey?: string): SavedTableState => {
+  if (!stateKey) return {}
+  try {
+    const raw = window.sessionStorage.getItem(storageKey(stateKey))
+    return raw ? (JSON.parse(raw) as SavedTableState) : {}
+  } catch {
+    return {}
+  }
 }
 
 export function DataTable<TData>({
@@ -51,41 +76,80 @@ export function DataTable<TData>({
   pageSize = 10,
   emptyMessage = 'No results.',
   defaultSort = [],
+  stateKey,
 }: DataTableProps<TData>): React.ReactElement {
-  const [globalFilter, setGlobalFilter] = useState('')
-  const [sorting, setSorting] = useState<SortingState>(defaultSort)
-  const [pageSizeChoice, setPageSizeChoice] = useState<PageSizeOption>(
-    PAGE_SIZE_OPTIONS.includes(String(pageSize) as PageSizeOption)
-      ? (String(pageSize) as PageSizeOption)
-      : '10',
+  // Read once, on mount.
+  const [saved] = useState(() => loadSavedState(stateKey))
+  const [globalFilter, setGlobalFilter] = useState(saved.globalFilter ?? '')
+  const [sorting, setSorting] = useState<SortingState>(
+    saved.sorting ?? defaultSort,
   )
+  const [pageSizeChoice, setPageSizeChoice] = useState<PageSizeOption>(() => {
+    const wanted = saved.pageSizeChoice ?? String(pageSize)
+    return PAGE_SIZE_OPTIONS.includes(wanted as PageSizeOption)
+      ? (wanted as PageSizeOption)
+      : '10'
+  })
+  const [pageIndex, setPageIndex] = useState(saved.pageIndex ?? 0)
+
+  const pagination = {
+    pageIndex,
+    pageSize: pageSizeChoice === 'all' ? ALL_PAGE_SIZE : Number(pageSizeChoice),
+  }
+
+  // Changing the search, the sort or the page size starts again from page
+  // one, which also avoids landing on a now out-of-range page. These are done
+  // in the handlers rather than by letting the table auto-reset, because an
+  // auto-reset also fires when the data (re)loads and would throw away a
+  // restored page.
+  const changeFilter = (value: string) => {
+    setGlobalFilter(value)
+    setPageIndex(0)
+  }
 
   const table = useReactTable({
     data,
     columns,
-    state: { globalFilter, sorting },
-    onGlobalFilterChange: setGlobalFilter,
-    onSortingChange: setSorting,
+    state: { globalFilter, sorting, pagination },
+    onGlobalFilterChange: changeFilter,
+    onSortingChange: (updater) => {
+      setSorting(updater)
+      setPageIndex(0)
+    },
+    onPaginationChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(pagination) : updater
+      setPageIndex(next.pageIndex)
+    },
+    autoResetPageIndex: false,
     globalFilterFn: 'includesString',
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize } },
   })
 
+  // If rows were removed since the page was remembered (or deleted from the
+  // last page), fall back to the last page that still exists. Skipped while
+  // the data is still loading, when there are no pages at all.
+  const pageCount = table.getPageCount()
   useEffect(() => {
-    table.setPageSize(
-      pageSizeChoice === 'all' ? ALL_PAGE_SIZE : Number(pageSizeChoice),
-    )
-  }, [pageSizeChoice, table])
+    if (pageCount > 0 && pageIndex >= pageCount) setPageIndex(pageCount - 1)
+  }, [pageCount, pageIndex])
 
-  // Jumping back to page one when the search narrows the results avoids
-  // landing on a now out-of-range page.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: globalFilter is a deliberate trigger, not read in the body
   useEffect(() => {
-    table.setPageIndex(0)
-  }, [globalFilter, table])
+    if (!stateKey) return
+    const state: SavedTableState = {
+      globalFilter,
+      sorting,
+      pageSizeChoice,
+      pageIndex,
+    }
+    try {
+      window.sessionStorage.setItem(storageKey(stateKey), JSON.stringify(state))
+    } catch {
+      // Storage unavailable or full - the table just won't be remembered.
+    }
+  }, [stateKey, globalFilter, sorting, pageSizeChoice, pageIndex])
 
   const rows = table.getRowModel().rows
   const totalCount = table.getFilteredRowModel().rows.length
@@ -96,7 +160,7 @@ export function DataTable<TData>({
         <Input
           placeholder={searchPlaceholder}
           value={globalFilter}
-          onChange={(e) => setGlobalFilter(e.target.value)}
+          onChange={(e) => changeFilter(e.target.value)}
           className="max-w-sm"
         />
         <p className="whitespace-nowrap text-sm text-muted-foreground">
@@ -170,9 +234,10 @@ export function DataTable<TData>({
           <p className="text-sm text-muted-foreground">Rows per page</p>
           <Select
             value={pageSizeChoice}
-            onValueChange={(value) =>
+            onValueChange={(value) => {
               setPageSizeChoice(value as PageSizeOption)
-            }
+              setPageIndex(0)
+            }}
           >
             <SelectTrigger className="w-20" aria-label="Rows per page">
               <SelectValue />
