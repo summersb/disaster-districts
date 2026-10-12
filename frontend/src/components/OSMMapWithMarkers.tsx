@@ -1,5 +1,5 @@
 import type React from 'react'
-import { useEffect } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   MapContainer,
   Marker,
@@ -9,11 +9,12 @@ import {
   useMapEvents,
 } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import L from 'leaflet'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 import { deClutter } from '@/components/mapUtils.ts'
 import { Route as DistrictRoute } from '@/routes/_protected/district/$id.tsx'
+import { Route as MemberLocationsRoute } from '@/routes/_protected/member/locations'
 import type { DistrictDto, MemberDto } from '@/type'
 
 type Position = {
@@ -53,6 +54,61 @@ function ChangeView({ center, members, hasExplicitCenter }: ChangeViewProps) {
   return null
 }
 
+const MILES_PER_DEGREE_LAT = 69.0
+
+type DefaultRadiusViewProps = {
+  center: Position
+  radiusMiles: number
+  // Bumped by the parent to return to the default view on demand.
+  resetCount: number
+  // Reports the area the default view actually shows, or null once the user
+  // has zoomed or panned away from it.
+  onDefaultBounds: (bounds: L.LatLngBounds | null) => void
+}
+
+// Default view for a map with a known center: zoomed so the area within
+// radiusMiles of the center fills the map, instead of stretching to include
+// every member (one stray pin would otherwise zoom the map out to fit it).
+function DefaultRadiusView({
+  center,
+  radiusMiles,
+  resetCount,
+  onDefaultBounds,
+}: DefaultRadiusViewProps) {
+  const map = useMap()
+  // True while this component is moving the map itself, so those moves
+  // aren't mistaken for the user leaving the default view.
+  const programmatic = useRef(false)
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resetCount is a trigger, and onDefaultBounds is a state setter
+  useEffect(() => {
+    const dLat = radiusMiles / MILES_PER_DEGREE_LAT
+    const dLng =
+      radiusMiles /
+      (MILES_PER_DEGREE_LAT * Math.cos((center.lat * Math.PI) / 180))
+    programmatic.current = true
+    map.fitBounds(
+      [
+        [center.lat - dLat, center.lng - dLng],
+        [center.lat + dLat, center.lng + dLng],
+      ],
+      { animate: false },
+    )
+    programmatic.current = false
+    onDefaultBounds(map.getBounds())
+  }, [map, center.lat, center.lng, radiusMiles, resetCount])
+
+  useMapEvents({
+    zoomstart() {
+      if (!programmatic.current) onDefaultBounds(null)
+    },
+    dragstart() {
+      onDefaultBounds(null)
+    },
+  })
+  return null
+}
+
 function ClickHandler({
   onClick,
 }: {
@@ -79,6 +135,9 @@ type MapWithMarkersProps = {
   // address lookup).
   editable?: boolean
   onMemberSelected?: (member: MemberDto) => void
+  // With a center, open zoomed to roughly this many miles around it rather
+  // than fitting every member, and report how many members that leaves out.
+  defaultRadiusMiles?: number
 }
 
 const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
@@ -177,68 +236,128 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
 
   const center = props.center ? props.center : findCenter(props.members)
 
+  const radiusView =
+    props.center != null && props.defaultRadiusMiles != null
+      ? { center: props.center, radiusMiles: props.defaultRadiusMiles }
+      : null
+  // The area shown by the default view; null after the user moves the map.
+  const [defaultBounds, setDefaultBounds] = useState<L.LatLngBounds | null>(
+    null,
+  )
+  const [resetCount, setResetCount] = useState(0)
+  // Members the default view doesn't show: pins outside it, plus members
+  // with no coordinates at all.
+  const outsideCount = useMemo(() => {
+    if (!defaultBounds) return 0
+    return props.members.filter(
+      (m) =>
+        m.lat == null ||
+        m.lng == null ||
+        !defaultBounds.contains([m.lat, m.lng]),
+    ).length
+  }, [defaultBounds, props.members])
+
   return (
-    <MapContainer
-      center={[center.lat, center.lng]}
-      style={{ height: '100%', width: '100%' }}
-      zoom={14}
-      zoomControl={false}
-    >
-      <TileLayer
-        attribution='&copy: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <ChangeView
-        center={center}
-        members={props.members}
-        hasExplicitCenter={props.center != null}
-      />
-      {props.onMapClick && <ClickHandler onClick={props.onMapClick} />}
-      {deClutter(props.members)?.map((member: MemberDto) => (
-        <Marker
-          key={member.id}
-          position={[member.lat ?? 0, member.lng ?? 0]}
-          eventHandlers={{ click: () => markerClicked(member) }}
-          icon={getMemberIcon(member)}
-        >
-          <Tooltip
-            direction="right"
-            offset={[0, 20]}
-            opacity={props.showLabel ? 0.5 : 1}
-            permanent={props.showLabel}
-          >
-            <MemberDisplayName member={member} />
-            {props.editable && ' (click to look up address)'}
-          </Tooltip>
-        </Marker>
-      ))}
-      {props.districts?.map((d) => {
-        // Prefer the district's stored lat/lng. If absent, fall back to the
-        // average position of the district's own members.
-        const distMembers = (d.members ?? []).filter(
-          (m: MemberDto | undefined): m is MemberDto => m != null,
-        )
-        const districtCenter =
-          d.lat != null && d.lng != null
-            ? { lat: d.lat, lng: d.lng }
-            : distMembers.length > 0
-              ? findCenter(distMembers)
-              : null
-        if (districtCenter == null) return null
-        return (
+    <div className="relative h-full w-full">
+      {radiusView && (
+        <div className="absolute bottom-6 left-2 z-[1000] flex items-center gap-2 text-xs">
+          {defaultBounds && outsideCount > 0 && (
+            <span
+              className="rounded bg-background/90 px-2 py-1"
+              data-testid="members-outside-view"
+            >
+              {outsideCount} member{outsideCount === 1 ? ' is' : 's are'} not
+              shown in this view.{' '}
+              <Link
+                to={MemberLocationsRoute.to}
+                className="text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Check locations
+              </Link>
+            </span>
+          )}
+          {!defaultBounds && (
+            <button
+              type="button"
+              className="rounded bg-background/90 px-2 py-1 hover:bg-background"
+              onClick={() => setResetCount((count) => count + 1)}
+            >
+              Reset view
+            </button>
+          )}
+        </div>
+      )}
+      <MapContainer
+        center={[center.lat, center.lng]}
+        style={{ height: '100%', width: '100%' }}
+        zoom={14}
+        zoomControl={false}
+      >
+        <TileLayer
+          attribution='&copy: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        {radiusView ? (
+          <DefaultRadiusView
+            center={radiusView.center}
+            radiusMiles={radiusView.radiusMiles}
+            resetCount={resetCount}
+            onDefaultBounds={setDefaultBounds}
+          />
+        ) : (
+          <ChangeView
+            center={center}
+            members={props.members}
+            hasExplicitCenter={props.center != null}
+          />
+        )}
+        {props.onMapClick && <ClickHandler onClick={props.onMapClick} />}
+        {deClutter(props.members)?.map((member: MemberDto) => (
           <Marker
-            key={d.id}
-            position={[districtCenter.lat, districtCenter.lng]}
-            icon={getGroupIcon()}
-            eventHandlers={{ click: () => districtClicked(d) }}
+            key={member.id}
+            position={[member.lat ?? 0, member.lng ?? 0]}
+            eventHandlers={{ click: () => markerClicked(member) }}
+            icon={getMemberIcon(member)}
           >
-            <Tooltip opacity={1} direction="right" offset={[0, 20]} permanent>
-              {d.name}
+            <Tooltip
+              direction="right"
+              offset={[0, 20]}
+              opacity={props.showLabel ? 0.5 : 1}
+              permanent={props.showLabel}
+            >
+              <MemberDisplayName member={member} />
+              {props.editable && ' (click to look up address)'}
             </Tooltip>
           </Marker>
-        )
-      })}
-    </MapContainer>
+        ))}
+        {props.districts?.map((d) => {
+          // Prefer the district's stored lat/lng. If absent, fall back to the
+          // average position of the district's own members.
+          const distMembers = (d.members ?? []).filter(
+            (m: MemberDto | undefined): m is MemberDto => m != null,
+          )
+          const districtCenter =
+            d.lat != null && d.lng != null
+              ? { lat: d.lat, lng: d.lng }
+              : distMembers.length > 0
+                ? findCenter(distMembers)
+                : null
+          if (districtCenter == null) return null
+          return (
+            <Marker
+              key={d.id}
+              position={[districtCenter.lat, districtCenter.lng]}
+              icon={getGroupIcon()}
+              eventHandlers={{ click: () => districtClicked(d) }}
+            >
+              <Tooltip opacity={1} direction="right" offset={[0, 20]} permanent>
+                {d.name}
+              </Tooltip>
+            </Marker>
+          )
+        })}
+      </MapContainer>
+    </div>
   )
 }
 

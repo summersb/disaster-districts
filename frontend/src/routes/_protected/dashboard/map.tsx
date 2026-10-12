@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Crosshair, MapPin, X } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   type GeocodeResult,
   geocodeAddress,
@@ -40,6 +40,17 @@ function RouteComponent() {
 
   const [pickingWardCenter, setPickingWardCenter] = useState(false)
   const [wardCenterStatus, setWardCenterStatus] = useState('')
+
+  // Without a saved ward center the map falls back to fitting every member.
+  const wardLat = ward?.lat
+  const wardLng = ward?.lng
+  const wardCenter = useMemo(
+    () =>
+      wardLat != null && wardLng != null
+        ? { lat: wardLat, lng: wardLng }
+        : undefined,
+    [wardLat, wardLng],
+  )
 
   const closePanel = () => {
     setSelectedMember(null)
@@ -213,6 +224,8 @@ function RouteComponent() {
       <MapDisplay
         districts={districts}
         members={members}
+        center={wardCenter}
+        defaultRadiusMiles={5}
         showLabel={false}
         editable={fixingPins}
         onMemberSelected={handleMemberSelected}
