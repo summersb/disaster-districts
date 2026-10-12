@@ -1,4 +1,18 @@
--- Seed 10 sample users. Password for every account is 'password123'.
+-- Sample data for development and for the automated tests. It is NOT a
+-- migration: a new database starts empty, and the app's first-run setup page
+-- creates the first system admin.
+--
+-- To load it into the Docker Compose database (once, on an empty database):
+--
+--   set -a; . ./.env; set +a
+--   docker compose exec -T db psql -U "$DATABASE_USER" -d "$DATABASE_NAME" < backend/db/sample_data.sql
+--
+-- It creates a system admin (admin@example.com), nine ward users
+-- (user1..user9@example.com), all with the password 'password123', plus a
+-- "Sample Ward" with 20 members in two districts. The backend tests load this
+-- same file (see src/test/kotlin/dd/SampleDataLoader.kt).
+
+-- 10 sample users. Password for every account is 'password123'.
 -- Hash generated with at.favre.lib.crypto.bcrypt at cost 12 (matches AuthResource/UsersResource).
 
 insert into wards (name, lat, lng)

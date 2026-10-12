@@ -4,7 +4,9 @@ create table wards (
     id bigint primary key default nextval('wards_id_seq'),
     name varchar(255),
     lat double precision,
-    lng double precision
+    lng double precision,
+    -- The ward's leader is one of its members (shown on the ward dashboard).
+    leader bigint
 );
 
 create sequence users_id_seq;
@@ -87,3 +89,15 @@ alter table members add constraint members_ward_fk foreign key (ward_id) referen
 
 alter table user_roles add constraint users_role_users_fk foreign key (user_id) references users(id);
 alter table user_roles add constraint users_role_wards_fk foreign key (ward_id) references wards(id);
+alter table wards add constraint wards_leader_fk foreign key (leader) references members (id);
+
+-- Ties a login to the member record of the same person - at most one per ward
+-- the user belongs to - so being a district's leader or assistant (which are
+-- members) can carry permissions for the user.
+create table user_members (
+    user_id bigint not null,
+    member_id bigint not null,
+    primary key (user_id, member_id),
+    constraint user_members_user_fk foreign key (user_id) references users (id),
+    constraint user_members_member_fk foreign key (member_id) references members (id)
+);
