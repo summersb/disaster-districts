@@ -43,7 +43,7 @@ class WardsResource(
     @field:Context val uriInfo: UriInfo,
 ) {
 
-    private fun toDto(w: WardDao) = WardDto(id = w.id, name = w.name ?: "", lat = w.lat, lng = w.lng)
+    private fun toDto(w: WardDao) = WardDto(id = w.id, name = w.name ?: "", lat = w.lat, lng = w.lng, leaderId = w.leader?.id)
 
     @GET
     @Authenticated
@@ -95,8 +95,21 @@ class WardsResource(
             }
             dbWard.name = ward.name
         }
-        dbWard.lat = ward.lat
-        dbWard.lng = ward.lng
+        // Every field is optional, so the dashboard can rename the ward or
+        // change its leader without resending (and wiping) the map center.
+        ward.lat?.let { dbWard.lat = it }
+        ward.lng?.let { dbWard.lng = it }
+        ward.leaderId?.let { leaderId ->
+            dbWard.leader = if (leaderId > 0) {
+                // The leader has to be one of this ward's own members.
+                memberRepository.findById(leaderId)?.takeIf { it.ward?.id == id }
+                    ?: return Response.status(Status.BAD_REQUEST)
+                        .entity(mapOf("error" to "The ward leader must be a member of this ward"))
+                        .build()
+            } else {
+                null
+            }
+        }
         return Response.ok(toDto(dbWard)).build()
     }
 
@@ -112,6 +125,14 @@ class WardsResource(
         // the delete.
         entityManager.createQuery("delete from WardJoinRequest r where r.ward.id = :id")
             .setParameter("id", id).executeUpdate()
+        // The ward's leader is one of the members about to be bulk-deleted
+        // below. Drop the reference, and detach the loaded member so the
+        // session isn't left holding a member of a ward that no longer exists.
+        ward.leader?.let { leader ->
+            ward.leader = null
+            entityManager.flush()
+            entityManager.detach(leader)
+        }
         entityManager.createQuery("update Member m set m.district = null where m.ward.id = :id")
             .setParameter("id", id).executeUpdate()
         entityManager.createQuery("delete from District d where d.ward.id = :id")

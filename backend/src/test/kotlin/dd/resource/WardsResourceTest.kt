@@ -211,4 +211,95 @@ class WardsResourceTest {
             .then().statusCode(200)
             .body("$", hasSize<Any>(0))
     }
+
+    private fun createWard(body: String): Int =
+        asAdmin()
+            .contentType(ContentType.JSON)
+            .body(body)
+            .`when`().post("/wards")
+            .then().statusCode(201)
+            .extract().header("Location").substringAfterLast("/").toInt()
+
+    private fun createMember(wardId: Int, name: String): Int =
+        asAdmin()
+            .contentType(ContentType.JSON)
+            .body("""{"name": "$name", "familyName": "$name", "formattedAddress": "1 Test St"}""")
+            .`when`().post("/wards/$wardId/members")
+            .then().statusCode(201)
+            .extract().header("Location").substringAfterLast("/").toInt()
+
+    @Test
+    fun `PUT ward renames without wiping the map center`() {
+        val wardId = createWard("""{"name": "Rename Me ${System.nanoTime()}", "lat": 33.1, "lng": -117.2}""")
+        val newName = "Renamed ${System.nanoTime()}"
+
+        asAdmin()
+            .contentType(ContentType.JSON)
+            .body("""{"name": "$newName"}""")
+            .`when`().put("/wards/$wardId")
+            .then().statusCode(200)
+            .body("name", equalTo(newName))
+            .body("lat", equalTo(33.1f))
+            .body("lng", equalTo(-117.2f))
+    }
+
+    @Test
+    fun `PUT ward sets, keeps and clears the ward leader`() {
+        val wardId = createWard("""{"name": "Leader Ward ${System.nanoTime()}"}""")
+        val otherWardId = createWard("""{"name": "Other Leader Ward ${System.nanoTime()}"}""")
+        val leaderId = createMember(wardId, "Ward Leader")
+        val outsiderId = createMember(otherWardId, "Outsider")
+
+        asAdmin()
+            .contentType(ContentType.JSON)
+            .body("""{"leaderId": $leaderId}""")
+            .`when`().put("/wards/$wardId")
+            .then().statusCode(200)
+            .body("leaderId", equalTo(leaderId))
+
+        // A request that doesn't mention the leader leaves it in place.
+        asAdmin()
+            .contentType(ContentType.JSON)
+            .body("""{"lat": 1.5, "lng": 2.5}""")
+            .`when`().put("/wards/$wardId")
+            .then().statusCode(200)
+            .body("leaderId", equalTo(leaderId))
+
+        // Someone from another ward can't lead this one.
+        asAdmin()
+            .contentType(ContentType.JSON)
+            .body("""{"leaderId": $outsiderId}""")
+            .`when`().put("/wards/$wardId")
+            .then().statusCode(400)
+
+        asAdmin()
+            .contentType(ContentType.JSON)
+            .body("""{"leaderId": 0}""")
+            .`when`().put("/wards/$wardId")
+            .then().statusCode(200)
+            .body("leaderId", org.hamcrest.Matchers.nullValue())
+    }
+
+    @Test
+    fun `deleting the ward leader, or their ward, does not fail on the reference`() {
+        val wardId = createWard("""{"name": "Leader Delete Ward ${System.nanoTime()}"}""")
+        val leaderId = createMember(wardId, "Doomed Leader")
+        val nextLeaderId = createMember(wardId, "Next Leader")
+        asAdmin().contentType(ContentType.JSON).body("""{"leaderId": $leaderId}""")
+            .`when`().put("/wards/$wardId").then().statusCode(200)
+
+        asAdmin()
+            .`when`().delete("/wards/$wardId/members/$leaderId")
+            .then().statusCode(204)
+        asAdmin()
+            .`when`().get("/wards/$wardId")
+            .then().statusCode(200)
+            .body("leaderId", org.hamcrest.Matchers.nullValue())
+
+        asAdmin().contentType(ContentType.JSON).body("""{"leaderId": $nextLeaderId}""")
+            .`when`().put("/wards/$wardId").then().statusCode(200)
+        asAdmin()
+            .`when`().delete("/wards/$wardId")
+            .then().statusCode(204)
+    }
 }

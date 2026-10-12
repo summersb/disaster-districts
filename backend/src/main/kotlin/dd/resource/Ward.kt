@@ -5,6 +5,8 @@ data class WardRequest(
     val name: String = "",
     val lat: Double? = null,
     val lng: Double? = null,
+    // null leaves the ward leader alone; 0 (or negative) clears it.
+    val leaderId: Long? = null,
 )
 
 data class WardDto(
@@ -12,4 +14,5 @@ data class WardDto(
     val name: String,
     val lat: Double? = null,
     val lng: Double? = null,
+    val leaderId: Long? = null,
 )

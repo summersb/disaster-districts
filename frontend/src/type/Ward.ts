@@ -20,6 +20,8 @@ export const WardDtoSchema = z.object({
   name: z.string(),
   lat: z.number().optional(),
   lng: z.number().optional(),
+  // The member who leads the ward, if one has been chosen.
+  leaderId: z.number().nullish(),
 })
 
 export type WardConfig = z.infer<typeof WardConfigSchema>

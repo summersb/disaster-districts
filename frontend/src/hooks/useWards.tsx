@@ -61,7 +61,9 @@ export const useSaveWard = () => {
       ward,
     }: {
       wardId: number
-      ward: { name: string; lat?: number; lng?: number }
+      // Every field is optional: the server changes only what is sent. A
+      // leaderId of 0 clears the ward leader.
+      ward: { name?: string; lat?: number; lng?: number; leaderId?: number }
     }) =>
       authFetch(`/api/wards/${wardId}`, {
         method: 'PUT',

@@ -304,6 +304,10 @@ class MembersResource(
             .setParameter("id", id).executeUpdate()
         entityManager.createQuery("update District d set d.assistant = null where d.assistant.id = :id")
             .setParameter("id", id).executeUpdate()
+        // Same for the ward, if this member is its leader. Done on the loaded
+        // entity rather than with a bulk update, which would leave the ward
+        // in this session still pointing at the member being removed.
+        member.ward?.let { ward -> if (ward.leader?.id == id) ward.leader = null }
         memberRepository.delete(member)
         Response.noContent().build()
     }
