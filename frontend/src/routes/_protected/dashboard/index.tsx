@@ -5,7 +5,7 @@ import WardDashboard from '@/components/ward/WardDashboard.tsx'
 import useUser from '@/context/useUser.tsx'
 import { useDistrictLeaderScope } from '@/hooks/useDistrictLeaderScope'
 import { getWardId } from '@/lib/api'
-import { isAdmin } from '@/lib/roles'
+import { canManageUsers, isAdmin } from '@/lib/roles'
 import { Route as JoinWardRoute } from '@/routes/_protected/join-ward'
 
 export const Route = createFileRoute('/_protected/dashboard/')({
@@ -26,10 +26,20 @@ function RouteComponent() {
   // data request uses); the in-memory user can lag behind it.
   if ((user.wardId ?? getWardId()) > 0) {
     // A district leader's home is their own district, not the whole ward.
-    return leaderOnly ? (
-      <LeaderDashboard districts={ledDistricts} />
-    ) : (
-      <WardDashboard />
+    if (leaderOnly) return <LeaderDashboard districts={ledDistricts} />
+    if (canManageUsers(user.roles)) return <WardDashboard />
+    // Attached to the ward, but neither its admin nor a district leader:
+    // there is nothing here they are allowed to see.
+    return (
+      <div className="p-6 space-y-2" data-testid="no-ward-access">
+        <h1 className="text-2xl font-bold">No access yet</h1>
+        <p className="text-sm">
+          Your account has been added to this ward, but it doesn't have access
+          to anything in it yet. Access is given to ward admins and to district
+          leaders and assistants. If you lead or assist a district, ask a ward
+          admin to link your account to your member record.
+        </p>
+      </div>
     )
   }
 

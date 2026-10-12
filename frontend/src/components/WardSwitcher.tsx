@@ -14,11 +14,13 @@ import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
 import { Route as JoinWardRoute } from '@/routes/_protected/join-ward'
 
 // The most significant role, for the one-line "you are here as ..." label.
-const ROLE_ORDER = ['admin', 'ward_admin', 'district_leader', 'user']
+const ROLE_ORDER = ['admin', 'ward_admin', 'district_leader']
 
-const roleLabel = (roles: string[] | undefined) => {
+// "Signed in as Ward Admin", or a plain statement that the account has no
+// access to this ward yet.
+const standing = (roles: string[] | undefined) => {
   const role = ROLE_ORDER.find((r) => roles?.includes(r))
-  return role ? (ROLE_LABELS[role] ?? role) : ''
+  return role ? `Signed in as ${ROLE_LABELS[role] ?? role}` : 'No access yet'
 }
 
 // Shows which ward the session is in and in what capacity, and lets a user
@@ -68,9 +70,7 @@ const WardSwitcher = (): React.ReactElement | null => {
         <p className="font-semibold">{current?.name}</p>
       )}
       <p className="text-xs text-gray-300">
-        {systemAdmin
-          ? 'System Admin'
-          : `Signed in as ${roleLabel(current?.roles) || 'Member'}`}
+        {systemAdmin ? 'System Admin' : standing(current?.roles)}
         {!systemAdmin && (
           <>
             {' · '}

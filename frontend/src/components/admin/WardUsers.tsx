@@ -31,6 +31,12 @@ const WardUsers = (): React.ReactElement => {
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">Users</h2>
+        <p className="text-sm text-muted-foreground">
+          An account has access to this ward only as a ward admin, or as a
+          district leader - which it becomes once it is linked to the member who
+          leads or assists a district. An account that is neither can sign in
+          but sees nothing here.
+        </p>
         <WardUsersPanel
           wardId={wardId}
           wardName={ward?.name ?? ''}

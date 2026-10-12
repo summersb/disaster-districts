@@ -12,22 +12,44 @@ fun SecurityIdentity.userId(): Long? = getAttribute<Long?>("userId")
 fun SecurityIdentity.wardRoles(): Map<Long, Set<String>> =
     getAttribute<Map<Long, Set<String>>?>("wardRoles") ?: emptyMap()
 
-/** Wards the caller belongs to in any role. */
-fun SecurityIdentity.wardIds(): Set<Long> = wardRoles().keys
+// Access to a ward's data comes from exactly two things: being its ward
+// admin, or leading (or assisting) one of its districts. Merely having an
+// account attached to a ward - the `user` role - grants nothing; it only
+// lets a ward admin link the account to a member, which is what makes a
+// leader's account a leader's account.
 
 /** Wards the caller is a ward admin of. */
 fun SecurityIdentity.managedWardIds(): Set<Long> = wardRoles().filterValues { "ward_admin" in it }.keys
 
-/** Districts the caller leads or assists (see [DistrictLeaders]); empty for everyone else. */
-fun SecurityIdentity.leaderDistrictIds(): Set<Long> = getAttribute<Set<Long>?>("leaderDistrictIds") ?: emptySet()
+/** The districts the caller leads or assists (see [DistrictLeaders]), by ward. */
+fun SecurityIdentity.leaderDistrictsByWard(): Map<Long, Set<Long>> =
+    getAttribute<Map<Long, Set<Long>>?>("leaderDistrictsByWard") ?: emptyMap()
+
+/** Every district the caller leads or assists; empty for everyone else. */
+fun SecurityIdentity.leaderDistrictIds(): Set<Long> = leaderDistrictsByWard().values.flatten().toSet()
+
+/** Wards the caller can see something of: as ward admin, or as a district leader. */
+fun SecurityIdentity.accessibleWardIds(): Set<Long> = managedWardIds() + leaderDistrictsByWard().keys
 
 /** Whether the caller is a system admin or a ward admin of [targetWardId]. */
 fun SecurityIdentity.isWardManager(targetWardId: Long): Boolean =
     !isAnonymous && (isSystemAdmin() || targetWardId in managedWardIds())
 
-/** Throws 401/403 unless the caller is a system admin or belongs to [targetWardId]. */
+/**
+ * The districts of [targetWardId] the caller may see, or null when that is all
+ * of them (ward admins and system admins). A district leader gets just the
+ * districts they lead; their members are the only members they may see.
+ */
+fun SecurityIdentity.visibleDistrictIds(targetWardId: Long): Set<Long>? =
+    if (isWardManager(targetWardId)) null else leaderDistrictsByWard()[targetWardId] ?: emptySet()
+
+/**
+ * Throws 401/403 unless the caller can see into [targetWardId] at all: a
+ * system admin, its ward admin, or the leader of one of its districts. What
+ * a leader then sees is narrowed further by [visibleDistrictIds].
+ */
 fun SecurityIdentity.requireWard(targetWardId: Long) {
-    if (isSystemAdmin() || targetWardId in wardIds()) return
+    if (isSystemAdmin() || targetWardId in accessibleWardIds()) return
     if (isAnonymous) throw NotAuthorizedException("Bearer")
     throw ForbiddenException()
 }

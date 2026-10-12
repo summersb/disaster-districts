@@ -68,7 +68,6 @@ const LeaderDashboard = ({
   const wardId = getWardId()
   const { data: ward } = useWard(wardId)
   const { data: members = [] } = useMembers(wardId)
-  const wardLeader = members.find((m) => m.id === ward?.leaderId)
   // Id of the district whose PDF is being created, if any.
   const [printing, setPrinting] = useState<number | null>(null)
   const [printError, setPrintError] = useState('')
@@ -105,7 +104,24 @@ const LeaderDashboard = ({
           <CardTitle>Ward Leader</CardTitle>
         </CardHeader>
         <CardContent className="text-sm">
-          <Contact label="Leader" member={wardLeader} />
+          {/* From the ward itself: the ward leader is usually not in this
+              leader's district, so isn't among the members they can see. */}
+          <p>
+            <span className="text-muted-foreground">Leader: </span>
+            {ward?.leaderName ? (
+              <>
+                {ward.leaderName}
+                {ward.leaderPhone && (
+                  <span className="text-muted-foreground">
+                    {' '}
+                    · {ward.leaderPhone}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-muted-foreground">Not assigned</span>
+            )}
+          </p>
         </CardContent>
       </Card>
 

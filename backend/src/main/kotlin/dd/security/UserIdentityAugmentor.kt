@@ -35,18 +35,18 @@ class UserIdentityAugmentor(
             // open one just for this lookup.
             // The led districts are resolved inside the same transaction,
             // while the user's lazy member link can still be followed.
-            val found = QuarkusTransaction.requiringNew().call<Pair<UserAccountDao, List<Long>>?> {
+            val found = QuarkusTransaction.requiringNew().call<Pair<UserAccountDao, Map<Long, Set<Long>>>?> {
                 userAccountRepository.findByEmail(identity.principal.name)
-                    ?.let { it to districtLeaders.districtIds(it) }
+                    ?.let { it to districtLeaders.districtsByWard(it) }
             }
-            val (user: UserAccountDao, ledDistrictIds) = found ?: return@runBlocking identity
+            val (user: UserAccountDao, ledByWard) = found ?: return@runBlocking identity
             val roles = user.getRoleList().toMutableSet()
-            if (ledDistrictIds.isNotEmpty()) roles += DISTRICT_LEADER_ROLE
+            if (ledByWard.isNotEmpty()) roles += DISTRICT_LEADER_ROLE
             QuarkusSecurityIdentity.builder(identity)
                 .addRoles(roles)
                 .addAttribute("userId", user.id)
                 .addAttribute("wardRoles", user.wardRoles().mapValues { it.value.toSet() })
-                .addAttribute("leaderDistrictIds", ledDistrictIds.toSet())
+                .addAttribute("leaderDistrictsByWard", ledByWard)
                 .build()
         }
     }

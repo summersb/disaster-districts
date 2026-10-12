@@ -7,7 +7,9 @@ import dd.repository.MemberRepository
 import dd.repository.UserAccountRepository
 import dd.repository.WardRepository
 import dd.security.DistrictLeaders
+import dd.security.isSystemAdmin
 import dd.security.requireWard
+import dd.security.accessibleWardIds
 import dd.security.requireWardManager
 import io.quarkus.security.Authenticated
 import io.quarkus.security.identity.SecurityIdentity
@@ -47,18 +49,37 @@ class WardsResource(
     @field:Context val uriInfo: UriInfo,
 ) {
 
-    private fun toDto(w: WardDao) = WardDto(id = w.id, name = w.name ?: "", lat = w.lat, lng = w.lng, leaderId = w.leader?.id)
+    private fun toDto(w: WardDao) = WardDto(
+        id = w.id,
+        name = w.name ?: "",
+        lat = w.lat,
+        lng = w.lng,
+        leaderId = w.leader?.id,
+        // Carried on the ward itself because a district leader, who can see
+        // the ward but only their own district's members, still needs to know
+        // who the ward leader is and how to reach them.
+        leaderName = w.leader?.let { listOfNotNull(it.familyName, it.name).joinToString(", ") },
+        leaderPhone = w.leader?.phone,
+    )
 
+    // Every signed-in user can list the wards - that is how someone picks one
+    // to ask to join - but only gets the name of a ward they have no access
+    // to; its map center and leader are for its admins and district leaders.
     @GET
     @Authenticated
     fun getWards(): Response {
-        return Response.ok(wardRepository.listAll().map { toDto(it) }).build()
+        val mine = identity.accessibleWardIds()
+        val wards = wardRepository.listAll().map { ward ->
+            if (identity.isSystemAdmin() || ward.id in mine) toDto(ward) else WardDto(id = ward.id, name = ward.name ?: "")
+        }
+        return Response.ok(wards).build()
     }
 
     @GET
     @Path("/{id}")
     @Authenticated
     fun getWard(@PathParam("id") id: Long): Response {
+        identity.requireWard(id)
         val ward = wardRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
         return Response.ok(toDto(ward)).build()
     }

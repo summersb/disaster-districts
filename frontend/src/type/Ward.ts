@@ -22,6 +22,10 @@ export const WardDtoSchema = z.object({
   lng: z.number().optional(),
   // The member who leads the ward, if one has been chosen.
   leaderId: z.number().nullish(),
+  // Sent with the ward so a district leader, who sees only their own
+  // district's members, can still be shown who leads the ward.
+  leaderName: z.string().nullish(),
+  leaderPhone: z.string().nullish(),
 })
 
 export type WardConfig = z.infer<typeof WardConfigSchema>

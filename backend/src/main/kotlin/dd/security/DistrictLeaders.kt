@@ -36,6 +36,14 @@ class DistrictLeaders(
         return districtRepository.findLedBy(memberId).mapNotNull { it.id }
     }
 
+    /** The districts [user] leads or assists, grouped by the ward they are in. */
+    fun districtsByWard(user: UserAccountDao): Map<Long, Set<Long>> =
+        user.members.mapNotNull { member ->
+            val wardId = member.ward?.id ?: return@mapNotNull null
+            val memberId = member.id ?: return@mapNotNull null
+            wardId to districtRepository.findLedBy(memberId).mapNotNull { it.id }.toSet()
+        }.filter { it.second.isNotEmpty() }.toMap()
+
     /** Every role the user holds anywhere, plus [DISTRICT_LEADER_ROLE] when it applies. */
     fun roles(user: UserAccountDao): List<String> =
         user.getRoleList() + if (districtIds(user).isEmpty()) emptyList() else listOf(DISTRICT_LEADER_ROLE)

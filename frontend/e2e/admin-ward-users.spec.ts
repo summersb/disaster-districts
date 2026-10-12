@@ -41,11 +41,11 @@ test('admin can enter a ward, add a user, change their role, and remove them', a
 
   const row = page.locator('tr', { hasText: email })
   await expect(row).toBeVisible()
-  await expect(row.getByRole('cell', { name: 'Member' })).toBeVisible()
+  // A newly added account is attached to the ward but has no access yet.
+  await expect(row.getByRole('cell', { name: 'No access' })).toBeVisible()
 
-  // Change their role.
+  // Make them a ward admin.
   await row.getByRole('button', { name: 'Edit', exact: true }).click()
-  await row.getByLabel('Member').uncheck()
   await row.getByLabel('Ward Admin').check()
   await row.getByRole('button', { name: 'Save' }).click()
   await expect(row.getByRole('cell', { name: 'Ward Admin' })).toBeVisible()

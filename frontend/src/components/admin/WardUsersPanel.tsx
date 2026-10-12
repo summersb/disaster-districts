@@ -27,7 +27,12 @@ import {
 } from '@/components/ui/select'
 import { useMembers } from '@/hooks/useMembers'
 import { useUpdateUser, useUsers, useWardUsers } from '@/hooks/useUsers'
-import { ALL_ROLES, isAdmin as checkIsAdmin, ROLE_LABELS } from '@/lib/roles'
+import {
+  isAdmin as checkIsAdmin,
+  describeAccess,
+  hasWardAccess,
+  ROLE_LABELS,
+} from '@/lib/roles'
 import type { MemberDto, UserDto } from '@/type'
 
 const memberName = (member: MemberDto) => `${member.familyName}, ${member.name}`
@@ -69,12 +74,17 @@ const WardUsersPanel = ({
   // The member record to link the user being added to (0 = none).
   const [addMemberId, setAddMemberId] = useState(0)
 
-  // Who can be added: any account not already in this ward, except system
-  // admins (who can enter every ward anyway). Adding someone here doesn't
-  // affect any other ward they belong to.
+  // Who can be added: any account not already in this ward. A system admin
+  // can enter every ward anyway (shown against each with the role "admin"),
+  // but isn't *in* one until added - which is what lets them be linked to a
+  // member and so be a district's leader. Adding someone here doesn't affect
+  // any other ward they belong to.
   const unassigned = allUsers.filter(
     (u) =>
-      !checkIsAdmin(u.roles) && !u.wards?.some((ward) => ward.id === wardId),
+      !u.wards?.some(
+        (ward) =>
+          ward.id === wardId && ward.roles.some((role) => role !== 'admin'),
+      ),
   )
 
   const startEdit = (user: UserDto) => {
@@ -150,32 +160,29 @@ const WardUsersPanel = ({
     { accessorKey: 'email', header: 'Email' },
     {
       id: 'roles',
-      header: 'Roles',
-      accessorFn: (user) =>
-        user.roles.map((r) => ROLE_LABELS[r] ?? r).join(', '),
+      // What the account can actually do here: Ward Admin, District Leader
+      // (which follows from the member record it is linked to), or nothing.
+      header: 'Access',
+      accessorFn: (user) => describeAccess(user.roles),
       cell: ({ row }) => {
         const user = row.original
         if (editingId !== user.id) {
-          return (
-            <span>{user.roles.map((r) => ROLE_LABELS[r] ?? r).join(', ')}</span>
+          return hasWardAccess(user.roles) ? (
+            <span>{describeAccess(user.roles)}</span>
+          ) : (
+            <span className="text-muted-foreground">No access</span>
           )
         }
+        // Ward admin is the only access granted by hand.
         return (
-          <div className="flex flex-wrap gap-3">
-            {ALL_ROLES.filter((r) => grantableRoles.includes(r)).map((role) => (
-              <label
-                key={role}
-                className="flex items-center gap-1.5 text-xs cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  checked={editRoles.includes(role)}
-                  onChange={() => toggleEditRole(role)}
-                />
-                {ROLE_LABELS[role]}
-              </label>
-            ))}
-          </div>
+          <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              checked={editRoles.includes('ward_admin')}
+              onChange={() => toggleEditRole('ward_admin')}
+            />
+            {ROLE_LABELS.ward_admin}
+          </label>
         )
       },
     },

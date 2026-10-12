@@ -106,8 +106,9 @@ const Sidebar = ({ user }: Props): React.ReactElement => {
 
       <WardSwitcher />
 
-      {/* Everything below is about the ward the session is in. */}
-      {inWard && (
+      {/* Everything below is about the ward the session is in - and only
+          for someone with access to it (its admin, or a district leader). */}
+      {inWard && (wardManager || leaderOnly) && (
         <>
           <div className={row}>
             <LayoutDashboard />

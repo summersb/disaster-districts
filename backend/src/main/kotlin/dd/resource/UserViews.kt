@@ -18,8 +18,19 @@ class UserViews(
      */
     fun wards(user: UserAccountDao): List<UserWardDto> {
         if (user.hasRole("admin")) {
-            return wardRepository.listAll().sortedBy { it.name?.lowercase() }
-                .map { UserWardDto(id = it.id ?: 0, name = it.name ?: "", roles = listOf("admin")) }
+            // Alongside "admin", any role they have been given in a ward by
+            // name is listed too - a system admin can also be a ward's admin
+            // of record, or linked to a member there.
+            return wardRepository.listAll().sortedBy { it.name?.lowercase() }.map { ward ->
+                val wardId = ward.id ?: 0
+                UserWardDto(
+                    id = wardId,
+                    name = ward.name ?: "",
+                    roles = listOf("admin") + districtLeaders.rolesIn(user, wardId),
+                    memberId = user.memberIn(wardId)?.id,
+                    leaderDistrictIds = districtLeaders.districtIds(user, wardId),
+                )
+            }
         }
         val names = user.userRoles.mapNotNull { it.ward }.associate { (it.id ?: 0) to (it.name ?: "") }
         return user.wardRoles().keys.map { wardId ->

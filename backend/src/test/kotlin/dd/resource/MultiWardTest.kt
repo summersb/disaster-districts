@@ -49,7 +49,7 @@ class MultiWardTest {
             .then().statusCode(200)
 
     @Test
-    fun `a user can be ward admin of one ward and an ordinary member of another`() {
+    fun `a user can be ward admin of one ward and have no access in another they are attached to`() {
         val managed = createWard("Managed")
         val joined = createWard("Joined")
         val (userId, email) = createUser()
@@ -72,11 +72,14 @@ class MultiWardTest {
             .body("token", nullValue())
             .body("wards.id", hasItem(joined))
 
-        // They can read both wards...
+        // They can read the ward they administer, but being attached to the
+        // other one (without leading a district there) shows them nothing.
         asUser(email).`when`().get("/wards/$managed/members").then().statusCode(200)
-        asUser(email).`when`().get("/wards/$joined/members").then().statusCode(200)
+        asUser(email).`when`().get("/wards/$joined/members").then().statusCode(403)
+        asUser(email).`when`().get("/wards/$joined/districts").then().statusCode(403)
+        asUser(email).`when`().get("/wards/$joined").then().statusCode(403)
 
-        // ...but manage only the one they administer.
+        // And they manage only the one they administer.
         val body = """{"name": "New", "familyName": "Multi", "formattedAddress": "2 Test St"}"""
         asUser(email).contentType(ContentType.JSON).body(body)
             .`when`().post("/wards/$managed/members").then().statusCode(201)

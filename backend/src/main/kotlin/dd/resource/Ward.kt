@@ -15,4 +15,6 @@ data class WardDto(
     val lat: Double? = null,
     val lng: Double? = null,
     val leaderId: Long? = null,
+    val leaderName: String? = null,
+    val leaderPhone: String? = null,
 )

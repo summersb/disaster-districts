@@ -11,6 +11,7 @@ import dd.repository.WardRepository
 import dd.security.isWardManager
 import dd.security.leaderDistrictIds
 import dd.security.requireWardManager
+import dd.security.visibleDistrictIds
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.security.identity.SecurityIdentity
 import jakarta.persistence.EntityManager
@@ -67,13 +68,28 @@ class MembersResource(
         val scope = wardId.takeIf { it > 0 }
         val members = scope?.let { memberRepository.findByWard(it) }
             ?: memberRepository.listAll()
-        return Response.ok(members.map { toDto(it) }).build()
+        // A district leader gets only the members of their own district(s).
+        return Response.ok(members.filter { canSee(it) }.map { toDto(it) }).build()
     }
+
+    // Looks a member up *within this ward*. Every by-id endpoint goes through
+    // here: the caller was only checked against the ward in the URL, so an id
+    // belonging to another ward has to look like it doesn't exist. (wardId 0
+    // is the system admin's "no ward" scope, which spans every ward.)
+    private fun memberInWard(id: Long): MemberDao? =
+        memberRepository.findById(id)?.takeIf { wardId <= 0 || it.ward?.id == wardId }
+
+    // The districts whose members the caller may see: null for a ward admin
+    // (everyone), otherwise the districts they lead.
+    private fun visibleDistricts(): Set<Long>? = identity.visibleDistrictIds(wardId)
+
+    private fun canSee(member: MemberDao): Boolean =
+        visibleDistricts()?.let { member.district?.id in it } ?: true
 
     @GET
     @Path("/{id}")
     fun getMember(@PathParam("id") id: Long): Response {
-        val member = memberRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
+        val member = memberInWard(id)?.takeIf { canSee(it) } ?: return Response.status(Status.NOT_FOUND).build()
         return Response.ok(toDto(member)).build()
     }
 
@@ -171,6 +187,8 @@ class MembersResource(
     @GET
     @Path("/outliers")
     fun getOutliers(@QueryParam("radiusKm") radiusKm: Double?): Response {
+        // A ward-wide check, for the people who can act on it.
+        identity.requireWardManager(wardId)
         val radius = radiusKm ?: DEFAULT_RADIUS_KM
         if (radius <= 0) return badRequest("radiusKm must be greater than 0")
         val center = wardCenter() ?: return noCenterResponse()
@@ -259,7 +277,7 @@ class MembersResource(
     @Path("/{id}")
     fun updateMember(@PathParam("id") id: Long, member: MemberRequest): Response = QuarkusTransaction.call<Response> {
         val manager = identity.isWardManager(wardId)
-        val dbMember = memberRepository.findById(id)?.takeIf { manager || it.ward?.id == wardId }
+        val dbMember = memberInWard(id)
         if (!manager) {
             if (identity.isAnonymous) throw NotAuthorizedException("Bearer")
             val districtId = dbMember?.district?.id
@@ -296,7 +314,7 @@ class MembersResource(
     @Path("/{id}")
     fun deleteMember(@PathParam("id") id: Long): Response = QuarkusTransaction.call<Response> {
         identity.requireWardManager(wardId)
-        val member = memberRepository.findById(id) ?: return@call Response.status(Status.NOT_FOUND).build()
+        val member = memberInWard(id) ?: return@call Response.status(Status.NOT_FOUND).build()
         // Districts referencing this member as leader/assistant would
         // otherwise block the delete via FK constraint.
         entityManager.createQuery("update District d set d.leader = null where d.leader.id = :id")

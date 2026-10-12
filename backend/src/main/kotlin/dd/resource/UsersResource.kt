@@ -38,19 +38,47 @@ class UsersResource(
     @field:Context val uriInfo: UriInfo,
 ) {
 
-    private fun toDto(u: UserAccountDao) = userViews.toDto(u)
+    // A system admin sees accounts in full. A ward admin needs the account
+    // list too - it is how they add someone to their ward - but only learns
+    // who exists (id, email, name) and each account's standing in the wards
+    // they themselves run; other wards' memberships and roles are left out,
+    // and system admins aren't listed at all.
+    private fun toDto(u: UserAccountDao): UserDto {
+        val full = userViews.toDto(u)
+        if (identity.isSystemAdmin()) return full
+        val managed = identity.managedWardIds()
+        val wards = full.wards.orEmpty().filter { it.id in managed }
+        return UserDto(
+            id = full.id,
+            email = full.email,
+            name = full.name,
+            roles = wards.flatMap { it.roles }.distinct(),
+            wardId = wards.firstOrNull()?.id,
+            memberId = wards.firstOrNull()?.memberId,
+            leaderDistrictIds = wards.flatMap { it.leaderDistrictIds },
+            wards = wards,
+        )
+    }
+
+    // Without a system admin nobody could create wards, appoint ward admins
+    // or make another system admin, so the last one can't be demoted.
+    private fun isLastSystemAdmin(user: UserAccountDao): Boolean =
+        userAccountRepository.listAll().none { it.id != user.id && it.hasRole("admin") }
+
+    private fun visible(u: UserAccountDao) = identity.isSystemAdmin() || !u.hasRole("admin")
 
     @GET
     @RolesAllowed("admin", "ward_admin")
     fun getUsers(): Response {
-        return Response.ok(userAccountRepository.listAll().map { toDto(it) }).build()
+        return Response.ok(userAccountRepository.listAll().filter { visible(it) }.map { toDto(it) }).build()
     }
 
     @GET
     @Path("/{id}")
     @RolesAllowed("admin", "ward_admin")
     fun getUser(@PathParam("id") id: Long): Response {
-        val user = userAccountRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
+        val user = userAccountRepository.findById(id)?.takeIf { visible(it) }
+            ?: return Response.status(Status.NOT_FOUND).build()
         return Response.ok(toDto(user)).build()
     }
 
@@ -127,8 +155,15 @@ class UsersResource(
                 // derived from the member link, and clients send back the role
                 // list they were shown, so it has to be dropped here.
                 val wanted = update.roles.distinct().filter { it in GRANTABLE_ROLES }
-                if (systemAdmin) {
-                    // Only a system admin's request can grant or revoke system-admin.
+                if (systemAdmin && update.wardId == null) {
+                    // System-admin is granted or revoked only by a system
+                    // admin, and only by a request that isn't about a ward -
+                    // setting someone's role in a ward never touches it.
+                    if (dbUser.hasRole("admin") && "admin" !in wanted && isLastSystemAdmin(dbUser)) {
+                        return Response.status(Status.CONFLICT)
+                            .entity(mapOf("error" to "This is the only system admin - make someone else one first"))
+                            .build()
+                    }
                     dbUser.userRoles.removeIf { it.role == "admin" }
                     if ("admin" in wanted) addRole("admin", null)
                 }

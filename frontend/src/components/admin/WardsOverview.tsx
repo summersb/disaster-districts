@@ -35,8 +35,12 @@ type WardRow = {
 }
 
 // A user's roles in one particular ward (they may hold others elsewhere).
+// A system admin is listed against every ward with the role "admin"; that
+// isn't a role *in* the ward, so it is left out here.
 const rolesIn = (user: UserDto, wardId: number): string[] =>
-  user.wards?.find((ward) => ward.id === wardId)?.roles ?? []
+  (user.wards?.find((ward) => ward.id === wardId)?.roles ?? []).filter(
+    (role) => role !== 'admin',
+  )
 
 const WardsOverview = (): React.ReactElement => {
   const { data: wards = [], isLoading: wardsLoading } = useWards()
@@ -107,14 +111,13 @@ const WardsOverview = (): React.ReactElement => {
     },
   ]
 
-  // System admins keep their own role; anyone else can be handed a new ward.
-  const assignableUsers = users.filter((u) => !isAdmin(u.roles))
+  // Anyone can be made a ward's admin - including a system admin, who then
+  // holds both roles.
+  const assignableUsers = users
 
   const wardRows: WardRow[] = wards.map((ward) => {
     // A user counts for every ward they belong to, not only their first.
-    const wardUsers = users.filter((u) =>
-      u.wards?.some((w) => w.id === ward.id),
-    )
+    const wardUsers = users.filter((u) => rolesIn(u, ward.id ?? 0).length > 0)
     const wardAdmins = wardUsers.filter((u) =>
       rolesIn(u, ward.id ?? 0).includes('ward_admin'),
     )
@@ -270,7 +273,8 @@ const WardsOverview = (): React.ReactElement => {
             <DialogTitle>Ward admins of {adminsWard?.name}</DialogTitle>
             <DialogDescription>
               Ward admins manage the ward's members, districts and users.
-              Removing someone here leaves them in the ward as a member.
+              Removing someone here leaves their account attached to the ward
+              without access, unless they also lead a district.
             </DialogDescription>
           </DialogHeader>
           {currentAdmins.length === 0 ? (
