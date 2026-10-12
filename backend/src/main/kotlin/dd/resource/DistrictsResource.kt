@@ -85,8 +85,24 @@ class DistrictsResource(
             lat = district.lat
             lng = district.lng
             ward = wardId?.let { wardRepository.findById(it) }
+            // Same convention as updateDistrict: 0 (or negative) means none.
+            leader = district.leaderId?.takeIf { it > 0 }?.let { memberRepository.findById(it) }
+            assistant = district.assistantId?.takeIf { it > 0 }?.let { memberRepository.findById(it) }
         }
         dbDistrict.persist()
+        // Assign the initial roster in the same request; without this a new
+        // district saved with members came back empty. Only this ward's
+        // members can be claimed.
+        district.memberIds?.takeIf { it.isNotEmpty() }?.let { ids ->
+            entityManager
+                .createQuery(
+                    "update Member m set m.district = :district where m.id in :ids and m.ward.id = :wardId"
+                )
+                .setParameter("district", dbDistrict)
+                .setParameter("ids", ids)
+                .setParameter("wardId", wardId)
+                .executeUpdate()
+        }
         val uri = uriInfo.getAbsolutePathBuilder().path(dbDistrict.id.toString())
         Response.created(uri.build()).build()
     }

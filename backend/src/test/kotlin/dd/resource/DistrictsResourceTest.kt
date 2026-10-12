@@ -61,6 +61,64 @@ class DistrictsResourceTest {
     }
 
     @Test
+    fun `creating a district saves its members, leader and assistant`() {
+        val wardId = createTestWard()
+        val otherWardId = createTestWard()
+        val leaderId = createMember(wardId, "New District Leader")
+        val assistantId = createMember(wardId, "New District Assistant")
+        val memberId = createMember(wardId, "New District Member")
+        val outsiderId = createMember(otherWardId, "Other Ward Member")
+
+        val districtId = asAdmin()
+            .contentType(ContentType.JSON)
+            .body(
+                """{"name": "Created With Roster ${System.nanoTime()}", "color": "Red",
+                    "lat": 33.1, "lng": -117.2,
+                    "leaderId": $leaderId, "assistantId": $assistantId,
+                    "memberIds": [$leaderId, $assistantId, $memberId, $outsiderId]}""",
+            )
+            .`when`().post("/wards/$wardId/districts")
+            .then().statusCode(201)
+            .extract().header("Location").substringAfterLast("/").toInt()
+
+        asAdmin()
+            .`when`().get("/wards/$wardId/districts/$districtId")
+            .then().statusCode(200)
+            .body("leaderId", equalTo(leaderId))
+            .body("assistantId", equalTo(assistantId))
+            .body("color", equalTo("Red"))
+
+        asAdmin()
+            .`when`().get("/wards/$wardId/members")
+            .then().statusCode(200)
+            .body("findAll { it.district?.id == $districtId }.id.sort()", equalTo(listOf(leaderId, assistantId, memberId).sorted()))
+
+        // A member of another ward can't be pulled into this district.
+        asAdmin()
+            .`when`().get("/wards/$otherWardId/members/$outsiderId")
+            .then().statusCode(200)
+            .body("district", org.hamcrest.Matchers.nullValue())
+    }
+
+    @Test
+    fun `creating a district with no leader sends 0 and stores none`() {
+        val wardId = createTestWard()
+
+        val districtId = asAdmin()
+            .contentType(ContentType.JSON)
+            .body("""{"name": "No Leader ${System.nanoTime()}", "leaderId": 0, "assistantId": 0, "memberIds": []}""")
+            .`when`().post("/wards/$wardId/districts")
+            .then().statusCode(201)
+            .extract().header("Location").substringAfterLast("/").toInt()
+
+        asAdmin()
+            .`when`().get("/wards/$wardId/districts/$districtId")
+            .then().statusCode(200)
+            .body("leaderId", org.hamcrest.Matchers.nullValue())
+            .body("assistantId", org.hamcrest.Matchers.nullValue())
+    }
+
+    @Test
     fun `updating a district's memberIds reassigns members instead of throwing`() {
         val wardId = createTestWard()
         val districtId = createDistrict(wardId, "Roster District")
