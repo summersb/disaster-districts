@@ -133,16 +133,16 @@ const UploadMembers = (): React.ReactElement => {
       <h1 className="text-2xl font-bold mb-6">Upload Members</h1>
 
       {rows.length === 0 && (
-        <Tabs defaultValue="csv" className="w-full">
+        <Tabs defaultValue="pdf" className="w-full">
           <TabsList>
-            <TabsTrigger value="csv">Upload CSV</TabsTrigger>
             <TabsTrigger value="pdf">Upload PDF</TabsTrigger>
+            <TabsTrigger value="csv">Upload CSV</TabsTrigger>
           </TabsList>
-          <TabsContent value="csv">
-            <UploadCsv setMembers={handleParsedMembers} />
-          </TabsContent>
           <TabsContent value="pdf">
             <UploadPdf setMembers={handleParsedMembers} />
+          </TabsContent>
+          <TabsContent value="csv">
+            <UploadCsv setMembers={handleParsedMembers} />
           </TabsContent>
         </Tabs>
       )}
