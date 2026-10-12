@@ -424,7 +424,7 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
 
         <div className="mb-4">
           <label htmlFor="districtMembers" className="block font-bold mb-2">
-            Members
+            Members ({districtMembers.length})
           </label>
           <ul>
             {/* Sort a copy: sorting districtMembers itself reorders the field
@@ -448,6 +448,7 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
             center={useWardView ? wardCenter : resolvedCenter}
             defaultRadiusMiles={defaultRadiusMiles}
             showOutsideStatus={false}
+            districtLinks={false}
             markerClicked={readOnly ? undefined : memberClicked}
             onMapClick={!readOnly && pickingCenter ? handleMapClick : undefined}
             showLabel

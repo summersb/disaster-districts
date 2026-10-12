@@ -242,6 +242,9 @@ type MapWithMarkersProps = {
   // not shown" message (e.g. inside a form, where its link would navigate
   // away from unsaved changes).
   showOutsideStatus?: boolean
+  // Clicking a district's icon opens that district's edit page. Set to false
+  // where leaving the page would lose work (the district form itself).
+  districtLinks?: boolean
 }
 
 const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
@@ -317,12 +320,11 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
   function getGroupIcon(): L.Icon {
     return new L.Icon({
       iconUrl: '/images/Group.svg',
-      iconSize: [50, 80], // size of the icon
-      iconAnchor: [12, 41], // point of the icon which will correspond to marker's location
-      popupAnchor: [1, -34], // point from which the popup should open relative to the iconAnchor
-      shadowUrl:
-        'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-      shadowSize: [41, 41],
+      // A square box hugging the artwork and centered on the district's
+      // position, so the clickable area is the icon itself (the old 50x80
+      // box was mostly empty space that swallowed clicks meant for pins).
+      iconSize: [44, 44],
+      iconAnchor: [22, 22],
     })
   }
 
@@ -339,6 +341,7 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
   }
 
   const center = props.center ? props.center : findCenter(props.members)
+  const districtLinks = props.districtLinks !== false
 
   const radiusView =
     props.center != null && props.defaultRadiusMiles != null
@@ -452,9 +455,30 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
               key={d.id}
               position={[districtCenter.lat, districtCenter.lng]}
               icon={getGroupIcon()}
-              eventHandlers={{ click: () => districtClicked(d) }}
+              // Above the member pins, which otherwise cover it and take the
+              // click.
+              zIndexOffset={1000}
+              interactive={districtLinks || props.onMapClick != null}
+              eventHandlers={{
+                click: (e) => {
+                  // While the caller is waiting for a map click (picking a
+                  // center), a click on the icon counts as one.
+                  if (props.onMapClick) {
+                    props.onMapClick(e.latlng.lat, e.latlng.lng)
+                  } else if (districtLinks) {
+                    districtClicked(d)
+                  }
+                },
+              }}
             >
-              <Tooltip opacity={1} direction="right" offset={[0, 20]} permanent>
+              {/* interactive: clicking the name label works like the icon. */}
+              <Tooltip
+                opacity={1}
+                direction="right"
+                offset={[22, 0]}
+                permanent
+                interactive={districtLinks}
+              >
                 {d.name}
               </Tooltip>
             </Marker>
