@@ -1,6 +1,6 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Edit2, Plus, Trash2 } from 'lucide-react'
+import { Edit2, Plus, Split, Trash2 } from 'lucide-react'
 import type React from 'react'
 import { useMemo, useState } from 'react'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
@@ -18,9 +18,10 @@ import useUser from '@/context/useUser.tsx'
 import { useDeleteDistrict, useDistricts } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
 import { getWardId } from '@/lib/api'
-import { isWardAdmin } from '@/lib/roles'
+import { canManageUsers, isWardAdmin } from '@/lib/roles'
 import { Route as DistrictRoute } from '@/routes/_protected/district/$id.tsx'
 import { Route as DistrictAddRoute } from '@/routes/_protected/district/add'
+import { Route as DistrictSplitRoute } from '@/routes/_protected/district/split.$id'
 import type { DistrictDto, MemberDto } from '@/type'
 
 // A district plus what the table shows about it, looked up from the ward's
@@ -44,6 +45,8 @@ const Districts = (): React.ReactElement => {
   const { data: members = [] } = useMembers(wardId)
   const { user } = useUser()
   const canDelete = isWardAdmin(user.roles)
+  // Splitting creates a district, which the server limits to ward managers.
+  const canSplit = canManageUsers(user.roles)
   const deleteDistrict = useDeleteDistrict()
   const [deleting, setDeleting] = useState<DistrictDto | null>(null)
 
@@ -133,6 +136,22 @@ const Districts = (): React.ReactElement => {
             >
               <Edit2 className="w-4 h-4" />
             </Button>
+            {canSplit && (
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-label={`Split ${d.name}`}
+                title="Split into two districts"
+                onClick={() =>
+                  navigate({
+                    to: DistrictSplitRoute.to,
+                    params: { id: String(d.id) },
+                  })
+                }
+              >
+                <Split className="w-4 h-4" />
+              </Button>
+            )}
             {canDelete && (
               <Button
                 size="sm"

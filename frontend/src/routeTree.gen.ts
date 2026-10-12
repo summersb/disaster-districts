@@ -30,6 +30,7 @@ import { Route as ProtectedPrintIndexRouteImport } from './routes/_protected/pri
 import { Route as ProtectedPrintDistrictIdRouteImport } from './routes/_protected/print/$districtId'
 import { Route as ProtectedSettingsIndexRouteImport } from './routes/_protected/settings/index'
 import { Route as ProtectedAdminJoinRequestsIndexRouteImport } from './routes/_protected/admin/join-requests/index'
+import { Route as ProtectedDistrictSplitIdRouteImport } from './routes/_protected/district/split.$id'
 import { Route as ProtectedDistrictViewIdRouteImport } from './routes/_protected/district/view.$id'
 
 const ProtectedRouteRoute = ProtectedRouteRouteImport.update({
@@ -140,6 +141,12 @@ const ProtectedAdminJoinRequestsIndexRoute =
     path: '/admin/join-requests/',
     getParentRoute: () => ProtectedRouteRoute,
   } as any)
+const ProtectedDistrictSplitIdRoute =
+  ProtectedDistrictSplitIdRouteImport.update({
+    id: '/district/split/$id',
+    path: '/district/split/$id',
+    getParentRoute: () => ProtectedRouteRoute,
+  } as any)
 const ProtectedDistrictViewIdRoute = ProtectedDistrictViewIdRouteImport.update({
   id: '/district/view/$id',
   path: '/district/view/$id',
@@ -167,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/member/': typeof ProtectedMemberIndexRoute
   '/print/': typeof ProtectedPrintIndexRoute
   '/settings/': typeof ProtectedSettingsIndexRoute
+  '/district/split/$id': typeof ProtectedDistrictSplitIdRoute
   '/district/view/$id': typeof ProtectedDistrictViewIdRoute
   '/admin/join-requests/': typeof ProtectedAdminJoinRequestsIndexRoute
 }
@@ -191,6 +199,7 @@ export interface FileRoutesByTo {
   '/member': typeof ProtectedMemberIndexRoute
   '/print': typeof ProtectedPrintIndexRoute
   '/settings': typeof ProtectedSettingsIndexRoute
+  '/district/split/$id': typeof ProtectedDistrictSplitIdRoute
   '/district/view/$id': typeof ProtectedDistrictViewIdRoute
   '/admin/join-requests': typeof ProtectedAdminJoinRequestsIndexRoute
 }
@@ -216,6 +225,7 @@ export interface FileRoutesById {
   '/_protected/member/': typeof ProtectedMemberIndexRoute
   '/_protected/print/': typeof ProtectedPrintIndexRoute
   '/_protected/settings/': typeof ProtectedSettingsIndexRoute
+  '/_protected/district/split/$id': typeof ProtectedDistrictSplitIdRoute
   '/_protected/district/view/$id': typeof ProtectedDistrictViewIdRoute
   '/_protected/admin/join-requests/': typeof ProtectedAdminJoinRequestsIndexRoute
 }
@@ -242,6 +252,7 @@ export interface FileRouteTypes {
     | '/member/'
     | '/print/'
     | '/settings/'
+    | '/district/split/$id'
     | '/district/view/$id'
     | '/admin/join-requests/'
   fileRoutesByTo: FileRoutesByTo
@@ -266,6 +277,7 @@ export interface FileRouteTypes {
     | '/member'
     | '/print'
     | '/settings'
+    | '/district/split/$id'
     | '/district/view/$id'
     | '/admin/join-requests'
   id:
@@ -290,6 +302,7 @@ export interface FileRouteTypes {
     | '/_protected/member/'
     | '/_protected/print/'
     | '/_protected/settings/'
+    | '/_protected/district/split/$id'
     | '/_protected/district/view/$id'
     | '/_protected/admin/join-requests/'
   fileRoutesById: FileRoutesById
@@ -451,6 +464,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAdminJoinRequestsIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
+    '/_protected/district/split/$id': {
+      id: '/_protected/district/split/$id'
+      path: '/district/split/$id'
+      fullPath: '/district/split/$id'
+      preLoaderRoute: typeof ProtectedDistrictSplitIdRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
     '/_protected/district/view/$id': {
       id: '/_protected/district/view/$id'
       path: '/district/view/$id'
@@ -477,6 +497,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedMemberIndexRoute: typeof ProtectedMemberIndexRoute
   ProtectedPrintIndexRoute: typeof ProtectedPrintIndexRoute
   ProtectedSettingsIndexRoute: typeof ProtectedSettingsIndexRoute
+  ProtectedDistrictSplitIdRoute: typeof ProtectedDistrictSplitIdRoute
   ProtectedDistrictViewIdRoute: typeof ProtectedDistrictViewIdRoute
   ProtectedAdminJoinRequestsIndexRoute: typeof ProtectedAdminJoinRequestsIndexRoute
 }
@@ -497,6 +518,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedMemberIndexRoute: ProtectedMemberIndexRoute,
   ProtectedPrintIndexRoute: ProtectedPrintIndexRoute,
   ProtectedSettingsIndexRoute: ProtectedSettingsIndexRoute,
+  ProtectedDistrictSplitIdRoute: ProtectedDistrictSplitIdRoute,
   ProtectedDistrictViewIdRoute: ProtectedDistrictViewIdRoute,
   ProtectedAdminJoinRequestsIndexRoute: ProtectedAdminJoinRequestsIndexRoute,
 }
