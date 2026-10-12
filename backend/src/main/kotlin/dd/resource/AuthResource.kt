@@ -1,53 +1,200 @@
 package dd.resource
 
+import at.favre.lib.crypto.bcrypt.BCrypt
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import dd.dao.UserAccountDao
+import dd.dao.UserRoleDao
+import dd.repository.UserAccountRepository
+import io.quarkus.security.Authenticated
+import io.quarkus.security.identity.SecurityIdentity
+import io.smallrye.jwt.build.Jwt
+import jakarta.transaction.Transactional
+import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.GET
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.Produces
-import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.core.MediaType
-import at.favre.lib.crypto.bcrypt.BCrypt
-import dd.repository.UserAccountRepository
-import io.smallrye.jwt.build.Jwt
 import jakarta.ws.rs.core.Response
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-@Path("/auth/login")
-class AuthResource (
+@Path("/auth")
+class AuthResource(
     val userAccountRepository: UserAccountRepository,
+    val userViews: UserViews,
+    val identity: SecurityIdentity,
 ) {
 
+    private fun authResponse(token: String?, user: UserAccountDao): AuthResponse {
+        val dto = userViews.toDto(user)
+        return AuthResponse(
+            token = token,
+            id = dto.id,
+            email = dto.email,
+            roles = dto.roles ?: emptyList(),
+            wardId = dto.wardId,
+            memberId = dto.memberId,
+            wards = dto.wards ?: emptyList(),
+        )
+    }
+
+    // The signed-in user's current wards and roles, without a new token. The
+    // app calls this when it loads, so a role or ward granted since the last
+    // sign-in shows up without signing in again.
+    @GET
+    @Path("/me")
+    @Authenticated
+    @Produces(MediaType.APPLICATION_JSON)
+    fun me(): Response {
+        val user = userAccountRepository.findByEmail(identity.principal.name)
+            ?: return Response.status(Response.Status.UNAUTHORIZED).build()
+        return Response.ok(authResponse(null, user)).build()
+    }
+
     private fun verifyPassword(password: String, storedHash: String): Boolean {
-        val result = BCrypt.verifyer().verify(password.toCharArray(), storedHash)
-        return result.verified
+        return BCrypt.verifyer().verify(password.toCharArray(), storedHash).verified
     }
 
     private fun generateToken(email: String): String {
-        return Jwt.issuer("menu-api")  // optional
+        return Jwt.issuer("menu-api")
             .subject(email)
             .expiresAt(Instant.now().plus(7, ChronoUnit.DAYS))
             .claim("edit", true)
             .sign()
     }
 
+    private fun verifyGoogleToken(credential: String): String? {
+        val client = HttpClient.newHttpClient()
+        val req = HttpRequest.newBuilder()
+            .uri(URI.create("https://oauth2.googleapis.com/tokeninfo?id_token=$credential"))
+            .GET()
+            .build()
+        val resp = client.send(req, HttpResponse.BodyHandlers.ofString())
+        if (resp.statusCode() != 200) return null
+        val tokenInfo = jacksonObjectMapper().readValue<Map<String, String>>(resp.body())
+        if (tokenInfo["email_verified"] != "true") return null
+        return tokenInfo["email"]
+    }
+
+    @GET
+    @Path("/setup")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun checkSetup(): Response {
+        val needsSetup = userAccountRepository.count() == 0L
+        return Response.ok(SetupStatus(needsSetup)).build()
+    }
+
     @POST
+    @Path("/setup")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    fun login(user: User): Response {
-        val foundUser = userAccountRepository.findByEmail(user.email)
-            ?: throw Exception("invalid credentials")
+    @Transactional
+    fun setupAdmin(request: SetupRequest): Response {
+        if (userAccountRepository.count() > 0) {
+            return Response.status(Response.Status.FORBIDDEN).build()
+        }
 
-        val storedHash = foundUser.passwordHash ?: throw Exception("No password set for user")
+        val email: String
+        val passwordHash: String?
 
-        if (user.password == null || !verifyPassword(user.password, storedHash)) {
-            throw Exception("invalid credentials")
+        if (request.credential != null) {
+            email = verifyGoogleToken(request.credential)
+                ?: return Response.status(Response.Status.UNAUTHORIZED).build()
+            passwordHash = null
+        } else if (request.email != null && request.password != null) {
+            email = request.email
+            passwordHash = BCrypt.withDefaults().hashToString(12, request.password.toCharArray())
+        } else {
+            return Response.status(Response.Status.BAD_REQUEST).build()
+        }
+
+        val admin = UserAccountDao().apply {
+            this.email = email
+            this.passwordHash = passwordHash
+        }
+        admin.persist()
+        val adminRole = UserRoleDao().apply {
+            this.user = admin
+            this.role = "admin"
+        }
+        admin.userRoles.add(adminRole)
+
+        val token = generateToken(admin.email)
+        return Response.ok(authResponse(token, admin)).build()
+    }
+
+    @POST
+    @Path("/login")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    fun login(request: UserRequest): Response {
+        val foundUser = userAccountRepository.findByEmail(request.email)
+            ?: return Response.status(Response.Status.UNAUTHORIZED).build()
+
+        val storedHash = foundUser.passwordHash
+            ?: return Response.status(Response.Status.UNAUTHORIZED).build()
+
+        if (request.password == null || !verifyPassword(request.password, storedHash)) {
+            return Response.status(Response.Status.UNAUTHORIZED).build()
         }
 
         val token = generateToken(foundUser.email)
-        return Response.ok(Token(token)).build()
+        return Response.ok(authResponse(token, foundUser)).build()
+    }
+
+    @POST
+    @Path("/google")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Transactional
+    fun googleLogin(request: GoogleTokenRequest): Response {
+        val email = verifyGoogleToken(request.credential)
+            ?: return Response.status(Response.Status.UNAUTHORIZED).build()
+
+        val user = userAccountRepository.findByEmail(email) ?: run {
+            val newUser = UserAccountDao().apply { this.email = email }
+            newUser.persist()
+            val defaultRole = UserRoleDao().apply {
+                this.user = newUser
+                this.role = "user"
+            }
+            newUser.userRoles.add(defaultRole)
+            newUser
+        }
+
+        val token = generateToken(user.email)
+        return Response.ok(authResponse(token, user)).build()
     }
 }
 
-data class Token (
-    val token: String
+data class SetupStatus(val needsSetup: Boolean)
+
+data class SetupRequest(
+    val email: String? = null,
+    val password: String? = null,
+    val credential: String? = null,
+)
+
+data class AuthResponse(
+    // Absent from GET /auth/me, which refreshes a session that already has one.
+    val token: String?,
+    val id: Long?,
+    val email: String,
+    // Every role held anywhere; see `wards` for which role applies where.
+    val roles: List<String>,
+    // The user's first ward - the default when the client hasn't chosen one.
+    val wardId: Long?,
+    val memberId: Long? = null,
+    // The wards the user can work in, with their roles in each.
+    val wards: List<UserWardDto> = emptyList(),
+)
+
+data class GoogleTokenRequest(
+    val credential: String,
 )

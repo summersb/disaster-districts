@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 export const useLocalStorageState = <T,>(
   key: string,
@@ -25,7 +25,7 @@ export const useLocalStorageState = <T,>(
     )
     return () => {
       window.removeEventListener('storage', handleStorageChange)
-      window.addEventListener(
+      window.removeEventListener(
         'local-storage',
         handleStorageChange as EventListener,
       )

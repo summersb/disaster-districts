@@ -1,10 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { LoginForm } from '@/components/auth/LoginForm.tsx'
+import PrintDistricts from '@/components/districts/PrintDistricts.tsx'
 
 export const Route = createFileRoute('/_protected/print/')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
-  return <LoginForm/>
+  return <PrintDistricts />
 }

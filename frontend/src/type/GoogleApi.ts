@@ -34,5 +34,4 @@ type Results = {
   status: string
 }
 
-export type { AddressComponent, GeoPoint, GeoBox, Geometry }
-export type { Result, Results }
+export type { AddressComponent, GeoBox, Geometry, GeoPoint, Result, Results }

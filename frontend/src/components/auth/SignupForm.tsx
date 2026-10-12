@@ -1,17 +1,8 @@
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
 import { useNavigate } from '@tanstack/react-router'
+import { useForm } from 'react-hook-form'
+import * as z from 'zod'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormControl,
-  FormMessage,
-} from '@/components/ui/form'
 import {
   Card,
   CardContent,
@@ -20,12 +11,22 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card.tsx'
-import { Route as LoginRoute } from '@/routes/login'
-import { signup } from '@/hooks/useLogin.tsx'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { login, signup } from '@/hooks/useLogin.tsx'
+import { useSession } from '@/hooks/useSession'
 
 // ✅ Define schema with password verification
 const formSchema = z
   .object({
+    name: z.string().trim().min(1, { message: 'Name is required' }),
     email: z.string().email({ message: 'Invalid email address' }),
     password: z
       .string()
@@ -41,6 +42,7 @@ export function SignupForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: '',
       email: '',
       password: '',
       confirmPassword: '',
@@ -48,16 +50,27 @@ export function SignupForm() {
   })
 
   const navigate = useNavigate()
+  const { signIn } = useSession()
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      await signup(values)
-      console.log("success")
-      navigate({to: LoginRoute.to}).catch(error => console.error(error))
+      await signup({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+      })
+      const authResponse = await login({
+        email: values.email,
+        password: values.password,
+      })
+      signIn(authResponse)
+      navigate({ to: '/join-ward' }).catch((error) => console.error(error))
       return
-    } catch (err: any) {
+    } catch (err) {
       console.error('Signup failed', err)
-      form.setError('email', { message: err.message || 'Signup failed' })
+      form.setError('email', {
+        message: (err instanceof Error && err.message) || 'Signup failed',
+      })
     }
   }
 
@@ -73,6 +86,20 @@ export function SignupForm() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label>Name</Label>
+                    <FormControl>
+                      <Input placeholder="Jane Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="email"
@@ -132,9 +159,12 @@ export function SignupForm() {
                 Sign up
               </Button>
 
-              <p className="text-sm text-gray-400 mt-4 text-center">
+              <p className="text-sm text-muted-foreground mt-4 text-center">
                 Already have an account?{' '}
-                <a href="/login" className="text-blue-400 hover:underline">
+                <a
+                  href="/login"
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
                   Log in
                 </a>
               </p>

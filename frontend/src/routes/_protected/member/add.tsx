@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import AddMember from '@/pages/members/AddMember.tsx'
+import AddMember from '@/components/members/AddMember.tsx'
 
 export const Route = createFileRoute('/_protected/member/add')({
   component: RouteComponent,

@@ -1,0 +1,25 @@
+# Production image for the site: the frontend built to static files and
+# served by Caddy, which also terminates HTTPS and forwards /api to the
+# backend. No Vite dev server is involved.
+#
+# The build context is the repository root (it needs deploy/Caddyfile too):
+#
+#   docker build -f frontend/Dockerfile.prod .
+
+# --- build ------------------------------------------------------------------
+FROM node:22-slim AS build
+WORKDIR /app
+
+COPY frontend/package.json ./
+RUN yarn install
+
+COPY frontend/ ./
+# Baked into the JavaScript at build time; leave empty to hide Google sign-in.
+ARG VITE_GOOGLE_CLIENT_ID=""
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+RUN yarn build
+
+# --- serve ------------------------------------------------------------------
+FROM caddy:2-alpine
+COPY deploy/Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/dist /srv

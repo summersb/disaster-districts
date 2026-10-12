@@ -1,26 +1,33 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Member } from '@/type'
+import { authFetch } from '@/lib/api'
+import type { MemberDto } from '@/type'
 
-const loadMembers = async (wardId: number) => {
-  const res = await fetch(`/api/wards/${wardId}/members`)
+const loadMembers = async (wardId: number): Promise<MemberDto[]> => {
+  const res = await authFetch(`/api/wards/${wardId}/members`)
+  if (!res.ok) {
+    return []
+  }
   const json = await res.json()
-  return json
+  return Array.isArray(json) ? json : []
 }
 
-const loadMember = async (wardId: number, memberId: number) => {
-  const res = await fetch(`/api/wards/${wardId}/members/${memberId}`)
-  const json = await res.json()
-  return json
+const loadMember = async (
+  wardId: number,
+  memberId: number,
+): Promise<MemberDto> => {
+  const res = await authFetch(`/api/wards/${wardId}/members/${memberId}`)
+  if (!res.ok) throw new Error(`Failed to load member ${memberId}`)
+  return res.json()
 }
 
 export const useMembers = (wardId: number) =>
-  useQuery<Member[]>({
+  useQuery<MemberDto[]>({
     queryKey: ['members', wardId],
     queryFn: () => loadMembers(wardId),
   })
 
 export const useMember = (wardId: number, memberId: number | undefined) =>
-  useQuery<Member>({
+  useQuery<MemberDto>({
     queryKey: ['member', wardId, memberId],
     queryFn: () => loadMember(wardId, memberId as number),
     enabled: memberId !== undefined,
@@ -30,37 +37,151 @@ export const useAddMember = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ wardId, member }: { wardId: number; member: Member }) =>
-      fetch(`/api/wards/${wardId}/members`, {
+    mutationFn: ({ wardId, member }: { wardId: number; member: MemberDto }) =>
+      authFetch(`/api/wards/${wardId}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(member),
       }),
     onSuccess: () => {
-      queryClient
-        .invalidateQueries({ queryKey: ['members'] })
-        .catch((e) => console.log('Error ' + e))
+      queryClient.invalidateQueries({ queryKey: ['members'] })
     },
-    onError: (e) => console.log('Error ' + e),
   })
+}
+
+export type MemberImportResult = {
+  index: number
+  status: 'created' | 'skipped' | 'failed'
+  id?: number | null
+  error?: string | null
+}
+
+export type MemberImportResponse = {
+  created: number
+  skipped: number
+  failed: number
+  results: MemberImportResult[]
+}
+
+// Creates many members in one request. The server answers 207 with a result
+// per member (matched by `index` into the submitted array), so a partial
+// failure still resolves - only a request-level failure throws.
+export const useImportMembers = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      wardId,
+      members,
+    }: {
+      wardId: number
+      members: MemberDto[]
+    }): Promise<MemberImportResponse> => {
+      const res = await authFetch(`/api/wards/${wardId}/members/bulk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(members),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      return res.json()
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['members'] })
+    },
+  })
+}
+
+export type MemberOutlier = {
+  member: MemberDto
+  reason: 'missing' | 'far'
+  distanceKm: number | null
+  // False when there is no address to look the member up by.
+  hasAddress: boolean
+}
+
+export type MemberOutliersResponse = {
+  centerLat: number
+  centerLng: number
+  radiusKm: number
+  members: MemberOutlier[]
+}
+
+// Thrown by useMemberOutliers when the ward has no map center to measure from.
+export class NoWardCenterError extends Error {}
+
+// Members with no coordinates, or further than radiusKm from the ward center.
+export const useMemberOutliers = (wardId: number, radiusKm: number) =>
+  useQuery<MemberOutliersResponse>({
+    queryKey: ['members', wardId, 'outliers', radiusKm],
+    queryFn: async () => {
+      const res = await authFetch(
+        `/api/wards/${wardId}/members/outliers?radiusKm=${radiusKm}`,
+      )
+      if (res.status === 409) throw new NoWardCenterError()
+      if (!res.ok) throw new Error(`Failed to check locations: ${res.status}`)
+      return res.json()
+    },
+    enabled: wardId > 0 && radiusKm > 0,
+    retry: false,
+  })
+
+export type GeocodeMemberResult = {
+  memberId: number
+  status: 'updated' | 'not_found' | 'too_far' | 'no_address' | 'failed'
+  lat?: number | null
+  lng?: number | null
+  distanceKm?: number | null
+  error?: string | null
+}
+
+export type GeocodeMembersResponse = {
+  updated: number
+  failed: number
+  results: GeocodeMemberResult[]
+}
+
+// The server looks addresses up on OpenStreetMap at one per second and caps
+// each request at 25, so keep batches small enough to finish well inside the
+// proxy timeout.
+export const GEOCODE_BATCH_SIZE = 10
+
+// Re-derives lat/lng from the address for one batch of members. Does not
+// invalidate queries itself - the caller does that once all batches are done.
+export const geocodeMembers = async (
+  wardId: number,
+  memberIds: number[],
+  radiusKm: number,
+): Promise<GeocodeMembersResponse> => {
+  const res = await authFetch(`/api/wards/${wardId}/members/geocode`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ memberIds, radiusKm }),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
 }
 
 export const useSaveMember = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ wardId, memberId, member }: { wardId: number; memberId: number; member: Member }) =>
-      fetch(`/api/wards/${wardId}/members/${memberId}`, {
+    mutationFn: ({
+      wardId,
+      memberId,
+      member,
+    }: {
+      wardId: number
+      memberId: number
+      member: MemberDto
+    }) =>
+      authFetch(`/api/wards/${wardId}/members/${memberId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(member),
       }),
     onSuccess: () => {
-      queryClient
-        .invalidateQueries({ queryKey: ['members'] })
-        .catch((e) => console.log('Error ' + e))
+      queryClient.invalidateQueries({ queryKey: ['members'] })
     },
-    onError: (e) => console.log('Error ' + e),
   })
 }
 
@@ -69,14 +190,11 @@ export const useDeleteMember = () => {
 
   return useMutation({
     mutationFn: ({ wardId, memberId }: { wardId: number; memberId: number }) =>
-      fetch(`/api/wards/${wardId}/members/${memberId}`, {
+      authFetch(`/api/wards/${wardId}/members/${memberId}`, {
         method: 'DELETE',
       }),
     onSuccess: () => {
-      queryClient
-        .invalidateQueries({ queryKey: ['members'] })
-        .catch((e) => console.log('Error ' + e))
+      queryClient.invalidateQueries({ queryKey: ['members'] })
     },
-    onError: (e) => console.log('Error ' + e),
   })
 }

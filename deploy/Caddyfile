@@ -1,0 +1,42 @@
+# The public face of the app: HTTPS, the built frontend, and /api.
+#
+# DOMAIN is the site's address. With a real domain name whose DNS points at
+# this server, Caddy obtains and renews a Let's Encrypt certificate on its
+# own, and redirects http:// to https://. With "localhost" (the default, for
+# trying the production build on your own machine) it uses a certificate from
+# its own local authority instead, which browsers will warn about.
+
+{$DOMAIN:localhost} {
+	encode gzip zstd
+
+	header {
+		# Only ever reach this site over HTTPS from now on.
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# The API. The /api prefix is the frontend's convention; the backend
+	# itself serves from the root, so it is stripped here.
+	handle_path /api/* {
+		reverse_proxy backend:8080
+	}
+
+	# Everything else is the single-page app: a real file if there is one
+	# (JavaScript, images, map pins), otherwise index.html so that a deep link
+	# like /member/12 loads the app and lets its router take over.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+
+		# Fingerprinted build output never changes; the page that points at it
+		# must always be fetched fresh.
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@page path /index.html /
+		header @page Cache-Control "no-cache"
+	}
+}

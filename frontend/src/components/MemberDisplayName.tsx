@@ -1,8 +1,8 @@
-import React from 'react'
-import { Member } from '@/type'
+import type React from 'react'
+import type { MemberDto } from '@/type'
 
 type MemberDisplayNameProps = {
-  member?: Member
+  member?: MemberDto
 }
 
 const MemberDisplayName = (

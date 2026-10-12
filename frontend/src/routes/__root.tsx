@@ -1,41 +1,139 @@
-import { createRootRoute, Outlet, redirect, useLocation, useNavigate } from '@tanstack/react-router'
-import Home from '@/pages/home/Home.tsx'
-import { User } from '@/context/UserContext.tsx'
+import { TanStackDevtools } from '@tanstack/react-devtools'
+import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
+import {
+  createRootRouteWithContext,
+  Outlet,
+  redirect,
+  useLocation,
+} from '@tanstack/react-router'
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
+import { useEffect } from 'react'
+import type { User } from '@/context/UserContext.tsx'
+import { checkSetupNeeded } from '@/hooks/useLogin.tsx'
+import { isAdmin } from '@/lib/roles'
 import { Route as DashboardRoute } from '@/routes/_protected/dashboard/index'
 
-export const Route = createRootRoute({
-  beforeLoad: ({ location, context }) => {
-    const isLoginPage = location.pathname === '/login' || location.pathname === '/signup'
+// Setup global fetch interceptor to handle 401 responses
+const originalFetch = window.fetch
+window.fetch = ((...args: Parameters<typeof fetch>) => {
+  return originalFetch.apply(window, args).then((response) => {
+    if (response.status === 401) {
+      // Clear invalid session
+      window.localStorage.removeItem('user')
+      window.localStorage.removeItem('lastPage')
+      // Redirect to login
+      window.location.href = '/login'
+    }
+    return response
+  })
+}) as typeof fetch
+
+type RouterContext = {
+  user: User
+}
+
+// Cached per session so we only hit the API once
+let setupChecked = false
+let needsSetup = false
+
+export const Route = createRootRouteWithContext<RouterContext>()({
+  beforeLoad: async ({ location, context }) => {
+    const isSetupPage =
+      location.pathname === '/setup' || location.pathname === '/setup/'
+    const isLoginPage =
+      location.pathname === '/login' || location.pathname === '/signup'
+    const isJoinWardPage =
+      location.pathname === '/join-ward' || location.pathname === '/join-ward/'
+
+    if (!setupChecked) {
+      needsSetup = await checkSetupNeeded()
+      setupChecked = true
+    }
+
+    // If no accounts exist yet, force setup
+    if (needsSetup && !isSetupPage) {
+      throw redirect({ to: '/setup' })
+    }
+
+    // Once setup is done, don't let them back to the setup page
+    if (!needsSetup && isSetupPage) {
+      throw redirect({ to: '/login' })
+    }
+
+    if (isSetupPage || isLoginPage) {
+      return
+    }
 
     const user = JSON.parse(window.localStorage.getItem('user') ?? '{}') as User
-    console.log('root layout. before load', context.user, user, isLoginPage, location)
 
-    // If user is not authenticated and not on login, redirect
-    if (!context.user?.email && !user?.email && !isLoginPage) {
-      console.log('sending to login')
+    if (!context.user?.email && !user?.email) {
       throw redirect({ to: '/login', search: { from: location.pathname } })
     }
 
+    // If user has no ward ID (or it's 0), redirect to ward selection (unless already there).
+    // System admins aren't tied to a ward, so they're exempt from this gate.
+    if ((user?.wardId ?? 0) === 0 && !isJoinWardPage && !isAdmin(user?.roles)) {
+      throw redirect({ to: '/join-ward' })
+    }
+
     if (location.pathname === '/') {
-      console.log('sending to dashboard')
-      throw redirect({ to: DashboardRoute.to})
+      throw redirect({ to: DashboardRoute.to })
+    }
+
+    // Store current page as last visited (but not for login/setup pages)
+    if (!isLoginPage && !isSetupPage && location.pathname !== '/') {
+      const fullPath = location.pathname + (location.searchStr || '')
+      window.localStorage.setItem('lastPage', fullPath)
     }
   },
   component: RootLayout,
-  notFoundComponent: Home,
+  //  notFoundComponent: Home
 })
 
 function RootLayout() {
   const location = useLocation()
   const pathname = window.location.pathname
-  const isLoginPage = pathname === '/login' || pathname === '/signup'
+  const isAuthPage =
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname.startsWith('/setup')
 
-  // For login/signup, render the page directly (no layout)
-  if (isLoginPage) {
-    console.log('root layout', 'showing login', location.href, pathname)
+  useEffect(() => {
+    // Track the current page for auto-restore on reload
+    if (!isAuthPage && pathname !== '/') {
+      const fullPath = pathname + location.searchStr
+      window.localStorage.setItem('lastPage', fullPath)
+    }
+  }, [pathname, location.searchStr, isAuthPage])
+
+  if (isAuthPage) {
     return <Outlet />
   }
 
-  console.log('root layout', location.href, pathname)
-  return <Outlet />
+  return (
+    <>
+      <div className="print:hidden">
+        <TanStackDevtools
+          config={{ hideUntilHover: true, position: 'top-right' }}
+          plugins={[
+            {
+              name: 'TanStack Query',
+              render: <ReactQueryDevtoolsPanel />,
+            },
+            {
+              name: 'TanStack Router',
+              render: <TanStackRouterDevtoolsPanel />,
+            },
+          ]}
+        />
+      </div>
+      <Outlet />
+    </>
+  )
+}
+
+// Call this after successful setup so the next navigation doesn't re-check
+export const invalidateSetupCache = () => {
+  setupChecked = false
+  needsSetup = false
 }

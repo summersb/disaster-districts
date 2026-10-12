@@ -1,8 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { District } from '@/type'
+import { authFetch } from '@/lib/api'
+import type { DistrictDto } from '@/type'
 
-const loadDistricts = async (wardId: number): Promise<District[]> => {
-  const res = await fetch(`/api/wards/${wardId}/districts`)
+const loadDistricts = async (wardId: number): Promise<DistrictDto[]> => {
+  const res = await authFetch(`/api/wards/${wardId}/districts`)
+  if (!res.ok) {
+    throw new Error(`Failed to load districts: ${res.status}`)
+  }
   const json = await res.json()
   return json
 }
@@ -10,20 +14,23 @@ const loadDistricts = async (wardId: number): Promise<District[]> => {
 const loadDistrict = async (
   wardId: number,
   districtId: number,
-): Promise<District> => {
-  const res = await fetch(`/api/wards/${wardId}/districts/${districtId}`)
+): Promise<DistrictDto> => {
+  const res = await authFetch(`/api/wards/${wardId}/districts/${districtId}`)
+  if (!res.ok) {
+    throw new Error(`Failed to load district ${districtId}: ${res.status}`)
+  }
   const json = await res.json()
   return json
 }
 
 export const useDistricts = (wardId: number) =>
-  useQuery<District[]>({
+  useQuery<DistrictDto[]>({
     queryKey: ['districts', wardId],
     queryFn: () => loadDistricts(wardId),
   })
 
 export const useDistrict = (wardId: number, districtId: number) =>
-  useQuery<District>({
+  useQuery<DistrictDto>({
     queryKey: ['district', wardId, districtId],
     queryFn: () => loadDistrict(wardId, districtId),
   })
@@ -41,15 +48,15 @@ export const useAddDistrictMember = () => {
       districtId: number
       memberId: number
     }) =>
-      fetch(`/api/wards/${wardId}/district/${districtId}/members/${memberId}`, {
-        method: 'POST',
-      }),
+      authFetch(
+        `/api/wards/${wardId}/districts/${districtId}/members/${memberId}`,
+        {
+          method: 'POST',
+        },
+      ),
     onSuccess: () => {
-      queryClient
-        .invalidateQueries({ queryKey: ['districts'] })
-        .catch((e) => console.log('Error ' + e))
+      queryClient.invalidateQueries({ queryKey: ['districts'] })
     },
-    onError: (e) => console.log('Error ' + e),
   })
 }
 
@@ -66,18 +73,15 @@ export const useDeleteDistrictMember = () => {
       districtId: number
       memberId: number
     }) =>
-      fetch(
+      authFetch(
         `/api/wards/${wardId}/districts/${districtId}/members/${memberId}`,
         {
           method: 'DELETE',
         },
       ),
     onSuccess: () => {
-      queryClient
-        .invalidateQueries({ queryKey: ['districts'] })
-        .catch((e) => console.log('Error ' + e))
+      queryClient.invalidateQueries({ queryKey: ['districts'] })
     },
-    onError: (e) => console.log('Error ' + e),
   })
 }
 
@@ -90,19 +94,16 @@ export const useAddDistrict = () => {
       district,
     }: {
       wardId: number
-      district: District
+      district: DistrictDto
     }) =>
-      fetch(`/api/wards/${wardId}/districts`, {
+      authFetch(`/api/wards/${wardId}/districts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(district),
       }),
     onSuccess: () => {
-      queryClient
-        .invalidateQueries({ queryKey: ['districts'] })
-        .catch((e) => console.log('Error ' + e))
+      queryClient.invalidateQueries({ queryKey: ['districts'] })
     },
-    onError: (e) => console.log('Error ' + e),
   })
 }
 
@@ -117,14 +118,11 @@ export const useDeleteDistrict = () => {
       wardId: number
       districtId: number
     }) =>
-      fetch(`/api/wards/${wardId}/districts/${districtId}`, {
+      authFetch(`/api/wards/${wardId}/districts/${districtId}`, {
         method: 'DELETE',
       }),
     onSuccess: () => {
-      queryClient
-        .invalidateQueries({ queryKey: ['districts'] })
-        .catch((e) => console.log('Error ' + e))
+      queryClient.invalidateQueries({ queryKey: ['districts'] })
     },
-    onError: (e) => console.log('Error ' + e),
   })
 }

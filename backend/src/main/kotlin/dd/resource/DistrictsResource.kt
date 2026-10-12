@@ -1,58 +1,207 @@
 package dd.resource
 
 import dd.dao.DistrictDao
+import dd.dao.MemberDao
 import dd.repository.DistrictRepository
+import dd.repository.MemberRepository
+import dd.repository.WardRepository
+import dd.security.requireWardManager
+import dd.security.visibleDistrictIds
+import io.quarkus.narayana.jta.QuarkusTransaction
+import io.quarkus.security.identity.SecurityIdentity
+import jakarta.persistence.EntityManager
 import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.GET
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import jakarta.enterprise.context.RequestScoped
-import jakarta.transaction.Transactional
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.Response.Status
 import jakarta.ws.rs.core.UriInfo
 
-@RequestScoped
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 class DistrictsResource(
     val districtRepository: DistrictRepository,
-    @field:Context val uriInfo: UriInfo
+    val wardRepository: WardRepository,
+    val memberRepository: MemberRepository,
+    val entityManager: EntityManager,
+    val identity: SecurityIdentity,
+    val uriInfo: UriInfo,
+    val wardId: Long,
 ) {
-    var wardId: Long? = null
+    private fun toDto(d: DistrictDao) = DistrictDto(
+        id = d.id,
+        name = d.name,
+        color = d.color,
+        lat = d.lat,
+        lng = d.lng,
+        wardId = d.ward?.id,
+        leaderId = d.leader?.id,
+        assistantId = d.assistant?.id,
+    )
 
     @GET
-    fun getDistricts(id: Long): Response {
-        val wards = districtRepository.listAll()
-        return Response.ok(wards).build()
+    fun getDistricts(): Response {
+        // wardId == 0 is the frontend's "no ward" convention used by system /
+        // ward admins who aren't tied to a single ward; in that case return
+        // every district instead of scoping by ward.
+        val scope = wardId.takeIf { it > 0 }
+        val districts = scope?.let { districtRepository.list("ward.id", it) }
+            ?: districtRepository.listAll()
+        // A district leader gets only the district(s) they lead.
+        val visible = identity.visibleDistrictIds(wardId)
+        return Response.ok(districts.filter { visible == null || it.id in visible }.map { toDto(it) }).build()
     }
+
+    // By-id lookups are confined to the ward in the URL - the only ward the
+    // caller has been checked against - so another ward's district or member
+    // looks like it doesn't exist. (wardId 0 is the system admin's "no ward"
+    // scope, which spans every ward.)
+    private fun districtInWard(id: Long): DistrictDao? =
+        districtRepository.findById(id)?.takeIf { wardId <= 0 || it.ward?.id == wardId }
+
+    private fun memberInWard(id: Long): MemberDao? =
+        memberRepository.findById(id)?.takeIf { wardId <= 0 || it.ward?.id == wardId }
+
+    private fun notInWard(what: String) = Response.status(Status.BAD_REQUEST)
+        .entity(mapOf("error" to "The $what must be a member of this ward"))
+        .build()
 
     @GET
     @Path("/{id}")
-    fun getDistrict(id: Long): Response {
-        val district = districtRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
-        return Response.ok(district).build()
+    fun getDistrict(@PathParam("id") id: Long): Response {
+        val visible = identity.visibleDistrictIds(wardId)
+        val district = districtInWard(id)?.takeIf { visible == null || it.id in visible }
+            ?: return Response.status(Status.NOT_FOUND).build()
+        return Response.ok(toDto(district)).build()
     }
 
+    // This class is a JAX-RS sub-resource locator (see WardsResource.getDistricts),
+    // returned via a plain `new` rather than CDI, so @Transactional interceptors
+    // never get woven in here. QuarkusTransaction.call() opens/commits a
+    // transaction programmatically instead. The same applies to @RolesAllowed,
+    // so mutating methods below check identity.requireWardManager() by hand -
+    // WardsResource.getDistricts already verified ward membership before this
+    // instance was even constructed.
+
     @POST
-    @Transactional
-    fun createDistrict(district: District): Response {
+    fun createDistrict(district: DistrictRequest): Response = QuarkusTransaction.call<Response> {
+        identity.requireWardManager(wardId)
         if (district.name == null) {
-            return Response.status(Status.BAD_REQUEST).build()
+            return@call Response.status(Status.BAD_REQUEST).build()
         }
-        val districtExists = districtRepository.findByName(district.name)
+        // Names only need to be unique within the ward - two wards can both
+        // have a "District 1".
+        val districtExists = districtRepository.findByWardAndName(wardId, district.name)
         if (districtExists != null) {
-            return Response.status(Status.CONFLICT).build()
+            return@call Response.status(Status.CONFLICT).build()
         }
-        val dbuser = DistrictDao().apply {
+        val dbDistrict = DistrictDao().apply {
             name = district.name
             color = district.color
+            lat = district.lat
+            lng = district.lng
+            ward = wardId?.let { wardRepository.findById(it) }
+            // Same convention as updateDistrict: 0 (or negative) means none.
+            leader = district.leaderId?.takeIf { it > 0 }?.let { memberInWard(it) ?: return@call notInWard("leader") }
+            assistant = district.assistantId?.takeIf { it > 0 }
+                ?.let { memberInWard(it) ?: return@call notInWard("assistant") }
         }
-        dbuser.persist()
-        val uri = uriInfo.getAbsolutePathBuilder().path(dbuser.id.toString())
-        return Response.created(uri.build()).build()
+        dbDistrict.persist()
+        // Assign the initial roster in the same request; without this a new
+        // district saved with members came back empty. Only this ward's
+        // members can be claimed.
+        district.memberIds?.takeIf { it.isNotEmpty() }?.let { ids ->
+            entityManager
+                .createQuery(
+                    "update Member m set m.district = :district where m.id in :ids and m.ward.id = :wardId"
+                )
+                .setParameter("district", dbDistrict)
+                .setParameter("ids", ids)
+                .setParameter("wardId", wardId)
+                .executeUpdate()
+        }
+        val uri = uriInfo.getAbsolutePathBuilder().path(dbDistrict.id.toString())
+        Response.created(uri.build()).build()
+    }
+
+    @PUT
+    @Path("/{id}")
+    fun updateDistrict(@PathParam("id") id: Long, district: DistrictRequest): Response = QuarkusTransaction.call<Response> {
+        identity.requireWardManager(wardId)
+        val dbDistrict = districtInWard(id) ?: return@call Response.status(Status.NOT_FOUND).build()
+        district.name?.let { dbDistrict.name = it }
+        district.color?.let { dbDistrict.color = it }
+        district.lat?.let { dbDistrict.lat = it }
+        district.lng?.let { dbDistrict.lng = it }
+        // Leader/assistant: a value of 0 (or negative) clears the slot; a real
+        // id reassigns. null in the payload leaves the existing value alone.
+        district.leaderId?.let {
+            dbDistrict.leader = if (it > 0) memberInWard(it) ?: return@call notInWard("leader") else null
+        }
+        district.assistantId?.let {
+            dbDistrict.assistant = if (it > 0) memberInWard(it) ?: return@call notInWard("assistant") else null
+        }
+        // Member roster: when memberIds is supplied, treat it as the canonical
+        // list of members for this district. Members in the list get this
+        // district's id; members previously in this district but absent from
+        // the list are detached (district_id = null). This handles the "click
+        // to move from another district" case in one request.
+        district.memberIds?.let { ids ->
+            if (ids.isNotEmpty()) {
+                entityManager
+                    .createQuery(
+                        // Only this district's own ward's members can be claimed.
+                        "update Member m set m.district = :district where m.id in :ids and m.ward.id = :wardId"
+                    )
+                    .setParameter("district", dbDistrict)
+                    .setParameter("ids", ids)
+                    .setParameter("wardId", dbDistrict.ward?.id)
+                    .executeUpdate()
+                entityManager
+                    .createQuery(
+                        "update Member m set m.district = null where m.district.id = :id and m.id not in :ids"
+                    )
+                    .setParameter("id", id)
+                    .setParameter("ids", ids)
+                    .executeUpdate()
+            } else {
+                entityManager
+                    .createQuery("update Member m set m.district = null where m.district.id = :id")
+                    .setParameter("id", id)
+                    .executeUpdate()
+            }
+        }
+        Response.ok(toDto(dbDistrict)).build()
+    }
+
+    @DELETE
+    @Path("/{id}")
+    fun deleteDistrict(@PathParam("id") id: Long): Response = QuarkusTransaction.call<Response> {
+        identity.requireWardManager(wardId)
+        if (districtInWard(id) == null) return@call Response.status(Status.NOT_FOUND).build()
+        // Detach any members pointing at this district before delete; otherwise
+        // the members.district_id FK blocks the delete. The schema's leader and
+        // assistant columns belong to districts itself and go away with the row.
+        entityManager
+            .createQuery("update Member m set m.district = null where m.district.id = :id")
+            .setParameter("id", id)
+            .executeUpdate()
+        // The district's leader/assistant (@ManyToOne, eager by default) were
+        // loaded into the session by the findById above. That Member's
+        // .district field is now stale relative to the bulk update just run
+        // (which bypasses the persistence context), so without clearing,
+        // Hibernate finds a persistent Member still pointing at the
+        // about-to-be-deleted district at flush time and throws
+        // TransientPropertyValueException. Clear and re-fetch fresh.
+        entityManager.clear()
+        val dbDistrict = districtRepository.findById(id) ?: return@call Response.status(Status.NOT_FOUND).build()
+        districtRepository.delete(dbDistrict)
+        Response.noContent().build()
     }
 }

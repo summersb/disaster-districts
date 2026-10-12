@@ -1,9 +1,20 @@
 package dd.resource
 
-import dd.dao.DistrictDao
+data class WardRequest(
+    val id: Long? = null,
+    val name: String = "",
+    val lat: Double? = null,
+    val lng: Double? = null,
+    // null leaves the ward leader alone; 0 (or negative) clears it.
+    val leaderId: Long? = null,
+)
 
-open class Ward (
-    var id: Long?,
-    var name: String,
-    var districts: MutableList<DistrictDao>? = mutableListOf()
+data class WardDto(
+    val id: Long?,
+    val name: String,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    val leaderId: Long? = null,
+    val leaderName: String? = null,
+    val leaderPhone: String? = null,
 )

@@ -1,0 +1,8 @@
+# Keep the production build context to what the build needs.
+target
+.idea
+.vscode
+.github
+.env
+wrapper
+*.md

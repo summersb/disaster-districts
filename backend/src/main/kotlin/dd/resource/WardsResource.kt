@@ -1,17 +1,34 @@
 package dd.resource
 
 import dd.dao.WardDao
+import dd.geo.Geocoder
+import dd.repository.DistrictRepository
+import dd.repository.MemberRepository
+import dd.repository.UserAccountRepository
+import dd.repository.WardRepository
+import dd.security.DistrictLeaders
+import dd.security.isSystemAdmin
+import dd.security.requireWard
+import dd.security.accessibleWardIds
+import dd.security.requireWardManager
+import io.quarkus.security.Authenticated
+import io.quarkus.security.identity.SecurityIdentity
+import jakarta.annotation.security.RolesAllowed
+import jakarta.enterprise.context.RequestScoped
+import jakarta.persistence.EntityManager
+import jakarta.transaction.Transactional
+import jakarta.ws.rs.BadRequestException
 import jakarta.ws.rs.Consumes
+import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
+import jakarta.ws.rs.POST
+import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Produces
+import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import dd.repository.WardRepository
-import jakarta.enterprise.context.RequestScoped
-import jakarta.transaction.Transactional
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.core.Context
 import jakarta.ws.rs.core.Response.Status
 import jakarta.ws.rs.core.UriInfo
 
@@ -21,48 +38,204 @@ import jakarta.ws.rs.core.UriInfo
 @Produces(MediaType.APPLICATION_JSON)
 class WardsResource(
     val wardRepository: WardRepository,
-    val membersResource: MembersResource,
-    val districtsResource: DistrictsResource,
-    @field:Context val uriInfo: UriInfo
+    val userAccountRepository: UserAccountRepository,
+    val districtRepository: DistrictRepository,
+    val memberRepository: MemberRepository,
+    val entityManager: EntityManager,
+    val identity: SecurityIdentity,
+    val geocoder: Geocoder,
+    val wardTransfer: WardTransferService,
+    val districtLeaders: DistrictLeaders,
+    @field:Context val uriInfo: UriInfo,
 ) {
 
+    private fun toDto(w: WardDao) = WardDto(
+        id = w.id,
+        name = w.name ?: "",
+        lat = w.lat,
+        lng = w.lng,
+        leaderId = w.leader?.id,
+        // Carried on the ward itself because a district leader, who can see
+        // the ward but only their own district's members, still needs to know
+        // who the ward leader is and how to reach them.
+        leaderName = w.leader?.let { listOfNotNull(it.familyName, it.name).joinToString(", ") },
+        leaderPhone = w.leader?.phone,
+    )
+
+    // Every signed-in user can list the wards - that is how someone picks one
+    // to ask to join - but only gets the name of a ward they have no access
+    // to; its map center and leader are for its admins and district leaders.
     @GET
+    @Authenticated
     fun getWards(): Response {
-        val wards = wardRepository.listAll()
+        val mine = identity.accessibleWardIds()
+        val wards = wardRepository.listAll().map { ward ->
+            if (identity.isSystemAdmin() || ward.id in mine) toDto(ward) else WardDto(id = ward.id, name = ward.name ?: "")
+        }
         return Response.ok(wards).build()
     }
 
     @GET
     @Path("/{id}")
-    fun getWard(id: Long): Response {
-        val user = wardRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
-        return Response.ok(user).build()
+    @Authenticated
+    fun getWard(@PathParam("id") id: Long): Response {
+        identity.requireWard(id)
+        val ward = wardRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
+        return Response.ok(toDto(ward)).build()
     }
 
     @POST
+    @RolesAllowed("admin")
     @Transactional
-    fun createWard(ward: Ward): Response {
+    fun createWard(ward: WardRequest): Response {
         val wardExists = wardRepository.findByName(ward.name)
         if (wardExists != null) {
             return Response.status(Status.CONFLICT).build()
         }
         val dbWard = WardDao().apply {
             name = ward.name
+            lat = ward.lat
+            lng = ward.lng
         }
         dbWard.persist()
         val uri = uriInfo.getAbsolutePathBuilder().path(dbWard.id.toString())
         return Response.created(uri.build()).build()
     }
 
+    // Ward admins may correct their own ward's map center; only system
+    // admins may rename it or repoint it to a different ward's data via id
+    // spoofing - checked via requireWardManager since @RolesAllowed alone
+    // can't express "ward_admin of *this* ward".
+    @PUT
+    @Path("/{id}")
+    @Authenticated
+    @Transactional
+    fun updateWard(@PathParam("id") id: Long, ward: WardRequest): Response {
+        identity.requireWardManager(id)
+        val dbWard = wardRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
+        if (ward.name.isNotBlank() && ward.name != dbWard.name) {
+            val nameConflict = wardRepository.findByName(ward.name)
+            if (nameConflict != null && nameConflict.id != id) {
+                return Response.status(Status.CONFLICT).build()
+            }
+            dbWard.name = ward.name
+        }
+        // Every field is optional, so the dashboard can rename the ward or
+        // change its leader without resending (and wiping) the map center.
+        ward.lat?.let { dbWard.lat = it }
+        ward.lng?.let { dbWard.lng = it }
+        ward.leaderId?.let { leaderId ->
+            dbWard.leader = if (leaderId > 0) {
+                // The leader has to be one of this ward's own members.
+                memberRepository.findById(leaderId)?.takeIf { it.ward?.id == id }
+                    ?: return Response.status(Status.BAD_REQUEST)
+                        .entity(mapOf("error" to "The ward leader must be a member of this ward"))
+                        .build()
+            } else {
+                null
+            }
+        }
+        return Response.ok(toDto(dbWard)).build()
+    }
+
+    @DELETE
+    @Path("/{id}")
+    @RolesAllowed("admin")
+    @Transactional
+    fun deleteWard(@PathParam("id") id: Long): Response {
+        wardRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
+        // Everything below is done with bulk statements, in an order that
+        // satisfies the foreign keys. Loading the ward above also pulled in
+        // its leader, that member's district and so on; clear them out of
+        // the session first, or Hibernate would try to flush those entities
+        // at commit while they still point at rows deleted underneath them.
+        entityManager.clear()
+        val run = { jpql: String -> entityManager.createQuery(jpql).setParameter("id", id).executeUpdate() }
+
+        run("delete from WardJoinRequest r where r.ward.id = :id")
+        // The ward's leader, and each district's leader and assistant, are
+        // members about to be deleted.
+        run("update Ward w set w.leader = null where w.id = :id")
+        run("update Member m set m.district = null where m.ward.id = :id")
+        run("delete from District d where d.ward.id = :id")
+        // Logins linked to this ward's members lose the link with them.
+        entityManager.createNativeQuery(
+            "delete from user_members where member_id in (select id from members where ward_id = :id)"
+        ).setParameter("id", id).executeUpdate()
+        run("delete from Member m where m.ward.id = :id")
+        run("delete from UserRole r where r.ward.id = :id")
+        run("delete from Ward w where w.id = :id")
+        return Response.noContent().build()
+    }
+
+    // DistrictsResource/MembersResource are plain sub-resource locators
+    // returned via `new`, not CDI beans - @RolesAllowed on their methods
+    // never gets woven in (same reason @Transactional needs
+    // QuarkusTransaction.call there instead). Gate ward access here, where
+    // CDI security interceptors do apply, and hand the checked identity down
+    // for the per-method role checks those classes still need to make.
     @Path("{wardId}/districts")
-    fun getDistricts(wardId: Long): DistrictsResource {
-        districtsResource.wardId = wardId
-        return districtsResource
+    @Authenticated
+    fun getDistricts(@PathParam("wardId") wardId: Long): DistrictsResource {
+        identity.requireWard(wardId)
+        return DistrictsResource(districtRepository, wardRepository, memberRepository, entityManager, identity, uriInfo, wardId)
     }
 
     @Path("{wardId}/members")
-    fun getMembers(wardId: Long): MembersResource {
-        membersResource.wardId = wardId
-        return membersResource
+    @Authenticated
+    fun getMembers(@PathParam("wardId") wardId: Long): MembersResource {
+        identity.requireWard(wardId)
+        return MembersResource(memberRepository, wardRepository, entityManager, identity, uriInfo, wardId, geocoder)
+    }
+
+    // A ward's settings, districts and members as one JSON document - a
+    // backup, or a way to copy the ward somewhere else. Limited to the ward's
+    // managers because it carries every member's contact details in one file.
+    @GET
+    @Path("{wardId}/export")
+    @Authenticated
+    @Transactional
+    fun exportWard(@PathParam("wardId") wardId: Long): Response {
+        identity.requireWardManager(wardId)
+        val ward = wardRepository.findById(wardId) ?: return Response.status(Status.NOT_FOUND).build()
+        return Response.ok(wardTransfer.export(ward)).build()
+    }
+
+    // Merges an export file into this ward (see WardTransferService.import).
+    // One transaction: a file that fails validation changes nothing.
+    @POST
+    @Path("{wardId}/import")
+    @Authenticated
+    @Transactional
+    fun importWard(@PathParam("wardId") wardId: Long, file: WardExport): Response {
+        identity.requireWardManager(wardId)
+        val ward = wardRepository.findById(wardId) ?: return Response.status(Status.NOT_FOUND).build()
+        return try {
+            Response.ok(wardTransfer.import(ward, file)).build()
+        } catch (e: BadRequestException) {
+            Response.status(Status.BAD_REQUEST).entity(mapOf("error" to e.message)).build()
+        }
+    }
+
+    @GET
+    @Path("{wardId}/users")
+    @Authenticated
+    @Produces(MediaType.APPLICATION_JSON)
+    fun getWardUsers(@PathParam("wardId") wardId: Long): Response {
+        // Roles, member link and led districts are all reported as they are
+        // in *this* ward - a user may hold something different elsewhere.
+        identity.requireWardManager(wardId)
+        val users = userAccountRepository.findByWardId(wardId).map { u ->
+            UserDto(
+                id = u.id,
+                email = u.email,
+                name = u.name,
+                roles = districtLeaders.rolesIn(u, wardId),
+                wardId = wardId,
+                memberId = u.memberIn(wardId)?.id,
+                leaderDistrictIds = districtLeaders.districtIds(u, wardId),
+            )
+        }
+        return Response.ok(users).build()
     }
 }

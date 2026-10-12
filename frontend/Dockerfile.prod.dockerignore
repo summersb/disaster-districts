@@ -1,0 +1,10 @@
+# Build context is the repository root; send only what the site image needs.
+*
+!deploy/Caddyfile
+!frontend
+frontend/node_modules
+frontend/dist
+frontend/coverage
+frontend/playwright-report
+frontend/test-results
+frontend/e2e

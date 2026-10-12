@@ -1,0 +1,43 @@
+# Production image for the API: a packaged Quarkus app on a JRE, not the
+# quarkus:dev server the development Dockerfile runs.
+#
+#   docker build -f backend/Dockerfile.prod backend
+#
+# (docker-compose.prod.yml does this for you.)
+
+# --- build ------------------------------------------------------------------
+FROM maven:3.9.14-eclipse-temurin-25 AS build
+WORKDIR /build
+
+# Dependencies first, so they are only re-downloaded when pom.xml changes.
+COPY pom.xml ./
+RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:go-offline
+
+COPY src ./src
+# Tests run in CI / on a developer machine (they need Docker for a throwaway
+# database). The container-image extension is told not to try building an
+# image from inside this build.
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -q package -DskipTests -Dquarkus.container-image.build=false
+
+# --- run --------------------------------------------------------------------
+FROM eclipse-temurin:25-jre
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --uid 1001 --home-dir /app app \
+    && mkdir -p /keys && chown app:app /keys
+
+WORKDIR /app
+COPY --from=build --chown=app:app /build/target/quarkus-app/ ./
+COPY --chown=app:app docker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+USER app
+ENV JWT_KEY_DIR=/keys \
+    QUARKUS_HTTP_HOST=0.0.0.0
+# Login tokens are signed with a key pair kept here; mount a volume so it
+# outlives the container.
+VOLUME /keys
+EXPOSE 8080
+ENTRYPOINT ["/app/entrypoint.sh"]

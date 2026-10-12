@@ -1,17 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
+import * as z from 'zod'
 import { LoginForm } from '@/components/auth/LoginForm.tsx'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 
 export const Route = createFileRoute('/login/')({
+  validateSearch: z.object({ from: z.string().optional() }),
   component: RouteComponent,
 })
 
 function RouteComponent() {
-  console.log('login route')
-  return (
-    <>
-      <LoginForm />
-      <TanStackRouterDevtools />
-    </>
-  )
+  return <LoginForm />
 }
