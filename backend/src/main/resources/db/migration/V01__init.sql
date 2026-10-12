@@ -12,7 +12,8 @@ create sequence users_id_seq;
 create table users (
     id bigint primary key default nextval('users_id_seq'),
     email varchar(255) unique not null,
-    password_hash varchar(255)
+    password_hash varchar(255),
+    name varchar(255)
 );
 
 create sequence user_roles_id_seq;
@@ -44,7 +45,7 @@ create table members (
     ward_id bigint,
     family_name varchar(255) not null,
     formatted_address varchar(255) not null,
-    name varchar(255) unique not null,
+    name varchar(255) not null,
     address1 varchar(255),
     address2 varchar(255),
     city varchar(255),
@@ -54,7 +55,10 @@ create table members (
     notes text,
     lat double precision,
     lng double precision,
-    district_id bigint
+    district_id bigint,
+    -- Uniqueness is per-ward and per-person (family name + given name), matching
+    -- MembersResource's application-level conflict check.
+    constraint members_ward_family_name_key unique (ward_id, family_name, name)
 );
 
 CREATE SEQUENCE ward_join_requests_id_seq START WITH 1 INCREMENT BY 1;
