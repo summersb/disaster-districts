@@ -72,11 +72,6 @@ class MemberLocationsTest {
         createMember(wardId, "Near", "1 Main St", centerLat + 0.01, centerLng)
         val farId = createMember(wardId, "Far", "2 Main St", centerLat + 2.0, centerLng)
         val missingId = createMember(wardId, "Missing", "3 Main St", null, null)
-        // No address means nothing to look up, so these are never listed -
-        // whether their coordinates are missing or far away.
-        createMember(wardId, "No Address", "", null, null)
-        createMember(wardId, "No Address Far", "", centerLat + 2.0, centerLng)
-
         asAdmin()
             .`when`().get("/wards/$wardId/members/outliers?radiusKm=20")
             .then().statusCode(200)
@@ -90,6 +85,7 @@ class MemberLocationsTest {
             .body("members[1].member.id", equalTo(farId))
             .body("members[1].reason", equalTo("far"))
             .body("members[1].distanceKm.toDouble()", closeTo(222.4, 0.5))
+            .body("members.hasAddress", equalTo(listOf(true, true)))
 
         // A radius wide enough to include the far member leaves only the one
         // with no coordinates.
@@ -157,9 +153,12 @@ class MemberLocationsTest {
         asAdmin()
             .`when`().get("/wards/$wardId/members/outliers?radiusKm=20")
             .then().statusCode(200)
-            .body("members", hasSize<Any>(3))
+            .body("members", hasSize<Any>(4))
             .body("members.member.id", not(hasItem(fixable)))
-            .body("members.member.id", not(hasItem(noAddress)))
+            // A member with no address is still listed, but flagged as not
+            // something that can be looked up.
+            .body("members[0].member.id", equalTo(noAddress))
+            .body("members[0].hasAddress", equalTo(false))
     }
 
     @Test

@@ -28,7 +28,8 @@ import { Route as MemberEditRoute } from '@/routes/_protected/member/$id'
 import { Route as MemberRoute } from '@/routes/_protected/member/index'
 
 const KM_PER_MILE = 1.609344
-const DEFAULT_RADIUS_MILES = 15
+// Matches the ward map's default view, so the two report the same members.
+const DEFAULT_RADIUS_MILES = 5
 
 const formatMiles = (km: number) => {
   const miles = km / KM_PER_MILE
@@ -101,8 +102,10 @@ const MemberLocations = (): React.ReactElement => {
 
   const rows = frozenRows ?? data?.members ?? []
   const running = progress != null
+  // Rows without an address are shown but can't be looked up, so they are
+  // never selectable.
   const selectableIds = rows
-    .filter((row) => !results.has(row.member.id))
+    .filter((row) => row.hasAddress && !results.has(row.member.id))
     .map((row) => row.member.id)
   const selectedIds = selectableIds.filter((id) => selected.has(id))
   const allSelected =
@@ -175,7 +178,8 @@ const MemberLocations = (): React.ReactElement => {
         Lists members whose map pin is missing or further from the ward center
         than the distance below. Select the ones to fix and their coordinates
         are looked up again from their address. Members with no address on file
-        are not listed.
+        are listed but can't be selected - edit them to add an address or
+        coordinates.
       </p>
 
       {wardId <= 0 && (
@@ -301,19 +305,23 @@ const MemberLocations = (): React.ReactElement => {
                     </TableCell>
                   </TableRow>
                 )}
-                {rows.map(({ member, reason, distanceKm }) => {
+                {rows.map(({ member, reason, distanceKm, hasAddress }) => {
                   const result = results.get(member.id)
                   const name = `${member.familyName}, ${member.name}`
                   return (
                     <TableRow key={member.id}>
                       <TableCell>
-                        <input
-                          type="checkbox"
-                          aria-label={`Select ${name}`}
-                          checked={selected.has(member.id)}
-                          disabled={!canUpdate || running || !!result}
-                          onChange={() => toggle(member.id)}
-                        />
+                        {/* No checkbox at all without an address - a disabled one
+                            reads as selectable, especially in dark mode. */}
+                        {hasAddress && (
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${name}`}
+                            checked={selected.has(member.id)}
+                            disabled={!canUpdate || running || !!result}
+                            onChange={() => toggle(member.id)}
+                          />
+                        )}
                       </TableCell>
                       <TableCell>
                         <Link
@@ -333,9 +341,13 @@ const MemberLocations = (): React.ReactElement => {
                       <TableCell>
                         {result ? (
                           <ResultStatus result={result} />
-                        ) : (
+                        ) : hasAddress ? (
                           <span className="text-muted-foreground">
                             Needs review
+                          </span>
+                        ) : (
+                          <span className="text-yellow-800 dark:text-yellow-500">
+                            No address on file
                           </span>
                         )}
                       </TableCell>

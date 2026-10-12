@@ -182,7 +182,8 @@ class MembersResource(
 
     // Lists members whose pin is probably wrong: no coordinates at all, or
     // further than radiusKm from the ward's map center. Members with no address
-    // are left out, since their location can't be looked up. Needs the ward to have
+    // are listed too, flagged hasAddress=false since they can't be looked up.
+    // Needs the ward to have
     // a center set - there is nothing to measure against otherwise.
     @GET
     @Path("/outliers")
@@ -191,15 +192,14 @@ class MembersResource(
         if (radius <= 0) return badRequest("radiusKm must be greater than 0")
         val center = wardCenter() ?: return noCenterResponse()
         val outliers = memberRepository.findByWard(wardId).mapNotNull { m ->
-            // Nothing to look up without an address, so don't offer the member.
-            if (geoAddress(m).freeText.isBlank()) return@mapNotNull null
+            val hasAddress = geoAddress(m).freeText.isNotBlank()
             val lat = m.lat
             val lng = m.lng
             if (lat == null || lng == null) {
-                return@mapNotNull MemberOutlierDto(toDto(m), OutlierReason.missing, null)
+                return@mapNotNull MemberOutlierDto(toDto(m), OutlierReason.missing, null, hasAddress)
             }
             val distance = distanceKm(center, GeoPoint(lat, lng))
-            if (distance > radius) MemberOutlierDto(toDto(m), OutlierReason.far, distance) else null
+            if (distance > radius) MemberOutlierDto(toDto(m), OutlierReason.far, distance, hasAddress) else null
         }.sortedWith(compareBy({ it.distanceKm != null }, { -(it.distanceKm ?: 0.0) }))
         return Response.ok(MemberOutliersResponse(center.lat, center.lng, radius, outliers)).build()
     }

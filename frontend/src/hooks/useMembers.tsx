@@ -95,6 +95,8 @@ export type MemberOutlier = {
   member: MemberDto
   reason: 'missing' | 'far'
   distanceKm: number | null
+  // False when there is no address to look the member up by.
+  hasAddress: boolean
 }
 
 export type MemberOutliersResponse = {

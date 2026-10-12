@@ -9,6 +9,8 @@ data class MemberOutlierDto(
     val reason: OutlierReason,
     // Distance from the ward center; null when the member has no coordinates.
     val distanceKm: Double?,
+    // False when the member has no address, so there is nothing to look up.
+    val hasAddress: Boolean,
 )
 
 data class MemberOutliersResponse(
