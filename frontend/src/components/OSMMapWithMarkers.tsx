@@ -13,6 +13,8 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import L from 'leaflet'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
 import { deClutter } from '@/components/mapUtils.ts'
+import { UNASSIGNED_COLOR } from '@/lib/districtColors'
+import { cn } from '@/lib/utils'
 import { Route as DistrictRoute } from '@/routes/_protected/district/$id.tsx'
 import { Route as MemberLocationsRoute } from '@/routes/_protected/member/locations'
 import type { DistrictDto, MemberDto } from '@/type'
@@ -138,6 +140,10 @@ type MapWithMarkersProps = {
   // With a center, open zoomed to roughly this many miles around it rather
   // than fitting every member, and report how many members that leaves out.
   defaultRadiusMiles?: number
+  // Set to false to keep the default-radius view without the "N members are
+  // not shown" message (e.g. inside a form, where its link would navigate
+  // away from unsaved changes).
+  showOutsideStatus?: boolean
 }
 
 const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
@@ -183,7 +189,7 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
 
   function getMemberIcon(member: MemberDto): L.Icon {
     const { role, color } = findRoleDistrict(member)
-    const colorName = color ?? 'Blue'
+    const colorName = color ?? UNASSIGNED_COLOR
     const prefix =
       role === 'leader' ? 'Leader-' : role === 'assistant' ? 'Assistant-' : ''
     return new L.Icon({
@@ -258,24 +264,35 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
   }, [defaultBounds, props.members])
 
   return (
-    <div className="relative h-full w-full">
+    <div
+      className={cn(
+        'relative h-full w-full',
+        // While the caller is waiting for a map click (picking a center),
+        // show a crosshair instead of Leaflet's drag hand. Leaflet's own CSS
+        // is unlayered, so these need to be !important to win.
+        props.onMapClick &&
+          '[&_.leaflet-grab]:cursor-crosshair! [&_.leaflet-interactive]:cursor-crosshair!',
+      )}
+    >
       {radiusView && (
         <div className="absolute bottom-6 left-2 z-[1000] flex items-center gap-2 text-xs">
-          {defaultBounds && outsideCount > 0 && (
-            <span
-              className="rounded bg-background/90 px-2 py-1"
-              data-testid="members-outside-view"
-            >
-              {outsideCount} member{outsideCount === 1 ? ' is' : 's are'} not
-              shown in this view.{' '}
-              <Link
-                to={MemberLocationsRoute.to}
-                className="text-blue-600 dark:text-blue-400 hover:underline"
+          {props.showOutsideStatus !== false &&
+            defaultBounds &&
+            outsideCount > 0 && (
+              <span
+                className="rounded bg-background/90 px-2 py-1"
+                data-testid="members-outside-view"
               >
-                Check locations
-              </Link>
-            </span>
-          )}
+                {outsideCount} member{outsideCount === 1 ? ' is' : 's are'} not
+                shown in this view.{' '}
+                <Link
+                  to={MemberLocationsRoute.to}
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Check locations
+                </Link>
+              </span>
+            )}
           {!defaultBounds && (
             <button
               type="button"

@@ -15,6 +15,7 @@ import {
 import useUser from '@/context/useUser.tsx'
 import { useDeleteDistrict, useDistrict } from '@/hooks/useDistricts'
 import { getWardId } from '@/lib/api'
+import { districtColorValue } from '@/lib/districtColors'
 import { isWardAdmin } from '@/lib/roles'
 import { Route as DistrictRoute } from '@/routes/_protected/district/$id.tsx'
 import type { DistrictDto } from '@/type'
@@ -40,7 +41,17 @@ export default function DistrictCard(props: DistrictProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-        <CardTitle>{d.name}</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          {/* Same pin the district's members get on the map. */}
+          {d.color && (
+            <img
+              src={`/images/${d.color}.svg`}
+              alt=""
+              className="h-6 w-auto shrink-0"
+            />
+          )}
+          {d.name}
+        </CardTitle>
         <div className="flex gap-1">
           <Link to={DistrictRoute.to} params={{ id: String(d.id) }}>
             <Button size="icon" variant="ghost">
@@ -55,6 +66,20 @@ export default function DistrictCard(props: DistrictProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-1 text-sm">
+        <p className="flex items-center gap-2">
+          <span className="text-muted-foreground">Color: </span>
+          {d.color ? (
+            <>
+              <span
+                className="h-4 w-4 rounded border"
+                style={{ backgroundColor: districtColorValue(d.color) }}
+              />
+              {d.color}
+            </>
+          ) : (
+            'None'
+          )}
+        </p>
         <p>
           <span className="text-muted-foreground">Leader: </span>
           <MemberDisplayName member={data?.leader} />

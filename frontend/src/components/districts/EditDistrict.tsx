@@ -1,12 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useNavigate } from '@tanstack/react-router'
 import type React from 'react'
 import { useEffect, useState } from 'react'
 import { type Resolver, type SubmitHandler, useForm } from 'react-hook-form'
-import SaveButton from '@/components/styled/SaveButton.tsx'
+import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
 import { useDistrict } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
 import { authFetch, getWardId } from '@/lib/api'
+import { Route as DistrictsRoute } from '@/routes/_protected/district/index'
 import type { DistrictDto } from '@/type'
 import { DistrictSchema } from '@/type'
 import DistrictForm from './DistrictForm'
@@ -23,6 +25,7 @@ const EditDistrict = ({
   const [saving, setSaving] = useState<boolean>(false)
   const [formReady, setFormReady] = useState<boolean>(false)
   const wardId = getWardId()
+  const navigate = useNavigate()
 
   const form = useForm<DistrictDto>({
     resolver: zodResolver(DistrictSchema) as unknown as Resolver<DistrictDto>,
@@ -117,39 +120,50 @@ const EditDistrict = ({
     console.log('errors', form.formState.errors)
   }
 
+  // Save stays disabled until the user changes something. dirtyFields rather
+  // than isDirty: isDirty is already true on a blank form, because fields
+  // with no default value count as differing from the defaults.
+  const isDirty = Object.keys(form.formState.dirtyFields).length > 0
+
   return (
-    <div className="h-full flex flex-col items-center justify-center">
-      <div className="w-full rounded p-6 shadow-md">
-        <h2 className="text-xl font-semibold mb-4">
-          {readOnly ? 'View District' : 'Edit District'}
-        </h2>
+    // Fills the page height so the map can take all the space under the title.
+    <div className="flex h-full flex-col">
+      <h2 className="text-xl font-semibold mb-4">
+        {readOnly ? 'View District' : 'Edit District'}
+      </h2>
 
-        {data && !formReady && (
-          <p className="text-sm text-muted-foreground">Loading district…</p>
-        )}
+      {data && !formReady && (
+        <p className="text-sm text-muted-foreground">Loading district…</p>
+      )}
 
-        {data && formReady && (
-          <Form {...form}>
-            <form
-              action="#"
-              onSubmit={form.handleSubmit(onSubmit)}
-              method="POST"
-            >
-              <DistrictForm districtId={districtId} readOnly={readOnly} />
+      {data && formReady && (
+        <Form {...form}>
+          <form
+            action="#"
+            onSubmit={form.handleSubmit(onSubmit)}
+            method="POST"
+            className="flex min-h-0 flex-1 flex-col gap-4"
+          >
+            <DistrictForm districtId={districtId} readOnly={readOnly} />
 
-              {!readOnly && (
-                <div className="text-gray-700 mb-4">
-                  <SaveButton
-                    saving={saving}
-                    name="Save"
-                    disableName="Saving"
-                  />
-                </div>
-              )}
-            </form>
-          </Form>
-        )}
-      </div>
+            {!readOnly && (
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={saving}
+                  onClick={() => navigate({ to: DistrictsRoute.to })}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={saving || !isDirty}>
+                  {saving ? 'Saving...' : 'Save'}
+                </Button>
+              </div>
+            )}
+          </form>
+        </Form>
+      )}
     </div>
   )
 }

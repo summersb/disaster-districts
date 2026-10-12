@@ -28,9 +28,15 @@ import {
 } from '@/components/ui/popover'
 import { useDistricts } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
+import { useWard } from '@/hooks/useWards'
 import { getWardId } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import type { DistrictDto, MemberDto } from '@/type'
+
+// Same default zoom as the ward map (routes/_protected/dashboard/map.tsx).
+const WARD_VIEW_RADIUS_MILES = 5
+// Editing or viewing a district zooms to this far around the district center.
+const DISTRICT_VIEW_RADIUS_MILES = 1
 
 type DistrictFormProps = {
   districtId: number
@@ -58,6 +64,7 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
   const { data } = useMembers(wardId)
 
   const { data: districts } = useDistricts(wardId)
+  const { data: ward } = useWard(wardId)
   const color = form.watch('color')
   const leader = form.watch('leader')
   const assistant = form.watch('assistant')
@@ -96,6 +103,22 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
   const resolvedCenter =
     resolvedLat != null && resolvedLng != null
       ? { lat: resolvedLat, lng: resolvedLng }
+      : undefined
+
+  // A new district has no position of its own yet, so open its map the same
+  // way the ward map opens: 5 miles around the ward center. Without a saved
+  // ward center it falls back to the behavior above.
+  const wardCenter =
+    ward?.lat != null && ward?.lng != null
+      ? { lat: ward.lat, lng: ward.lng }
+      : undefined
+  const useWardView = districtId === 0 && wardCenter != null
+  // An existing district opens close in on its own center instead.
+  const useDistrictView = districtId !== 0 && resolvedCenter != null
+  const defaultRadiusMiles = useWardView
+    ? WARD_VIEW_RADIUS_MILES
+    : useDistrictView
+      ? DISTRICT_VIEW_RADIUS_MILES
       : undefined
 
   // For the map's districts list, mirror the form's pending leader/assistant
@@ -152,8 +175,10 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
   const assistantList = assistantCandidates.filter((m) => m.id !== leader?.id)
 
   return (
-    <div className="flex mb-4 ">
-      <div className="w-1/3 ml-2">
+    // Stretches to whatever height the page gives it: the fields scroll on
+    // their own and the map fills the rest.
+    <div className="flex min-h-0 flex-1">
+      <div className="w-1/3 overflow-y-auto pr-2">
         <div className="mb-4">
           <FormField
             control={form.control}
@@ -188,7 +213,7 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
                     <ColorPicker
                       selectedColor={field.value}
                       setSelectedColor={(color) => {
-                        form.setValue('color', color)
+                        form.setValue('color', color, { shouldDirty: true })
                       }}
                       disabled={readOnly}
                     />
@@ -239,7 +264,7 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
                           member?.formattedAddress ?? '',
                         ]}
                         onSelect={() => {
-                          form.setValue('leader', member)
+                          form.setValue('leader', member, { shouldDirty: true })
                           setOpenLeader(false)
                         }}
                       >
@@ -301,7 +326,9 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
                           member.formattedAddress ?? '',
                         ]}
                         onSelect={() => {
-                          form.setValue('assistant', member)
+                          form.setValue('assistant', member, {
+                            shouldDirty: true,
+                          })
                           setOpenAssistant(false)
                         }}
                       >
@@ -411,11 +438,13 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
         </div>
       </div>
       {districts && (
-        <div className="w-2/3 ml-2 h-[600px]">
+        <div className="w-2/3 ml-2 h-full min-h-[400px]">
           <OSMMapWithMarkers
             districts={mapDistricts as DistrictDto[]}
             members={mapMembers as MemberDto[]}
-            center={resolvedCenter}
+            center={useWardView ? wardCenter : resolvedCenter}
+            defaultRadiusMiles={defaultRadiusMiles}
+            showOutsideStatus={false}
             markerClicked={readOnly ? undefined : memberClicked}
             onMapClick={!readOnly && pickingCenter ? handleMapClick : undefined}
             showLabel

@@ -59,6 +59,11 @@ const EditMember = ({ memberId }: EditMemberProps): React.ReactElement => {
     }
   }
 
+  // Save stays disabled until the user changes something. dirtyFields rather
+  // than isDirty: isDirty is already true on a blank form, because fields
+  // with no default value count as differing from the defaults.
+  const isDirty = Object.keys(form.formState.dirtyFields).length > 0
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Edit Member</h1>
@@ -75,7 +80,7 @@ const EditMember = ({ memberId }: EditMemberProps): React.ReactElement => {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={saveMember.isPending}>
+            <Button type="submit" disabled={saveMember.isPending || !isDirty}>
               {saveMember.isPending ? 'Saving...' : 'Save'}
             </Button>
           </div>
