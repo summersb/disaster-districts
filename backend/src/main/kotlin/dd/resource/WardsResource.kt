@@ -1,6 +1,7 @@
 package dd.resource
 
 import dd.dao.WardDao
+import dd.geo.Geocoder
 import dd.repository.DistrictRepository
 import dd.repository.MemberRepository
 import dd.repository.UserAccountRepository
@@ -38,6 +39,7 @@ class WardsResource(
     val memberRepository: MemberRepository,
     val entityManager: EntityManager,
     val identity: SecurityIdentity,
+    val geocoder: Geocoder,
     @field:Context val uriInfo: UriInfo,
 ) {
 
@@ -139,7 +141,7 @@ class WardsResource(
     @Authenticated
     fun getMembers(@PathParam("wardId") wardId: Long): MembersResource {
         identity.requireWard(wardId)
-        return MembersResource(memberRepository, wardRepository, entityManager, identity, uriInfo, wardId)
+        return MembersResource(memberRepository, wardRepository, entityManager, identity, uriInfo, wardId, geocoder)
     }
 
     @GET

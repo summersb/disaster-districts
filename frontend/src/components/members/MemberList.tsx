@@ -1,6 +1,6 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Edit2, Plus, Trash2 } from 'lucide-react'
+import { Edit2, MapPinned, Plus, Trash2 } from 'lucide-react'
 import type React from 'react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,7 @@ import { getWardId } from '@/lib/api'
 import { isWardAdmin } from '@/lib/roles'
 import { Route as MemberEditRoute } from '@/routes/_protected/member/$id'
 import { Route as MemberAddRoute } from '@/routes/_protected/member/add'
+import { Route as MemberLocationsRoute } from '@/routes/_protected/member/locations'
 import type { MemberDto } from '@/type'
 
 const MemberList = (): React.ReactElement => {
@@ -105,10 +106,19 @@ const MemberList = (): React.ReactElement => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Members</h1>
-        <Button onClick={() => navigate({ to: MemberAddRoute.to })}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Member
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate({ to: MemberLocationsRoute.to })}
+          >
+            <MapPinned className="w-4 h-4 mr-2" />
+            Check Locations
+          </Button>
+          <Button onClick={() => navigate({ to: MemberAddRoute.to })}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Member
+          </Button>
+        </div>
       </div>
 
       <DataTable

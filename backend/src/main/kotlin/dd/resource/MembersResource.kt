@@ -1,6 +1,9 @@
 package dd.resource
 
 import dd.dao.MemberDao
+import dd.geo.GeoPoint
+import dd.geo.Geocoder
+import dd.geo.distanceKm
 import dd.repository.MemberRepository
 import dd.repository.WardRepository
 import dd.security.requireWardManager
@@ -15,6 +18,7 @@ import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.PathParam
 import jakarta.ws.rs.Produces
+import jakarta.ws.rs.QueryParam
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status
@@ -29,6 +33,7 @@ class MembersResource(
     val identity: SecurityIdentity,
     val uriInfo: UriInfo,
     val wardId: Long,
+    val geocoder: Geocoder,
 ) {
     private fun toDto(m: MemberDao) = MemberDto(
         id = m.id,
@@ -159,6 +164,102 @@ class MembersResource(
         return Response.status(207).entity(body).build()
     }
 
+    private fun wardCenter(): GeoPoint? {
+        val ward = wardId.takeIf { it > 0 }?.let { wardRepository.findById(it) } ?: return null
+        val lat = ward.lat ?: return null
+        val lng = ward.lng ?: return null
+        return GeoPoint(lat, lng)
+    }
+
+    private fun noCenterResponse() = Response.status(Status.CONFLICT)
+        .entity(mapOf("error" to "Set the ward's map center before checking member locations"))
+        .build()
+
+    private fun badRequest(message: String) =
+        Response.status(Status.BAD_REQUEST).entity(mapOf("error" to message)).build()
+
+    // Lists members whose pin is probably wrong: no coordinates at all, or
+    // further than radiusKm from the ward's map center. Members with no address
+    // are left out, since their location can't be looked up. Needs the ward to have
+    // a center set - there is nothing to measure against otherwise.
+    @GET
+    @Path("/outliers")
+    fun getOutliers(@QueryParam("radiusKm") radiusKm: Double?): Response {
+        val radius = radiusKm ?: DEFAULT_RADIUS_KM
+        if (radius <= 0) return badRequest("radiusKm must be greater than 0")
+        val center = wardCenter() ?: return noCenterResponse()
+        val outliers = memberRepository.findByWard(wardId).mapNotNull { m ->
+            // Nothing to look up without an address, so don't offer the member.
+            if (addressQuery(m).isBlank()) return@mapNotNull null
+            val lat = m.lat
+            val lng = m.lng
+            if (lat == null || lng == null) {
+                return@mapNotNull MemberOutlierDto(toDto(m), OutlierReason.missing, null)
+            }
+            val distance = distanceKm(center, GeoPoint(lat, lng))
+            if (distance > radius) MemberOutlierDto(toDto(m), OutlierReason.far, distance) else null
+        }.sortedWith(compareBy({ it.distanceKm != null }, { -(it.distanceKm ?: 0.0) }))
+        return Response.ok(MemberOutliersResponse(center.lat, center.lng, radius, outliers)).build()
+    }
+
+    // Re-derives the selected members' coordinates from their address using
+    // OpenStreetMap. The geocoder is rate limited to one lookup per second, so
+    // this is deliberately small-batch (MAX_GEOCODE_BATCH per request) and the
+    // lookups run outside any database transaction. A match is only saved if
+    // it lands within radiusKm of the ward center; otherwise it is reported as
+    // too_far and the member is left unchanged.
+    @POST
+    @Path("/geocode")
+    fun geocodeMembers(request: GeocodeMembersRequest): Response {
+        identity.requireWardManager(wardId)
+        val radius = request.radiusKm ?: DEFAULT_RADIUS_KM
+        if (radius <= 0) return badRequest("radiusKm must be greater than 0")
+        if (request.memberIds.size > MAX_GEOCODE_BATCH) {
+            return badRequest("At most $MAX_GEOCODE_BATCH members can be looked up per request")
+        }
+        val center = wardCenter() ?: return noCenterResponse()
+
+        val results = request.memberIds.distinct().map { id ->
+            try {
+                val address = QuarkusTransaction.call<String?> {
+                    memberRepository.findById(id)?.takeIf { it.ward?.id == wardId }?.let { addressQuery(it) }
+                } ?: return@map GeocodeMemberResult(id, GeocodeStatus.failed, error = "Member not found")
+                if (address.isBlank()) {
+                    return@map GeocodeMemberResult(id, GeocodeStatus.no_address, error = "No address on file")
+                }
+                val point = geocoder.geocode(address, center)
+                    ?: return@map GeocodeMemberResult(id, GeocodeStatus.not_found, error = "No match for \"$address\"")
+                val distance = distanceKm(center, point)
+                if (distance > radius) {
+                    return@map GeocodeMemberResult(
+                        id, GeocodeStatus.too_far, point.lat, point.lng, distance,
+                        "The match for \"$address\" is outside the ward area",
+                    )
+                }
+                QuarkusTransaction.call<GeocodeMemberResult> {
+                    val member = memberRepository.findById(id)
+                        ?: return@call GeocodeMemberResult(id, GeocodeStatus.failed, error = "Member not found")
+                    member.lat = point.lat
+                    member.lng = point.lng
+                    GeocodeMemberResult(id, GeocodeStatus.updated, point.lat, point.lng, distance)
+                }
+            } catch (e: Exception) {
+                GeocodeMemberResult(id, GeocodeStatus.failed, error = e.message ?: "Lookup failed")
+            }
+        }
+        val updated = results.count { it.status == GeocodeStatus.updated }
+        val body = GeocodeMembersResponse(updated = updated, failed = results.size - updated, results = results)
+        return Response.status(207).entity(body).build()
+    }
+
+    // Prefer the structured address parts (cleaner for a geocoder than the
+    // display string); fall back to formattedAddress when they're empty.
+    private fun addressQuery(m: MemberDao): String {
+        val parts = listOf(m.address1, m.city, listOfNotNull(m.state, m.postalCode).joinToString(" "))
+            .mapNotNull { it?.trim()?.takeIf(String::isNotEmpty) }
+        return if (m.address1.isNullOrBlank()) m.formattedAddress?.trim().orEmpty() else parts.joinToString(", ")
+    }
+
     @PUT
     @Path("/{id}")
     fun updateMember(@PathParam("id") id: Long, member: MemberRequest): Response = QuarkusTransaction.call<Response> {
@@ -198,5 +299,10 @@ class MembersResource(
             .setParameter("id", id).executeUpdate()
         memberRepository.delete(member)
         Response.noContent().build()
+    }
+
+    companion object {
+        const val DEFAULT_RADIUS_KM = 25.0
+        const val MAX_GEOCODE_BATCH = 25
     }
 }

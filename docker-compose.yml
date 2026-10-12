@@ -55,6 +55,8 @@ services:
       DATABASE_NAME: ${DATABASE_NAME}
       DATABASE_HOST: ${DATABASE_HOST}
       QUARKUS_HTTP_HOST: 0.0.0.0
+      # Optional contact address sent with OpenStreetMap (Nominatim) lookups.
+      GEOCODER_CONTACT_EMAIL: ${GEOCODER_CONTACT_EMAIL:-}
     command: ["./mvnw", "quarkus:dev"]
     volumes:
       - ./backend:/app

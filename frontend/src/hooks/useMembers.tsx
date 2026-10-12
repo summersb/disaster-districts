@@ -91,6 +91,74 @@ export const useImportMembers = () => {
   })
 }
 
+export type MemberOutlier = {
+  member: MemberDto
+  reason: 'missing' | 'far'
+  distanceKm: number | null
+}
+
+export type MemberOutliersResponse = {
+  centerLat: number
+  centerLng: number
+  radiusKm: number
+  members: MemberOutlier[]
+}
+
+// Thrown by useMemberOutliers when the ward has no map center to measure from.
+export class NoWardCenterError extends Error {}
+
+// Members with no coordinates, or further than radiusKm from the ward center.
+export const useMemberOutliers = (wardId: number, radiusKm: number) =>
+  useQuery<MemberOutliersResponse>({
+    queryKey: ['members', wardId, 'outliers', radiusKm],
+    queryFn: async () => {
+      const res = await authFetch(
+        `/api/wards/${wardId}/members/outliers?radiusKm=${radiusKm}`,
+      )
+      if (res.status === 409) throw new NoWardCenterError()
+      if (!res.ok) throw new Error(`Failed to check locations: ${res.status}`)
+      return res.json()
+    },
+    enabled: wardId > 0 && radiusKm > 0,
+    retry: false,
+  })
+
+export type GeocodeMemberResult = {
+  memberId: number
+  status: 'updated' | 'not_found' | 'too_far' | 'no_address' | 'failed'
+  lat?: number | null
+  lng?: number | null
+  distanceKm?: number | null
+  error?: string | null
+}
+
+export type GeocodeMembersResponse = {
+  updated: number
+  failed: number
+  results: GeocodeMemberResult[]
+}
+
+// The server looks addresses up on OpenStreetMap at one per second and caps
+// each request at 25, so keep batches small enough to finish well inside the
+// proxy timeout.
+export const GEOCODE_BATCH_SIZE = 10
+
+// Re-derives lat/lng from the address for one batch of members. Does not
+// invalidate queries itself - the caller does that once all batches are done.
+export const geocodeMembers = async (
+  wardId: number,
+  memberIds: number[],
+  radiusKm: number,
+): Promise<GeocodeMembersResponse> => {
+  const res = await authFetch(`/api/wards/${wardId}/members/geocode`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ memberIds, radiusKm }),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 export const useSaveMember = () => {
   const queryClient = useQueryClient()
 
