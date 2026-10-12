@@ -1,4 +1,3 @@
-import haversine from 'haversine'
 import type { MemberDto } from '@/type'
 
 export type GeocodeResult = {
@@ -38,38 +37,6 @@ export const memberAddressQuery = (member: MemberDto): string =>
   ]
     .filter(Boolean)
     .join(', ')
-
-export const deClutter = (members: MemberDto[]): MemberDto[] => {
-  if (!members) {
-    return []
-  }
-  const validLatLng = members.filter((m) => m?.lat != null && m?.lng != null)
-
-  return validLatLng.map((m) => {
-    if (m.lat == null || m.lng == null) {
-      return m
-    }
-    const start = { latitude: m.lat, longitude: m.lng }
-
-    const toClose = validLatLng
-      .filter((mm) => mm.id !== m.id)
-      .find((otherM) => {
-        if (otherM.lat == null || otherM.lng == null) {
-          return undefined
-        }
-        const end = { latitude: otherM.lat, longitude: otherM.lng }
-        const distance = haversine(start, end)
-        return distance < 0.01
-      })
-    if (toClose) {
-      return {
-        ...m,
-        lat: (m?.lat ?? 0) + 0.0005,
-      }
-    }
-    return m
-  })
-}
 
 type Pixel = { x: number; y: number }
 type LatLng = { lat: number; lng: number }

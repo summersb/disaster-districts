@@ -27,7 +27,6 @@ import { Route as ProtectedMemberIdRouteImport } from './routes/_protected/membe
 import { Route as ProtectedMemberAddRouteImport } from './routes/_protected/member/add'
 import { Route as ProtectedMemberLocationsRouteImport } from './routes/_protected/member/locations'
 import { Route as ProtectedPrintIndexRouteImport } from './routes/_protected/print/index'
-import { Route as ProtectedPrintDistrictIdRouteImport } from './routes/_protected/print/$districtId'
 import { Route as ProtectedSettingsIndexRouteImport } from './routes/_protected/settings/index'
 import { Route as ProtectedAdminJoinRequestsIndexRouteImport } from './routes/_protected/admin/join-requests/index'
 import { Route as ProtectedDistrictSplitIdRouteImport } from './routes/_protected/district/split.$id'
@@ -124,12 +123,6 @@ const ProtectedPrintIndexRoute = ProtectedPrintIndexRouteImport.update({
   path: '/print/',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
-const ProtectedPrintDistrictIdRoute =
-  ProtectedPrintDistrictIdRouteImport.update({
-    id: '/print/$districtId',
-    path: '/print/$districtId',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
 const ProtectedSettingsIndexRoute = ProtectedSettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
@@ -166,7 +159,6 @@ export interface FileRoutesByFullPath {
   '/member/$id': typeof ProtectedMemberIdRoute
   '/member/add': typeof ProtectedMemberAddRoute
   '/member/locations': typeof ProtectedMemberLocationsRoute
-  '/print/$districtId': typeof ProtectedPrintDistrictIdRoute
   '/admin/': typeof ProtectedAdminIndexRoute
   '/dashboard/': typeof ProtectedDashboardIndexRoute
   '/district/': typeof ProtectedDistrictIndexRoute
@@ -191,7 +183,6 @@ export interface FileRoutesByTo {
   '/member/$id': typeof ProtectedMemberIdRoute
   '/member/add': typeof ProtectedMemberAddRoute
   '/member/locations': typeof ProtectedMemberLocationsRoute
-  '/print/$districtId': typeof ProtectedPrintDistrictIdRoute
   '/admin': typeof ProtectedAdminIndexRoute
   '/dashboard': typeof ProtectedDashboardIndexRoute
   '/district': typeof ProtectedDistrictIndexRoute
@@ -217,7 +208,6 @@ export interface FileRoutesById {
   '/_protected/member/$id': typeof ProtectedMemberIdRoute
   '/_protected/member/add': typeof ProtectedMemberAddRoute
   '/_protected/member/locations': typeof ProtectedMemberLocationsRoute
-  '/_protected/print/$districtId': typeof ProtectedPrintDistrictIdRoute
   '/_protected/admin/': typeof ProtectedAdminIndexRoute
   '/_protected/dashboard/': typeof ProtectedDashboardIndexRoute
   '/_protected/district/': typeof ProtectedDistrictIndexRoute
@@ -244,7 +234,6 @@ export interface FileRouteTypes {
     | '/member/$id'
     | '/member/add'
     | '/member/locations'
-    | '/print/$districtId'
     | '/admin/'
     | '/dashboard/'
     | '/district/'
@@ -269,7 +258,6 @@ export interface FileRouteTypes {
     | '/member/$id'
     | '/member/add'
     | '/member/locations'
-    | '/print/$districtId'
     | '/admin'
     | '/dashboard'
     | '/district'
@@ -294,7 +282,6 @@ export interface FileRouteTypes {
     | '/_protected/member/$id'
     | '/_protected/member/add'
     | '/_protected/member/locations'
-    | '/_protected/print/$districtId'
     | '/_protected/admin/'
     | '/_protected/dashboard/'
     | '/_protected/district/'
@@ -443,13 +430,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedPrintIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
-    '/_protected/print/$districtId': {
-      id: '/_protected/print/$districtId'
-      path: '/print/$districtId'
-      fullPath: '/print/$districtId'
-      preLoaderRoute: typeof ProtectedPrintDistrictIdRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
     '/_protected/settings/': {
       id: '/_protected/settings/'
       path: '/settings'
@@ -489,7 +469,6 @@ interface ProtectedRouteRouteChildren {
   ProtectedMemberIdRoute: typeof ProtectedMemberIdRoute
   ProtectedMemberAddRoute: typeof ProtectedMemberAddRoute
   ProtectedMemberLocationsRoute: typeof ProtectedMemberLocationsRoute
-  ProtectedPrintDistrictIdRoute: typeof ProtectedPrintDistrictIdRoute
   ProtectedAdminIndexRoute: typeof ProtectedAdminIndexRoute
   ProtectedDashboardIndexRoute: typeof ProtectedDashboardIndexRoute
   ProtectedDistrictIndexRoute: typeof ProtectedDistrictIndexRoute
@@ -510,7 +489,6 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedMemberIdRoute: ProtectedMemberIdRoute,
   ProtectedMemberAddRoute: ProtectedMemberAddRoute,
   ProtectedMemberLocationsRoute: ProtectedMemberLocationsRoute,
-  ProtectedPrintDistrictIdRoute: ProtectedPrintDistrictIdRoute,
   ProtectedAdminIndexRoute: ProtectedAdminIndexRoute,
   ProtectedDashboardIndexRoute: ProtectedDashboardIndexRoute,
   ProtectedDistrictIndexRoute: ProtectedDistrictIndexRoute,
