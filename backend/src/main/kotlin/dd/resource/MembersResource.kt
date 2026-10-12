@@ -308,7 +308,7 @@ class MembersResource(
         // in this session still pointing at the member being removed.
         member.ward?.let { ward -> if (ward.leader?.id == id) ward.leader = null }
         // A login linked to this member just loses the link.
-        entityManager.createQuery("update Users u set u.member = null where u.member.id = :id")
+        entityManager.createNativeQuery("delete from user_members where member_id = :id")
             .setParameter("id", id).executeUpdate()
         memberRepository.delete(member)
         Response.noContent().build()

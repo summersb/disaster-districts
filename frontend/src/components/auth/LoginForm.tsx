@@ -21,10 +21,9 @@ import {
   FormMessage,
 } from '@/components/ui/form.tsx'
 import { Input } from '@/components/ui/input.tsx'
-import type { User } from '@/context/UserContext.tsx'
-import useUser from '@/context/useUser.tsx'
-import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
 import { googleLogin, login } from '@/hooks/useLogin.tsx'
+import { useSession } from '@/hooks/useSession'
+import type { AuthPayload } from '@/lib/session'
 import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
 import { Route as SignupRoute } from '@/routes/signup'
 import { type LoginRequest, LoginSchema } from '@/type/User.ts'
@@ -32,38 +31,15 @@ import { type LoginRequest, LoginSchema } from '@/type/User.ts'
 export function LoginForm() {
   const [error, setError] = useState<string>()
   const navigate = useNavigate()
-  const [, setUser] = useLocalStorageState<User>('user', undefined)
   const search = useSearch({ from: '/login/' })
-  const auth = useUser()
+  const { signIn } = useSession()
   const form = useForm<LoginRequest>({
     resolver: zodResolver(LoginSchema),
     defaultValues: { email: '', password: '' },
   })
 
-  const handleAuthSuccess = async (json: {
-    token: string
-    id?: number
-    email: string
-    roles?: string[]
-    wardId?: number
-    memberId?: number
-  }) => {
-    auth.setUser({
-      id: json.id,
-      email: json.email,
-      token: json.token,
-      roles: json.roles,
-      wardId: json.wardId,
-      memberId: json.memberId,
-    })
-    setUser({
-      id: json.id,
-      email: json.email,
-      token: json.token,
-      roles: json.roles,
-      wardId: json.wardId,
-      memberId: json.memberId,
-    })
+  const handleAuthSuccess = async (json: AuthPayload) => {
+    signIn(json)
     const from = search.from || DashboardRoute.to
     await navigate({ to: from, replace: true })
   }

@@ -10,6 +10,10 @@ import io.quarkus.security.runtime.QuarkusSecurityIdentity
 import io.smallrye.mutiny.Uni
 import jakarta.enterprise.context.ApplicationScoped
 
+// A user can belong to several wards with a different role in each, so beyond
+// the flat role set the identity carries the roles per ward ("wardRoles");
+// dd.security.Authz checks a request against the ward it is actually about.
+//
 // Roles and ward membership can change at any time (an admin edits a user's
 // roles, approves a join request, etc.) and must take effect immediately, so
 // they are looked up fresh from the database on every request rather than
@@ -41,7 +45,7 @@ class UserIdentityAugmentor(
             QuarkusSecurityIdentity.builder(identity)
                 .addRoles(roles)
                 .addAttribute("userId", user.id)
-                .addAttribute("wardId", user.getWard()?.id)
+                .addAttribute("wardRoles", user.wardRoles().mapValues { it.value.toSet() })
                 .addAttribute("leaderDistrictIds", ledDistrictIds.toSet())
                 .build()
         }

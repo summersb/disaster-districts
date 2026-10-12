@@ -26,4 +26,11 @@ export type UserDto = {
   memberId?: number | null
   // Districts that member leads or assists (what makes a district leader).
   leaderDistrictIds?: number[]
+  // Every ward the user belongs to, with their roles in each.
+  wards?: {
+    id: number
+    name: string
+    roles: string[]
+    memberId?: number | null
+  }[]
 }

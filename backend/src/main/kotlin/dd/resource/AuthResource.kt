@@ -6,7 +6,8 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import dd.dao.UserAccountDao
 import dd.dao.UserRoleDao
 import dd.repository.UserAccountRepository
-import dd.security.DistrictLeaders
+import io.quarkus.security.Authenticated
+import io.quarkus.security.identity.SecurityIdentity
 import io.smallrye.jwt.build.Jwt
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.Consumes
@@ -26,17 +27,35 @@ import java.time.temporal.ChronoUnit
 @Path("/auth")
 class AuthResource(
     val userAccountRepository: UserAccountRepository,
-    val districtLeaders: DistrictLeaders,
+    val userViews: UserViews,
+    val identity: SecurityIdentity,
 ) {
 
-    private fun authResponse(token: String, user: UserAccountDao) = AuthResponse(
-        token = token,
-        id = user.id,
-        email = user.email,
-        roles = districtLeaders.roles(user),
-        wardId = user.getWard()?.id,
-        memberId = user.member?.id,
-    )
+    private fun authResponse(token: String?, user: UserAccountDao): AuthResponse {
+        val dto = userViews.toDto(user)
+        return AuthResponse(
+            token = token,
+            id = dto.id,
+            email = dto.email,
+            roles = dto.roles ?: emptyList(),
+            wardId = dto.wardId,
+            memberId = dto.memberId,
+            wards = dto.wards ?: emptyList(),
+        )
+    }
+
+    // The signed-in user's current wards and roles, without a new token. The
+    // app calls this when it loads, so a role or ward granted since the last
+    // sign-in shows up without signing in again.
+    @GET
+    @Path("/me")
+    @Authenticated
+    @Produces(MediaType.APPLICATION_JSON)
+    fun me(): Response {
+        val user = userAccountRepository.findByEmail(identity.principal.name)
+            ?: return Response.status(Response.Status.UNAUTHORIZED).build()
+        return Response.ok(authResponse(null, user)).build()
+    }
 
     private fun verifyPassword(password: String, storedHash: String): Boolean {
         return BCrypt.verifyer().verify(password.toCharArray(), storedHash).verified
@@ -163,13 +182,17 @@ data class SetupRequest(
 )
 
 data class AuthResponse(
-    val token: String,
+    // Absent from GET /auth/me, which refreshes a session that already has one.
+    val token: String?,
     val id: Long?,
     val email: String,
+    // Every role held anywhere; see `wards` for which role applies where.
     val roles: List<String>,
+    // The user's first ward - the default when the client hasn't chosen one.
     val wardId: Long?,
-    // The member record this login is linked to, if any.
     val memberId: Long? = null,
+    // The wards the user can work in, with their roles in each.
+    val wards: List<UserWardDto> = emptyList(),
 )
 
 data class GoogleTokenRequest(

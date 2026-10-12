@@ -1,6 +1,6 @@
 import { expect, test } from './coverage-fixtures'
 
-test('admin can pick a ward, add a user, change their role, and remove them', async ({
+test('admin can enter a ward, add a user, change their role, and remove them', async ({
   page,
   request,
 }) => {
@@ -15,10 +15,12 @@ test('admin can pick a ward, add a user, change their role, and remove them', as
   await page.getByRole('button', { name: 'Sign In', exact: true }).click()
   await page.waitForURL(/\/dashboard/)
 
-  await page.goto('/admin')
-
-  // The ward select should default to a real ward and load its users table.
-  await expect(page.getByRole('combobox').first()).toHaveText('Sample Ward')
+  // A system admin starts outside any ward; a ward's users are managed from
+  // inside it, so step into Sample Ward with the switcher first.
+  await page.getByRole('combobox', { name: 'Switch ward' }).click()
+  await page.getByRole('option', { name: 'Sample Ward', exact: true }).click()
+  await page.getByRole('link', { name: 'Ward Users' }).click()
+  await expect(page.getByRole('heading', { name: 'Ward Users' })).toBeVisible()
   await page.getByPlaceholder('Search users...').fill('user1@example.com')
   await expect(
     page.getByRole('cell', { name: 'user1@example.com' }),
@@ -26,10 +28,12 @@ test('admin can pick a ward, add a user, change their role, and remove them', as
   await page.getByPlaceholder('Search users...').fill('')
 
   // Add the new user to this ward via the picker on top of the table.
-  const addWardSelect = page.getByRole('combobox').nth(1)
+  const addWardSelect = page.getByRole('combobox', {
+    name: 'Add a user to this ward',
+  })
   await addWardSelect.click()
   await page.getByRole('option', { name: email }).click()
-  await page.getByRole('button', { name: 'Add' }).click()
+  await page.getByRole('button', { name: 'Add', exact: true }).click()
 
   // The ward has 50+ users, so the new row may be off the first page -
   // search for it, which also exercises the table's search box.

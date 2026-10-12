@@ -189,7 +189,28 @@ class AuthorizationTest {
     }
 
     @Test
-    fun `a ward admin cannot take a user from another ward or touch a system admin`() {
+    fun `a ward admin can add a user who is in another ward without taking them from it`() {
+        val wardId = createWard()
+        val otherWardId = createWard()
+        val (_, adminEmail) = createWardAdmin(wardId)
+        val (otherWardUser, _) = createWardAdmin(otherWardId)
+
+        asUser(adminEmail)
+            .contentType(ContentType.JSON)
+            .body("""{"wardId": $wardId}""")
+            .`when`().put("/users/$otherWardUser")
+            .then().statusCode(200)
+
+        // They are an ordinary member here and still the admin over there.
+        asAdmin()
+            .`when`().get("/users/$otherWardUser")
+            .then().statusCode(200)
+            .body("wards.find { it.id == $wardId }.roles", equalTo(listOf("user")))
+            .body("wards.find { it.id == $otherWardId }.roles", equalTo(listOf("ward_admin")))
+    }
+
+    @Test
+    fun `a ward admin cannot touch a system admin or act on a ward they do not run`() {
         val wardId = createWard()
         val otherWardId = createWard()
         val (_, adminEmail) = createWardAdmin(wardId)
@@ -198,12 +219,6 @@ class AuthorizationTest {
             .`when`().get("/users")
             .then().statusCode(200)
             .extract().jsonPath().getInt("find { it.email == 'admin@example.com' }.id")
-
-        asUser(adminEmail)
-            .contentType(ContentType.JSON)
-            .body("""{"wardId": $wardId}""")
-            .`when`().put("/users/$otherWardUser")
-            .then().statusCode(403)
 
         // The system admin has no ward either, but is not up for grabs.
         asUser(adminEmail)
@@ -215,6 +230,18 @@ class AuthorizationTest {
             .`when`().get("/users/$systemAdminId")
             .then().statusCode(200)
             .body("roles", equalTo(listOf("admin")))
+
+        // Changing someone's role in, or removing them from, the other ward.
+        asUser(adminEmail)
+            .contentType(ContentType.JSON)
+            .body("""{"roles": ["user"], "wardId": $otherWardId}""")
+            .`when`().put("/users/$otherWardUser")
+            .then().statusCode(403)
+        asUser(adminEmail)
+            .contentType(ContentType.JSON)
+            .body("""{"removeFromWard": true, "wardId": $otherWardId}""")
+            .`when`().put("/users/$otherWardUser")
+            .then().statusCode(403)
     }
 
     @Test

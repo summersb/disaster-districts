@@ -66,14 +66,18 @@ export const useResolveJoinRequest = () => {
       id,
       approve,
       assignedRole,
+      memberId,
     }: {
       id: number
       approve: boolean
       assignedRole?: string
+      // When approving: the ward member this account is, linked in the same
+      // step.
+      memberId?: number
     }) =>
       authFetch(`/api/join-requests/${id}`, {
         method: 'PUT',
-        body: JSON.stringify({ approve, assignedRole }),
+        body: JSON.stringify({ approve, assignedRole, memberId }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['joinRequests'] })

@@ -9,7 +9,8 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
-import jakarta.persistence.ManyToOne
+import jakarta.persistence.JoinTable
+import jakarta.persistence.ManyToMany
 import jakarta.persistence.OneToMany
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
@@ -31,10 +32,15 @@ open class UserAccountDao : PanacheEntityBase {
     @Column(name = "password_hash", length = 255)
     var passwordHash: String? = null
 
-    // The member record for this same person, if a ward admin has linked one.
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id")
-    var member: MemberDao? = null
+    // The member records that are this same person - at most one per ward the
+    // user belongs to, linked by a ward admin.
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "user_members",
+        joinColumns = [JoinColumn(name = "user_id")],
+        inverseJoinColumns = [JoinColumn(name = "member_id")],
+    )
+    var members: MutableSet<MemberDao> = mutableSetOf()
 
     @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.EAGER)
     var userRoles: MutableList<UserRoleDao> = mutableListOf()
@@ -43,5 +49,17 @@ open class UserAccountDao : PanacheEntityBase {
 
     fun hasRole(role: String): Boolean = userRoles.any { it.role == role }
 
+    /** The first ward the user belongs to - their default when none is chosen. */
     fun getWard(): WardDao? = userRoles.firstOrNull { it.ward != null }?.ward
+
+    /** The user's roles in each ward they belong to, keyed by ward id. */
+    fun wardRoles(): Map<Long, List<String>> =
+        userRoles.filter { it.ward?.id != null }
+            .groupBy({ it.ward!!.id!! }, { it.role })
+            .mapValues { it.value.distinct() }
+
+    fun wardIds(): Set<Long> = wardRoles().keys
+
+    /** The member record linked to this user in [wardId], if any. */
+    fun memberIn(wardId: Long?): MemberDao? = members.firstOrNull { it.ward?.id == wardId }
 }

@@ -138,7 +138,9 @@ class WardsResource(
         run("update Member m set m.district = null where m.ward.id = :id")
         run("delete from District d where d.ward.id = :id")
         // Logins linked to this ward's members lose the link with them.
-        run("update Users u set u.member = null where u.member.id in (select m.id from Member m where m.ward.id = :id)")
+        entityManager.createNativeQuery(
+            "delete from user_members where member_id in (select id from members where ward_id = :id)"
+        ).setParameter("id", id).executeUpdate()
         run("delete from Member m where m.ward.id = :id")
         run("delete from UserRole r where r.ward.id = :id")
         run("delete from Ward w where w.id = :id")
@@ -196,19 +198,21 @@ class WardsResource(
 
     @GET
     @Path("{wardId}/users")
-    @RolesAllowed("admin", "ward_admin")
+    @Authenticated
     @Produces(MediaType.APPLICATION_JSON)
     fun getWardUsers(@PathParam("wardId") wardId: Long): Response {
-        identity.requireWard(wardId)
+        // Roles, member link and led districts are all reported as they are
+        // in *this* ward - a user may hold something different elsewhere.
+        identity.requireWardManager(wardId)
         val users = userAccountRepository.findByWardId(wardId).map { u ->
             UserDto(
                 id = u.id,
                 email = u.email,
                 name = u.name,
-                roles = districtLeaders.roles(u),
-                wardId = u.getWard()?.id,
-                memberId = u.member?.id,
-                leaderDistrictIds = districtLeaders.districtIds(u),
+                roles = districtLeaders.rolesIn(u, wardId),
+                wardId = wardId,
+                memberId = u.memberIn(wardId)?.id,
+                leaderDistrictIds = districtLeaders.districtIds(u, wardId),
             )
         }
         return Response.ok(users).build()

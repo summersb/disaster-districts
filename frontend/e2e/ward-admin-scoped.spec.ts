@@ -1,7 +1,7 @@
 import { expect, test } from './coverage-fixtures'
 import { adminAuthHeaders } from './helpers'
 
-test('a ward_admin sees the Admin page scoped to their own ward only', async ({
+test('a ward_admin manages their own ward from Ward Users, not the system Admin page', async ({
   page,
   request,
 }) => {
@@ -34,18 +34,21 @@ test('a ward_admin sees the Admin page scoped to their own ward only', async ({
   await page.getByRole('button', { name: 'Sign In', exact: true }).click()
   await page.waitForURL(/\/dashboard/)
 
-  // ward_admin can manage users, but isn't a system admin.
-  await expect(page.getByRole('link', { name: 'Admin' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Ward Requests' })).toHaveCount(0)
-
-  await page.goto('/admin')
+  // ward_admin can manage their ward's users, but isn't a system admin: no
+  // Admin link, and the system page sends them back to the dashboard.
+  await expect(page.getByRole('link', { name: 'Ward Users' })).toBeVisible()
   await expect(
-    page.getByRole('heading', { name: 'Admin Dashboard' }),
-  ).toBeVisible()
+    page.getByRole('link', { name: 'Admin', exact: true }),
+  ).toHaveCount(0)
+  await page.goto('/admin')
+  await expect(page).toHaveURL(/\/dashboard/)
 
-  const wardSelect = page.getByRole('combobox').first()
-  await expect(wardSelect).toHaveText(ward.name)
-  await expect(wardSelect).toBeDisabled()
+  // The sidebar says which ward they are in and as what.
+  await expect(page.getByTestId('ward-switcher')).toContainText(ward.name)
+  await expect(page.getByTestId('ward-switcher')).toContainText('Ward Admin')
+
+  await page.goto('/ward-users')
+  await expect(page.getByRole('heading', { name: 'Ward Users' })).toBeVisible()
 
   // Sample Ward has 50+ users, so search for this one rather than assuming
   // it's on the first page.

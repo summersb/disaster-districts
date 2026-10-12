@@ -4,9 +4,11 @@ import {
   redirect,
   useNavigate,
 } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import Sidebar from '@/components/Sidebar.tsx'
 import type { User } from '@/context/UserContext.tsx'
 import useUser from '@/context/useUser.tsx'
+import { useSession } from '@/hooks/useSession'
 
 export const Route = createFileRoute('/_protected')({
   beforeLoad: ({ location, context }) => {
@@ -23,6 +25,12 @@ export const Route = createFileRoute('/_protected')({
 function MainLayout() {
   const { user } = useUser()
   const navigate = useNavigate()
+  const { refresh } = useSession()
+
+  // Pick up wards and roles granted or removed since the last sign-in.
+  useEffect(() => {
+    refresh().catch(() => {})
+  }, [refresh])
 
   if (!user.email) {
     navigate({ to: '/login' }).catch((_err) => {})

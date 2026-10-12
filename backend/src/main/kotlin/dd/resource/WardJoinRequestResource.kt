@@ -2,6 +2,7 @@ package dd.resource
 
 import dd.dao.UserRoleDao
 import dd.dao.WardJoinRequestDao
+import dd.repository.MemberRepository
 import dd.repository.UserAccountRepository
 import dd.repository.WardJoinRequestRepository
 import dd.repository.WardRepository
@@ -9,7 +10,7 @@ import dd.security.GRANTABLE_ROLES
 import dd.security.isSystemAdmin
 import dd.security.requireSelfOrAdmin
 import dd.security.userId
-import dd.security.wardId
+import dd.security.managedWardIds
 import io.quarkus.security.Authenticated
 import io.quarkus.security.identity.SecurityIdentity
 import jakarta.annotation.security.RolesAllowed
@@ -38,6 +39,7 @@ import java.time.format.DateTimeFormatter
 @Produces(MediaType.APPLICATION_JSON)
 class WardJoinRequestResource(
     val wardJoinRequestRepository: WardJoinRequestRepository,
+    val memberRepository: MemberRepository,
     val userAccountRepository: UserAccountRepository,
     val wardRepository: WardRepository,
     val identity: SecurityIdentity,
@@ -101,7 +103,7 @@ class WardJoinRequestResource(
         } else {
             if (!identity.isSystemAdmin() && !identity.hasRole("ward_admin")) throw ForbiddenException()
             val pending = wardJoinRequestRepository.find("status", "PENDING").list()
-            if (identity.isSystemAdmin()) pending else pending.filter { it.ward.id == identity.wardId() }
+            if (identity.isSystemAdmin()) pending else pending.filter { it.ward.id in identity.managedWardIds() }
         }
         return Response.ok(requests.map { toDto(it) }).build()
     }
@@ -113,7 +115,7 @@ class WardJoinRequestResource(
         val request = wardJoinRequestRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
         if (!identity.isSystemAdmin() &&
             request.user.id != identity.userId() &&
-            !(identity.hasRole("ward_admin") && request.ward.id == identity.wardId())
+            request.ward.id !in identity.managedWardIds()
         ) {
             throw ForbiddenException()
         }
@@ -127,34 +129,38 @@ class WardJoinRequestResource(
     fun resolveRequest(@PathParam("id") id: Long, resolve: WardJoinResolveRequest): Response {
         val request = wardJoinRequestRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
         if (!identity.isSystemAdmin()) {
-            if (request.ward.id != identity.wardId()) throw ForbiddenException()
+            if (request.ward.id !in identity.managedWardIds()) throw ForbiddenException()
             if (resolve.assignedRole == "admin") throw ForbiddenException()
         }
 
         if (resolve.approve) {
-            // Approve: set user's ward and optionally update role
+            // Approve: give the user the chosen role in this ward. It is
+            // added alongside whatever they hold in other wards.
             val user = request.user
             val ward = request.ward
-
-            // Clear existing non-admin roles and add new role with ward assignment
-            val adminRoles = user.userRoles.filter { it.role == "admin" }
-            user.userRoles.clear()
-
-            val newRole = resolve.assignedRole?.takeIf { it in GRANTABLE_ROLES } ?: "user"
-            val roleDao = UserRoleDao().apply {
-                this.user = user
-                this.role = newRole
-                this.ward = ward
+            val newRole = resolve.assignedRole?.takeIf { it in GRANTABLE_ROLES && it != "admin" } ?: "user"
+            // Checked before anything is changed, so a bad link leaves the
+            // request pending.
+            val linkedMember = resolve.memberId?.takeIf { it > 0 }?.let { memberId ->
+                memberRepository.findById(memberId)?.takeIf { it.ward?.id == ward.id }
+                    ?: return Response.status(Status.BAD_REQUEST)
+                        .entity(mapOf("error" to "The member must belong to the ward being joined"))
+                        .build()
             }
-            user.userRoles.add(roleDao)
-
-            // Re-add admin roles (they don't have ward assignments)
-            adminRoles.forEach { adminRole ->
-                val adminRoleDao = UserRoleDao().apply {
+            user.userRoles.removeIf { it.ward?.id == ward.id }
+            // The ward-less placeholder role of an account with no ward.
+            user.userRoles.removeIf { it.ward == null && it.role != "admin" }
+            user.userRoles.add(
+                UserRoleDao().apply {
                     this.user = user
-                    this.role = adminRole.role
-                }
-                user.userRoles.add(adminRoleDao)
+                    this.role = newRole
+                    this.ward = ward
+                },
+            )
+
+            linkedMember?.let { member ->
+                user.members.removeIf { it.ward?.id == ward.id }
+                user.members.add(member)
             }
 
             request.status = "APPROVED"

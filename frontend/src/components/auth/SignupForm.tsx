@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
-import { useContext } from 'react'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
@@ -21,8 +20,8 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import UserContext from '@/context/UserContext'
 import { login, signup } from '@/hooks/useLogin.tsx'
+import { useSession } from '@/hooks/useSession'
 
 // ✅ Define schema with password verification
 const formSchema = z
@@ -51,7 +50,7 @@ export function SignupForm() {
   })
 
   const navigate = useNavigate()
-  const userContext = useContext(UserContext)
+  const { signIn } = useSession()
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -64,25 +63,7 @@ export function SignupForm() {
         email: values.email,
         password: values.password,
       })
-      if (userContext) {
-        userContext.setUser({
-          id: authResponse.id,
-          email: authResponse.email,
-          token: authResponse.token,
-          wardId: authResponse.wardId,
-          roles: authResponse.roles,
-        })
-        window.localStorage.setItem(
-          'user',
-          JSON.stringify({
-            id: authResponse.id,
-            email: authResponse.email,
-            token: authResponse.token,
-            wardId: authResponse.wardId,
-            roles: authResponse.roles,
-          }),
-        )
-      }
+      signIn(authResponse)
       navigate({ to: '/join-ward' }).catch((error) => console.error(error))
       return
     } catch (err) {

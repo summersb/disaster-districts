@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import WardsOverview from '@/components/admin/WardsOverview.tsx'
+import SystemAdmin from '@/components/admin/SystemAdmin.tsx'
 import LeaderDashboard from '@/components/districts/LeaderDashboard.tsx'
 import WardDashboard from '@/components/ward/WardDashboard.tsx'
 import useUser from '@/context/useUser.tsx'
@@ -16,8 +16,10 @@ function RouteComponent() {
   const { user } = useUser()
   const { leaderOnly, districts: ledDistricts } = useDistrictLeaderScope()
 
-  if (isAdmin(user.roles)) {
-    return <WardsOverview />
+  // A system admin who hasn't stepped into a ward gets the system page;
+  // inside a ward they see that ward's dashboard like its own admins do.
+  if (isAdmin(user.roles) && !((user.wardId ?? 0) > 0)) {
+    return <SystemAdmin />
   }
 
   // The saved session is the source of truth for the ward (it is what every

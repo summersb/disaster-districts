@@ -62,8 +62,12 @@ const JoinWardPage = (): React.ReactElement => {
   const pendingWardIds = new Set(
     myRequests.filter((r) => r.status === 'PENDING').map((r) => r.wardId),
   )
+  // Wards they already belong to aren't offered again either.
+  const joinedWardIds = new Set((user.wards ?? []).map((ward) => ward.id))
   const availableWards = wards.filter(
-    (ward) => ward.id == null || !pendingWardIds.has(ward.id),
+    (ward) =>
+      ward.id == null ||
+      (!pendingWardIds.has(ward.id) && !joinedWardIds.has(ward.id)),
   )
 
   const handleJoin = async (e: React.SyntheticEvent<HTMLFormElement>) => {

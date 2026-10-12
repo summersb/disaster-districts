@@ -7,22 +7,23 @@ import {
   School,
   School2,
   Settings,
+  ShieldCheck,
   User,
+  UserCog,
   Users,
 } from 'lucide-react'
 import type React from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import WardSwitcher from '@/components/WardSwitcher'
 import type { User as UserType } from '@/context/UserContext.tsx'
 import useUser from '@/context/useUser.tsx'
 import { useDistrictLeaderScope } from '@/hooks/useDistrictLeaderScope'
 import { useJoinRequests } from '@/hooks/useJoinRequests'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState'
-import { useWard } from '@/hooks/useWards'
 import { canManageUsers, isAdmin } from '@/lib/roles'
 import { cn } from '@/lib/utils'
 import { Route as AdminRoute } from '@/routes/_protected/admin'
-import { Route as JoinRequestsRoute } from '@/routes/_protected/admin/join-requests'
 import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
 import { Route as DashboardMapRoute } from '@/routes/_protected/dashboard/map'
 import { Route as DistrictRoute } from '@/routes/_protected/district'
@@ -32,6 +33,7 @@ import { Route as MemberRouteAdd } from '@/routes/_protected/member/add'
 import { Route as PrintRoute } from '@/routes/_protected/print'
 import { Route as SettingsRoute } from '@/routes/_protected/settings'
 import { Route as UploadRoute } from '@/routes/_protected/upload'
+import { Route as WardUsersRoute } from '@/routes/_protected/ward-users'
 import { Route as LoginRoute } from '@/routes/login'
 
 type Props = {
@@ -41,14 +43,31 @@ type Props = {
 // One menu line: icon and label on a row, with space between them.
 const row = 'flex flex-row items-center gap-2'
 
+const Badge = ({ count, title }: { count: number; title: string }) =>
+  count > 0 ? (
+    <span
+      className="rounded-full bg-blue-600 px-2 text-xs font-semibold"
+      title={title}
+      data-testid="pending-requests-badge"
+    >
+      {count}
+    </span>
+  ) : null
+
 const Sidebar = ({ user }: Props): React.ReactElement => {
   const auth = useUser()
   const [, setUser] = useLocalStorageState<UserType>('user', undefined)
-  const { data: ward } = useWard(user.wardId ?? 0)
   const { leaderOnly } = useDistrictLeaderScope()
+  const systemAdmin = isAdmin(user.roles)
+  const inWard = (user.wardId ?? 0) > 0
+  // Ward admin of the ward the session is in (a system admin counts in any).
+  const wardManager = inWard && canManageUsers(user.roles)
   const { data: pendingRequests = [] } = useJoinRequests(
     canManageUsers(user.roles),
   )
+  const pendingHere = pendingRequests.filter(
+    (request) => request.wardId === user.wardId,
+  ).length
 
   const logout = async () => {
     auth.setUser({})
@@ -71,76 +90,86 @@ const Sidebar = ({ user }: Props): React.ReactElement => {
         <img alt="logo" src="/favicon.ico" width={24} height={24} /> Disaster
         Districts
       </div>
-      <div className={row}>
-        <LayoutDashboard />
-        <Link to={DashboardRoute.to}>{ward?.name ?? 'Dashboard'}</Link>
-      </div>
 
-      {canManageUsers(user.roles) && (
+      {/* System-wide administration: wards, who administers them, and
+          account requests. Not tied to whichever ward is selected below. */}
+      {systemAdmin && (
         <div className={row}>
-          <Settings />
+          <ShieldCheck />
           <Link to={AdminRoute.to}>Admin</Link>
-          {/* Requests to join the ward are handled on the Admin page. */}
-          {pendingRequests.length > 0 && (
-            <span
-              className="rounded-full bg-blue-600 px-2 text-xs font-semibold"
-              title="People waiting for access"
-              data-testid="pending-requests-badge"
-            >
-              {pendingRequests.length}
-            </span>
-          )}
+          <Badge
+            count={pendingRequests.length}
+            title="Account requests waiting"
+          />
         </div>
       )}
 
-      {/* The all-wards queue is for system admins; a ward admin sees their
-          own ward's requests on the Admin page. */}
-      {isAdmin(user.roles) && (
-        <div className={row}>
-          <Users />
-          <Link to={JoinRequestsRoute.to}>Ward Requests</Link>
-        </div>
-      )}
+      <WardSwitcher />
 
-      {/* A district leader's menu is just their members and map: their
-          district, and printing it, are on the dashboard. */}
-      {leaderOnly ? (
-        <div className={row}>
-          <Users />
-          <Link to={MemberRoute.to}>Members</Link>
-        </div>
-      ) : (
+      {/* Everything below is about the ward the session is in. */}
+      {inWard && (
         <>
           <div className={row}>
-            <School />
-            <Link to={DistrictRoute.to}>Districts</Link>
+            <LayoutDashboard />
+            <Link to={DashboardRoute.to}>Dashboard</Link>
           </div>
+
+          {wardManager && (
+            <div className={row}>
+              <UserCog />
+              <Link to={WardUsersRoute.to}>Ward Users</Link>
+              <Badge count={pendingHere} title="People waiting for access" />
+            </div>
+          )}
+
+          {/* A district leader's menu is just their members and map: their
+              district, and printing it, are on the dashboard. */}
+          {leaderOnly ? (
+            <div className={row}>
+              <Users />
+              <Link to={MemberRoute.to}>Members</Link>
+            </div>
+          ) : (
+            <>
+              <div className={row}>
+                <School />
+                <Link to={DistrictRoute.to}>Districts</Link>
+              </div>
+              {wardManager && (
+                <div className={row}>
+                  <School2 />
+                  <Link to={DistrictRouteAdd.to}>Add Districts</Link>
+                </div>
+              )}
+              <div className={row}>
+                <Rows3 />
+                <Link to={PrintRoute.to}>Print Districts</Link>
+              </div>
+              <div className={row}>
+                <Users />
+                <Link to={MemberRoute.to}>Members</Link>
+              </div>
+              {wardManager && (
+                <>
+                  <div className={row}>
+                    <User />
+                    <Link to={MemberRouteAdd.to}>Add/Update Members</Link>
+                  </div>
+                  <div className={row}>
+                    <HardDriveUpload />
+                    <Link to={UploadRoute.to}>Upload Members</Link>
+                  </div>
+                </>
+              )}
+            </>
+          )}
           <div className={row}>
-            <School2 />
-            <Link to={DistrictRouteAdd.to}>Add Districts</Link>
-          </div>
-          <div className={row}>
-            <Rows3 />
-            <Link to={PrintRoute.to}>Print Districts</Link>
-          </div>
-          <div className={row}>
-            <Users />
-            <Link to={MemberRoute.to}>Members</Link>
-          </div>
-          <div className={row}>
-            <User />
-            <Link to={MemberRouteAdd.to}>Add/Update Members</Link>
-          </div>
-          <div className={row}>
-            <HardDriveUpload />
-            <Link to={UploadRoute.to}>Upload Members</Link>
+            <MapIcon />
+            <Link to={DashboardMapRoute.to}>Map</Link>
           </div>
         </>
       )}
-      <div className={row}>
-        <MapIcon />
-        <Link to={DashboardMapRoute.to}>Map</Link>
-      </div>
+
       {/* mt-auto pushes Logout and Settings to the bottom, leaving the
           menu items above together. */}
       <div className={cn(row, 'mt-auto')}>

@@ -1,15 +1,28 @@
 import type React from 'react'
 import { createContext, useState } from 'react'
 
+// One of the wards a user belongs to, with their standing there.
+export type UserWard = {
+  id: number
+  name: string
+  roles: string[]
+  // The member record their login is linked to in this ward, if any.
+  memberId?: number | null
+  leaderDistrictIds?: number[]
+}
+
+// The signed-in session. A user can belong to several wards; `wardId`,
+// `roles` and `memberId` describe the one they are currently working in (see
+// lib/session.ts), and `wards` lists all of them for switching.
 export type User = {
   id?: number
   email?: string
   avatarUrl?: string
   wardId?: number
-  // The member record this login is linked to, if a ward admin set one.
   memberId?: number
   token?: string
   roles?: string[]
+  wards?: UserWard[]
 }
 
 export interface UserContextType {

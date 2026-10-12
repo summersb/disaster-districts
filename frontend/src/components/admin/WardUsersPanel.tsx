@@ -2,6 +2,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { ChevronsUpDown } from 'lucide-react'
 import type React from 'react'
 import { useMemo, useState } from 'react'
+import MemberPicker from '@/components/members/MemberPicker'
 import { Button } from '@/components/ui/button'
 import {
   Command,
@@ -24,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import useUser from '@/context/useUser.tsx'
 import { useMembers } from '@/hooks/useMembers'
 import { useUpdateUser, useUsers, useWardUsers } from '@/hooks/useUsers'
 import { ALL_ROLES, isAdmin as checkIsAdmin, ROLE_LABELS } from '@/lib/roles'
@@ -65,15 +65,17 @@ const WardUsersPanel = ({
   const memberById = (id?: number | null) =>
     id ? members.find((m) => m.id === id) : undefined
 
-  const { user: currentUser } = useUser()
   const [addError, setAddError] = useState('')
+  // The member record to link the user being added to (0 = none).
+  const [addMemberId, setAddMemberId] = useState(0)
 
-  // Who can be added. A system admin can move anyone here; a ward admin can
-  // only bring in accounts that aren't in a ward yet (and never a system
-  // admin) - the same limits the server applies.
-  const unassigned = checkIsAdmin(currentUser.roles)
-    ? allUsers.filter((u) => !u.wardId || u.wardId !== wardId)
-    : allUsers.filter((u) => !u.wardId && !checkIsAdmin(u.roles))
+  // Who can be added: any account not already in this ward, except system
+  // admins (who can enter every ward anyway). Adding someone here doesn't
+  // affect any other ward they belong to.
+  const unassigned = allUsers.filter(
+    (u) =>
+      !checkIsAdmin(u.roles) && !u.wards?.some((ward) => ward.id === wardId),
+  )
 
   const startEdit = (user: UserDto) => {
     setEditingId(user.id)
@@ -93,6 +95,7 @@ const WardUsersPanel = ({
     const merged = [...new Set([...unmanaged, ...managed])]
     updateUser.mutate({
       id: user.id,
+      wardId,
       roles: merged.length ? merged : ['user'],
       // Only sent when it changed; 0 removes the link.
       memberId:
@@ -108,6 +111,8 @@ const WardUsersPanel = ({
       const res = await updateUser.mutateAsync({
         id: Number(addUserId),
         wardId,
+        // Linked in the same step when a member was chosen.
+        memberId: addMemberId || undefined,
       })
       if (!res.ok) {
         throw new Error(
@@ -117,6 +122,7 @@ const WardUsersPanel = ({
         )
       }
       setAddUserId('')
+      setAddMemberId(0)
     } catch (err) {
       setAddError(
         err instanceof Error ? err.message : 'Could not add the user.',
@@ -125,7 +131,7 @@ const WardUsersPanel = ({
   }
 
   const handleRemove = (user: UserDto) => {
-    updateUser.mutate({ id: user.id, removeFromWard: true, roles: ['user'] })
+    updateUser.mutate({ id: user.id, wardId, removeFromWard: true })
   }
 
   const toggleEditRole = (role: string) => {
@@ -311,6 +317,14 @@ const WardUsersPanel = ({
               ))}
             </SelectContent>
           </Select>
+          <MemberPicker
+            wardId={wardId}
+            value={addMemberId}
+            onChange={setAddMemberId}
+            placeholder="Link to member (optional)"
+            label="Link the new user to a member"
+            disabled={!addUserId}
+          />
           <Button size="sm" onClick={handleAdd} disabled={!addUserId}>
             Add
           </Button>

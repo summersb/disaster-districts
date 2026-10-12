@@ -1,5 +1,6 @@
 import type React from 'react'
 import { useState } from 'react'
+import MemberPicker from '@/components/members/MemberPicker'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -10,6 +11,7 @@ import {
 } from '@/components/ui/select'
 import { useJoinRequests, useResolveJoinRequest } from '@/hooks/useJoinRequests'
 import { GRANTABLE_ROLES, ROLE_LABELS } from '@/lib/roles'
+import type { WardJoinRequestDto } from '@/type/WardJoinRequest'
 
 type ManageRequestsProps = {
   // Show only requests for this ward (the Admin page's selected ward).
@@ -27,6 +29,29 @@ const ManageRequests = ({
       : allRequests.filter((request) => request.wardId === wardId)
   const resolveRequest = useResolveJoinRequest()
   const [selectedRoles, setSelectedRoles] = useState<Record<number, string>>({})
+  // The ward member chosen for each request, to link on approval (0 = none).
+  const [selectedMembers, setSelectedMembers] = useState<
+    Record<number, number>
+  >({})
+  const [error, setError] = useState('')
+
+  const approve = async (request: WardJoinRequestDto) => {
+    setError('')
+    try {
+      const res = await resolveRequest.mutateAsync({
+        id: request.id,
+        approve: true,
+        assignedRole: selectedRoles[request.id] ?? 'user',
+        memberId: selectedMembers[request.id] || undefined,
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? `Could not approve (${res.status})`)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not approve')
+    }
+  }
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Loading...</p>
@@ -42,6 +67,7 @@ const ManageRequests = ({
 
   return (
     <div className="space-y-3">
+      {error && <p className="text-sm text-destructive">{error}</p>}
       {requests.map((request) => (
         <div
           key={request.id}
@@ -58,7 +84,23 @@ const ManageRequests = ({
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {/* Linking the account to the person's member record now is
+                what lets a district leader use their district straight
+                away; it can also be done later from the users table. */}
+            <MemberPicker
+              wardId={request.wardId}
+              value={selectedMembers[request.id] ?? 0}
+              onChange={(memberId) =>
+                setSelectedMembers((prev) => ({
+                  ...prev,
+                  [request.id]: memberId,
+                }))
+              }
+              placeholder="Link to member (optional)"
+              label={`Link ${request.userEmail} to a member`}
+              disabled={resolveRequest.isPending}
+            />
             <Select
               value={selectedRoles[request.id] ?? 'user'}
               onValueChange={(role) =>
@@ -89,13 +131,7 @@ const ManageRequests = ({
             <Button
               size="sm"
               disabled={resolveRequest.isPending}
-              onClick={() =>
-                resolveRequest.mutate({
-                  id: request.id,
-                  approve: true,
-                  assignedRole: selectedRoles[request.id] ?? 'user',
-                })
-              }
+              onClick={() => approve(request)}
             >
               Approve
             </Button>

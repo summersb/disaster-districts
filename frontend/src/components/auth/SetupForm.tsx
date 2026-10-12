@@ -22,10 +22,9 @@ import {
   FormMessage,
 } from '@/components/ui/form.tsx'
 import { Input } from '@/components/ui/input.tsx'
-import type { User } from '@/context/UserContext.tsx'
-import useUser from '@/context/useUser.tsx'
-import { useLocalStorageState } from '@/hooks/useLocalStorageState.tsx'
 import { setupAdmin } from '@/hooks/useLogin.tsx'
+import { useSession } from '@/hooks/useSession'
+import type { AuthPayload } from '@/lib/session'
 import { invalidateSetupCache } from '@/routes/__root'
 import { Route as DashboardRoute } from '@/routes/_protected/dashboard'
 
@@ -45,37 +44,14 @@ type SetupRequest = z.infer<typeof SetupSchema>
 export function SetupForm() {
   const [error, setError] = useState<string>()
   const navigate = useNavigate()
-  const [, setStoredUser] = useLocalStorageState<User>('user', undefined)
-  const auth = useUser()
+  const { signIn } = useSession()
   const form = useForm<SetupRequest>({
     resolver: zodResolver(SetupSchema),
     defaultValues: { email: '', password: '', confirmPassword: '' },
   })
 
-  const handleAuthSuccess = async (json: {
-    token: string
-    id?: number
-    email: string
-    roles?: string[]
-    wardId?: number
-    memberId?: number
-  }) => {
-    auth.setUser({
-      id: json.id,
-      email: json.email,
-      token: json.token,
-      roles: json.roles,
-      wardId: json.wardId,
-      memberId: json.memberId,
-    })
-    setStoredUser({
-      id: json.id,
-      email: json.email,
-      token: json.token,
-      roles: json.roles,
-      wardId: json.wardId,
-      memberId: json.memberId,
-    })
+  const handleAuthSuccess = async (json: AuthPayload) => {
+    signIn(json)
     invalidateSetupCache()
     await navigate({ to: DashboardRoute.to, replace: true })
   }

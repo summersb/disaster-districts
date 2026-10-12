@@ -24,4 +24,7 @@ data class WardJoinCreateRequest(
 data class WardJoinResolveRequest(
     val approve: Boolean,
     val assignedRole: String? = "user",
+    // When approving: the ward member this account belongs to, linked in the
+    // same step (optional).
+    val memberId: Long? = null,
 )
