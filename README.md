@@ -31,9 +31,12 @@ districts → leader (member), assistant (member)
 - **`frontend/src/components/`** — UI, organized by domain (`members/`, `districts/`, `ward/`, `admin/`, `auth/`) plus shared primitives in `ui/`.
 - **`frontend/src/hooks/`** — TanStack Query hooks that call the backend API.
 
-Roles are `admin` (system-wide), `ward_admin`, `district_admin`, and `user`.
-Authorization is currently enforced at the UI level only — the backend does
-not yet restrict endpoints by role.
+Access is enforced by the backend, per ward. A system `admin` can do
+everything. A `ward_admin` manages one ward. A district leader or assistant —
+an account a ward admin has linked to that member — sees only their own
+district and can update its members' contact details. An account that is
+merely attached to a ward (`user`) sees nothing. One account can hold
+different roles in different wards.
 
 ## Prerequisites
 
@@ -165,3 +168,73 @@ instead of proxying to the Vite dev server, externally supplied
 `DATABASE_*` credentials pointing at a real Postgres instance, and a
 production JWT keystore (the bundled `jwt-keystore.p12` is an in-memory dev
 key and is not suitable for production, per Quarkus's own startup warning).
+
+## Production deployment
+
+Development (`docker compose up`) runs dev servers with live reload. For a
+real server use `docker-compose.prod.yml`, which runs:
+
+| Service   | What it is                                                                 |
+|-----------|-----------------------------------------------------------------------------|
+| `web`     | Caddy serving the built frontend over HTTPS and forwarding `/api` to the backend. The only service with published ports (80 and 443). |
+| `backend` | The packaged Quarkus app on a JRE (`backend/Dockerfile.prod`).              |
+| `db`      | PostgreSQL, reachable only from inside the stack.                           |
+
+### First deployment
+
+1. Point the domain's DNS at the server and open ports 80 and 443 (only).
+2. On the server, in a checkout of this repository:
+
+   ```bash
+   cp .env.production.example .env.production
+   # edit .env.production: DOMAIN and a long random DATABASE_PASSWORD
+   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+   ```
+
+3. Open `https://<your domain>` straight away and create the system admin
+   account on the setup page. On an empty database the first visitor gets to
+   do this, so don't leave it waiting.
+
+Caddy obtains and renews the HTTPS certificate from Let's Encrypt on its own
+and redirects plain HTTP to HTTPS. The database starts empty; nothing loads
+`backend/db/sample_data.sql` in production.
+
+### The token signing key
+
+Login tokens are signed with an RSA key pair that is **not** in the
+repository or the image. The backend container generates it the first time it
+starts (`backend/docker/entrypoint.sh`) and keeps it on the `jwt-keys` volume,
+so sessions survive restarts and upgrades. To rotate the key and sign everyone
+out:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production stop backend
+docker compose -f docker-compose.prod.yml --env-file .env.production run --rm --entrypoint sh backend -c 'rm -f /keys/*.pem'
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d backend
+```
+
+### Updating
+
+```bash
+git pull
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+```
+
+Database migrations run automatically when the backend starts.
+
+### Backups
+
+All data is in the `db-data` volume. Take a dump regularly and copy it off the
+server:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production exec -T db \
+  sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > backup-$(date +%F).sql
+```
+
+### Trying the production build locally
+
+With `DOMAIN=localhost` (and, if 80/443 are taken, `HTTP_PORT`/`HTTPS_PORT`
+set to free ports) the same command runs the stack on your own machine. Caddy
+then uses a certificate from its own local authority, which the browser will
+warn about.

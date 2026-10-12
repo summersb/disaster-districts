@@ -56,7 +56,7 @@ The backend uses **Quarkus 3.x with Kotlin** and follows a three-layer structure
 - **`dd/dao/`** — Hibernate ORM/Panache entities (`PanacheEntityBase`) mapped to DB tables. Uses `CamelCaseToUnderscoresNamingStrategy`, so Kotlin field `familyName` → column `family_name`.
 - **`dd/repository/`** — `PanacheRepository<T>` beans injected into resources for DB queries.
 
-**Auth:** JWT via SmallRye JWT. `POST /auth/login` validates BCrypt password, returns a signed JWT (7-day expiry). The keystore is at `src/main/resources/jwt-keystore.p12`.
+**Auth:** JWT via SmallRye JWT. `POST /auth/login` validates BCrypt password, returns a signed JWT (7-day expiry). No signing key is committed: in dev and test mode Quarkus generates a throwaway key pair at startup; in production the container entrypoint (`backend/docker/entrypoint.sh`) generates one on first start and keeps it on a volume.
 
 **Database migrations:** Flyway, runs automatically at startup (`quarkus.flyway.migrate-at-start=true`). Migration scripts live in `src/main/resources/db/migration/` (e.g., `V01__init.sql`).
 
