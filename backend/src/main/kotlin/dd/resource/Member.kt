@@ -39,3 +39,22 @@ data class MemberDto(
     val notes: String?,
     val district: DistrictRefDto?,
 )
+
+@Suppress("EnumEntryName")
+enum class MemberImportStatus { created, skipped, failed }
+
+// One entry per member submitted to POST .../members/bulk; `index` is the
+// member's position in the request array.
+data class MemberImportResult(
+    val index: Int,
+    val status: MemberImportStatus,
+    val id: Long? = null,
+    val error: String? = null,
+)
+
+data class MemberImportResponse(
+    val created: Int,
+    val skipped: Int,
+    val failed: Int,
+    val results: List<MemberImportResult>,
+)

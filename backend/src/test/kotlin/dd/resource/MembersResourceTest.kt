@@ -1,6 +1,7 @@
 package dd.resource
 
 import io.quarkus.test.junit.QuarkusTest
+import io.restassured.RestAssured.given
 import io.restassured.http.ContentType
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
@@ -107,7 +108,7 @@ class MembersResourceTest {
 
         asAdmin()
             .contentType(ContentType.JSON)
-            .body("""{"name": "$takenName", "familyName": "X", "formattedAddress": "1 Test St"}""")
+            .body("""{"name": "$takenName", "familyName": "$takenName", "formattedAddress": "1 Test St"}""")
             .`when`().put("/wards/$wardId/members/$memberId")
             .then().statusCode(409)
     }
@@ -128,5 +129,64 @@ class MembersResourceTest {
         asAdmin()
             .`when`().delete("/wards/$wardId/members/$memberId")
             .then().statusCode(404)
+    }
+
+    @Test
+    fun `POST members bulk reports a status per member`() {
+        val wardId = createTestWard()
+        val existing = "Bulk Existing ${System.nanoTime()}"
+        createMember(wardId, existing)
+        val longPhone = "5".repeat(21)
+
+        asAdmin()
+            .contentType(ContentType.JSON)
+            .body(
+                """[
+                  {"name": "Bulk New", "familyName": "One", "formattedAddress": "1 Test St"},
+                  {"name": "$existing", "familyName": "$existing", "formattedAddress": "1 Test St"},
+                  {"name": "Bulk Bad Phone", "familyName": "Two", "formattedAddress": "1 Test St", "phone": "$longPhone"},
+                  {"name": "Bulk New", "familyName": "One", "formattedAddress": "1 Test St"},
+                  {"name": "Bulk No Address", "familyName": "Three"},
+                  {"name": "Bulk Last", "familyName": "Four", "formattedAddress": ""}
+                ]""",
+            )
+            .`when`().post("/wards/$wardId/members/bulk")
+            .then().statusCode(207)
+            .body("created", equalTo(2))
+            .body("skipped", equalTo(2))
+            .body("failed", equalTo(2))
+            .body("results.index", equalTo(listOf(0, 1, 2, 3, 4, 5)))
+            .body(
+                "results.status",
+                equalTo(listOf("created", "skipped", "failed", "skipped", "failed", "created")),
+            )
+            .body("results[1].error", equalTo("Already exists"))
+            .body("results[2].error", equalTo("Phone is longer than 20 characters"))
+            .body("results[4].error", equalTo("Address is required"))
+
+        // Only the two created members (plus the pre-existing one) were saved;
+        // the failures didn't roll the others back.
+        asAdmin()
+            .`when`().get("/wards/$wardId/members")
+            .then().statusCode(200)
+            .body("size()", equalTo(3))
+    }
+
+    @Test
+    fun `POST members bulk is forbidden for a plain ward user`() {
+        // user1 is a plain `user` in the seeded Sample Ward - allowed to read
+        // its members, but not to create them.
+        val wardId = given()
+            .contentType(ContentType.JSON)
+            .body("""{"email": "user1@example.com", "password": "password123"}""")
+            .`when`().post("/auth/login")
+            .then().statusCode(200)
+            .extract().jsonPath().getInt("wardId")
+
+        asUser("user1@example.com")
+            .contentType(ContentType.JSON)
+            .body("""[{"name": "Nope", "familyName": "Nope", "formattedAddress": "1 Test St"}]""")
+            .`when`().post("/wards/$wardId/members/bulk")
+            .then().statusCode(403)
     }
 }

@@ -80,24 +80,83 @@ class MembersResource(
         if (memberExists != null) {
             return@call Response.status(Status.CONFLICT).build()
         }
-        val dbuser = MemberDao().apply {
-            familyName = member.familyName
-            formattedAddress = member.formattedAddress
-            name = member.name
-            address1 = member.address1
-            address2 = member.address2
-            city = member.city
-            state = member.state
-            postalCode = member.postalCode
-            phone = member.phone
-            lat = member.lat
-            lng = member.lng
-            notes = member.notes
-            ward = wardId.takeIf { it > 0 }?.let { wardRepository.findById(it) }
-        }
+        val dbuser = newMember(member)
         dbuser.persist()
         val uri = uriInfo.getAbsolutePathBuilder().path(dbuser.id.toString())
         Response.created(uri.build()).build()
+    }
+
+    private fun newMember(member: MemberRequest) = MemberDao().apply {
+        familyName = member.familyName
+        formattedAddress = member.formattedAddress
+        name = member.name
+        address1 = member.address1
+        address2 = member.address2
+        city = member.city
+        state = member.state
+        postalCode = member.postalCode
+        phone = member.phone
+        lat = member.lat
+        lng = member.lng
+        notes = member.notes
+        ward = wardId.takeIf { it > 0 }?.let { wardRepository.findById(it) }
+    }
+
+    // Checks the things the members table would otherwise reject with an
+    // opaque SQL error (NOT NULL / varchar length), so a bulk import can tell
+    // the user which member is wrong and why.
+    private fun validationError(member: MemberRequest): String? {
+        if (member.familyName.isBlank() && member.name.isBlank()) return "Name is required"
+        if (member.formattedAddress == null) return "Address is required"
+        val limits = listOf(
+            Triple("Family name", member.familyName, 255),
+            Triple("Name", member.name, 255),
+            Triple("Address", member.formattedAddress, 255),
+            Triple("Address line 1", member.address1, 255),
+            Triple("Address line 2", member.address2, 255),
+            Triple("City", member.city, 255),
+            Triple("State", member.state, 20),
+            Triple("Postal code", member.postalCode, 20),
+            Triple("Phone", member.phone, 20),
+        )
+        return limits.firstOrNull { (_, value, max) -> (value?.length ?: 0) > max }
+            ?.let { (label, _, max) -> "$label is longer than $max characters" }
+    }
+
+    // Bulk create used by the CSV/PDF import. Each member is saved in its own
+    // transaction so one bad row doesn't roll back the rest; the response is
+    // 207 Multi-Status with one result per submitted member, in request order.
+    @POST
+    @Path("/bulk")
+    fun createMembers(members: List<MemberRequest>): Response {
+        identity.requireWardManager(wardId)
+        val results = members.mapIndexed { index, member ->
+            val invalid = validationError(member)
+            if (invalid != null) {
+                return@mapIndexed MemberImportResult(index, MemberImportStatus.failed, error = invalid)
+            }
+            try {
+                QuarkusTransaction.call<MemberImportResult> {
+                    if (memberRepository.findByWardAndName(wardId, member.familyName, member.name) != null) {
+                        MemberImportResult(index, MemberImportStatus.skipped, error = "Already exists")
+                    } else {
+                        val dbMember = newMember(member)
+                        dbMember.persist()
+                        MemberImportResult(index, MemberImportStatus.created, id = dbMember.id)
+                    }
+                }
+            } catch (e: Exception) {
+                val cause = generateSequence<Throwable>(e) { it.cause }.last()
+                MemberImportResult(index, MemberImportStatus.failed, error = cause.message ?: "Could not save member")
+            }
+        }
+        val body = MemberImportResponse(
+            created = results.count { it.status == MemberImportStatus.created },
+            skipped = results.count { it.status == MemberImportStatus.skipped },
+            failed = results.count { it.status == MemberImportStatus.failed },
+            results = results,
+        )
+        return Response.status(207).entity(body).build()
     }
 
     @PUT

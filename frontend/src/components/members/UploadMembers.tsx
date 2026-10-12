@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useAddMember, useMembers } from '@/hooks/useMembers'
+import { useImportMembers, useMembers } from '@/hooks/useMembers'
 import { getWardId } from '@/lib/api'
 import type { MemberDto } from '@/type'
 import UploadCsv from './UploadCsv'
@@ -18,9 +18,24 @@ import UploadPdf from './UploadPdf'
 
 type ImportResult = 'created' | 'skipped' | 'failed'
 
+// How a row compares to the ward's current members:
+//   new      - in the uploaded file, not yet in the ward
+//   existing - in the uploaded file and already in the ward
+//   delete   - in the ward but missing from the uploaded file (e.g. moved out)
+type ImportCategory = 'new' | 'existing' | 'delete'
+
+type CategoryFilter = 'all' | ImportCategory
+
+const categoryFilters: { value: CategoryFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'new', label: 'New' },
+  { value: 'existing', label: 'Existing' },
+  { value: 'delete', label: 'Delete' },
+]
+
 type ImportRow = {
   member: MemberDto
-  existing: boolean
+  category: ImportCategory
   selected: boolean
   result?: ImportResult
   error?: string
@@ -38,7 +53,7 @@ const buildFormattedAddress = (member: MemberDto) =>
     .filter(Boolean)
     .join(', ')
 
-// Mirrors MembersResource.createMember's own conflict check (family name +
+// Mirrors MembersResource's own conflict check (family name +
 // given name, within the same ward), so a row's predicted New/Already-exists
 // status matches what the server will actually do with it.
 const nameKey = (member: {
@@ -50,10 +65,11 @@ const nameKey = (member: {
 const UploadMembers = (): React.ReactElement => {
   const wardId = getWardId()
   const { data: existingMembers = [] } = useMembers(wardId)
-  const addMember = useAddMember()
+  const importMembers = useImportMembers()
 
   const [rows, setRows] = useState<ImportRow[]>([])
   const [importing, setImporting] = useState(false)
+  const [filter, setFilter] = useState<CategoryFilter>('all')
 
   const existingNames = useMemo(
     () => new Set(existingMembers.map(nameKey)),
@@ -61,14 +77,24 @@ const UploadMembers = (): React.ReactElement => {
   )
 
   const handleParsedMembers = (members: MemberDto[]) => {
-    setRows(
-      members
-        .filter((member) => member.familyName?.trim() || member.name?.trim())
-        .map((member) => {
-          const existing = existingNames.has(nameKey(member))
-          return { member, existing, selected: !existing }
-        }),
-    )
+    const fileRows: ImportRow[] = members
+      .filter((member) => member.familyName?.trim() || member.name?.trim())
+      .map((member) => {
+        const existing = existingNames.has(nameKey(member))
+        return {
+          member,
+          category: existing ? 'existing' : 'new',
+          selected: !existing,
+        }
+      })
+    // Ward members the file doesn't mention - listed for review only; the
+    // import never selects or submits them.
+    const fileNames = new Set(fileRows.map((row) => nameKey(row.member)))
+    const missingRows: ImportRow[] = existingMembers
+      .filter((member) => !fileNames.has(nameKey(member)))
+      .map((member) => ({ member, category: 'delete', selected: false }))
+    setRows([...fileRows, ...missingRows])
+    setFilter('all')
   }
 
   const handleReset = () => setRows([])
@@ -81,38 +107,43 @@ const UploadMembers = (): React.ReactElement => {
     )
   }
 
+  // Sends every selected row in a single request, then maps the server's
+  // per-member results back onto the rows they came from.
   const handleImport = async () => {
+    const pending = rows
+      .map((row, rowIndex) => ({ row, rowIndex }))
+      .filter(({ row }) => row.selected && !row.result)
+    if (pending.length === 0) return
+
     setImporting(true)
     const next = [...rows]
-    for (let i = 0; i < next.length; i++) {
-      const row = next[i]
-      if (!row.selected || row.result) {
-        continue
+    try {
+      const response = await importMembers.mutateAsync({
+        wardId,
+        members: pending.map(({ row }) => ({
+          ...row.member,
+          formattedAddress: buildFormattedAddress(row.member),
+        })),
+      })
+      const byIndex = new Map(response.results.map((r) => [r.index, r]))
+      pending.forEach(({ row, rowIndex }, i) => {
+        const result = byIndex.get(i)
+        next[rowIndex] = result
+          ? {
+              ...row,
+              result: result.status,
+              error: result.error ?? undefined,
+            }
+          : { ...row, result: 'failed', error: 'No result returned' }
+      })
+    } catch (err) {
+      // The request itself failed, so nothing is known about any member.
+      const error = err instanceof Error ? err.message : 'Unknown error'
+      for (const { row, rowIndex } of pending) {
+        next[rowIndex] = { ...row, result: 'failed', error }
       }
-      try {
-        const res = await addMember.mutateAsync({
-          wardId,
-          member: {
-            ...row.member,
-            formattedAddress: buildFormattedAddress(row.member),
-          },
-        })
-        if (res.status === 409) {
-          next[i] = { ...row, result: 'skipped', error: 'Already exists' }
-        } else if (!res.ok) {
-          next[i] = { ...row, result: 'failed', error: `HTTP ${res.status}` }
-        } else {
-          next[i] = { ...row, result: 'created' }
-        }
-      } catch (err) {
-        next[i] = {
-          ...row,
-          result: 'failed',
-          error: err instanceof Error ? err.message : 'Unknown error',
-        }
-      }
-      setRows([...next])
     }
+    setRows(next)
     setImporting(false)
   }
 
@@ -124,6 +155,41 @@ const UploadMembers = (): React.ReactElement => {
     }),
     [rows],
   )
+
+  const categoryCounts = useMemo(
+    () => ({
+      all: rows.length,
+      new: rows.filter((r) => r.category === 'new').length,
+      existing: rows.filter((r) => r.category === 'existing').length,
+      delete: rows.filter((r) => r.category === 'delete').length,
+    }),
+    [rows],
+  )
+
+  // Keep each row's position in `rows` so toggling still targets the right
+  // one while a filter is hiding the others.
+  const visibleRows = rows
+    .map((row, rowIndex) => ({ row, rowIndex }))
+    .filter(({ row }) => filter === 'all' || row.category === filter)
+  const fileRowCount = rows.length - categoryCounts.delete
+
+  // Select-all acts on the rows the current filter shows, skipping ones that
+  // can't be selected (already imported, or only listed as missing).
+  const selectableRows = visibleRows.filter(
+    ({ row }) => !row.result && row.category !== 'delete',
+  )
+  const allSelected =
+    selectableRows.length > 0 && selectableRows.every(({ row }) => row.selected)
+  const someSelected = selectableRows.some(({ row }) => row.selected)
+
+  const toggleAll = () => {
+    const indexes = new Set(selectableRows.map(({ rowIndex }) => rowIndex))
+    setRows((prev) =>
+      prev.map((row, i) =>
+        indexes.has(i) ? { ...row, selected: !allSelected } : row,
+      ),
+    )
+  }
 
   const hasResults = rows.some((r) => r.result)
   const canImport = rows.some((r) => r.selected && !r.result)
@@ -151,7 +217,7 @@ const UploadMembers = (): React.ReactElement => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">
-              Review {rows.length} member{rows.length === 1 ? '' : 's'}
+              Review {fileRowCount} member{fileRowCount === 1 ? '' : 's'}
             </h2>
             <div className="flex gap-2">
               <Button
@@ -177,11 +243,36 @@ const UploadMembers = (): React.ReactElement => {
             </p>
           )}
 
+          <div className="flex flex-wrap gap-2" data-testid="import-filter">
+            {categoryFilters.map(({ value, label }) => (
+              <Button
+                key={value}
+                size="sm"
+                variant={filter === value ? 'default' : 'outline'}
+                aria-pressed={filter === value}
+                onClick={() => setFilter(value)}
+              >
+                {label} ({categoryCounts[value]})
+              </Button>
+            ))}
+          </div>
+
           <div className="max-h-[500px] overflow-y-auto rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-8" />
+                  <TableHead className="w-8">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all"
+                      checked={allSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = someSelected && !allSelected
+                      }}
+                      disabled={importing || selectableRows.length === 0}
+                      onChange={toggleAll}
+                    />
+                  </TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Address</TableHead>
                   <TableHead>City</TableHead>
@@ -189,14 +280,26 @@ const UploadMembers = (): React.ReactElement => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((row, i) => (
+                {visibleRows.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="text-center text-muted-foreground"
+                    >
+                      No members in this category
+                    </TableCell>
+                  </TableRow>
+                )}
+                {visibleRows.map(({ row, rowIndex }) => (
                   <TableRow key={row.member.id}>
                     <TableCell>
                       <input
                         type="checkbox"
                         checked={row.selected}
-                        disabled={importing || !!row.result}
-                        onChange={() => toggleRow(i)}
+                        disabled={
+                          importing || !!row.result || row.category === 'delete'
+                        }
+                        onChange={() => toggleRow(rowIndex)}
                       />
                     </TableCell>
                     <TableCell>
@@ -218,11 +321,14 @@ const UploadMembers = (): React.ReactElement => {
                           Failed ({row.error})
                         </span>
                       )}
-                      {!row.result && row.existing && (
+                      {!row.result && row.category === 'existing' && (
                         <span className="text-yellow-500">Already exists</span>
                       )}
-                      {!row.result && !row.existing && (
+                      {!row.result && row.category === 'new' && (
                         <span className="text-blue-400">New</span>
+                      )}
+                      {!row.result && row.category === 'delete' && (
+                        <span className="text-red-400">Not in file</span>
                       )}
                     </TableCell>
                   </TableRow>

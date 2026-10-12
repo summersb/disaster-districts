@@ -49,6 +49,48 @@ export const useAddMember = () => {
   })
 }
 
+export type MemberImportResult = {
+  index: number
+  status: 'created' | 'skipped' | 'failed'
+  id?: number | null
+  error?: string | null
+}
+
+export type MemberImportResponse = {
+  created: number
+  skipped: number
+  failed: number
+  results: MemberImportResult[]
+}
+
+// Creates many members in one request. The server answers 207 with a result
+// per member (matched by `index` into the submitted array), so a partial
+// failure still resolves - only a request-level failure throws.
+export const useImportMembers = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      wardId,
+      members,
+    }: {
+      wardId: number
+      members: MemberDto[]
+    }): Promise<MemberImportResponse> => {
+      const res = await authFetch(`/api/wards/${wardId}/members/bulk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(members),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      return res.json()
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['members'] })
+    },
+  })
+}
+
 export const useSaveMember = () => {
   const queryClient = useQueryClient()
 
