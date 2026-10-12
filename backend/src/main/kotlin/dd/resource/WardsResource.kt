@@ -14,6 +14,7 @@ import jakarta.annotation.security.RolesAllowed
 import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.EntityManager
 import jakarta.transaction.Transactional
+import jakarta.ws.rs.BadRequestException
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.GET
@@ -40,6 +41,7 @@ class WardsResource(
     val entityManager: EntityManager,
     val identity: SecurityIdentity,
     val geocoder: Geocoder,
+    val wardTransfer: WardTransferService,
     @field:Context val uriInfo: UriInfo,
 ) {
 
@@ -163,6 +165,35 @@ class WardsResource(
     fun getMembers(@PathParam("wardId") wardId: Long): MembersResource {
         identity.requireWard(wardId)
         return MembersResource(memberRepository, wardRepository, entityManager, identity, uriInfo, wardId, geocoder)
+    }
+
+    // A ward's settings, districts and members as one JSON document - a
+    // backup, or a way to copy the ward somewhere else. Limited to the ward's
+    // managers because it carries every member's contact details in one file.
+    @GET
+    @Path("{wardId}/export")
+    @Authenticated
+    @Transactional
+    fun exportWard(@PathParam("wardId") wardId: Long): Response {
+        identity.requireWardManager(wardId)
+        val ward = wardRepository.findById(wardId) ?: return Response.status(Status.NOT_FOUND).build()
+        return Response.ok(wardTransfer.export(ward)).build()
+    }
+
+    // Merges an export file into this ward (see WardTransferService.import).
+    // One transaction: a file that fails validation changes nothing.
+    @POST
+    @Path("{wardId}/import")
+    @Authenticated
+    @Transactional
+    fun importWard(@PathParam("wardId") wardId: Long, file: WardExport): Response {
+        identity.requireWardManager(wardId)
+        val ward = wardRepository.findById(wardId) ?: return Response.status(Status.NOT_FOUND).build()
+        return try {
+            Response.ok(wardTransfer.import(ward, file)).build()
+        } catch (e: BadRequestException) {
+            Response.status(Status.BAD_REQUEST).entity(mapOf("error" to e.message)).build()
+        }
     }
 
     @GET

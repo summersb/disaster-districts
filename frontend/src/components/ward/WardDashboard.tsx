@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
-import { Check, ChevronsUpDown, Pencil } from 'lucide-react'
+import { Check, ChevronsUpDown, Download, Pencil, Upload } from 'lucide-react'
 import type React from 'react'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -12,6 +12,14 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog.tsx'
 import { Input } from '@/components/ui/input'
 import {
   Popover,
@@ -30,8 +38,16 @@ import useUser from '@/context/useUser.tsx'
 import { useDistricts } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
 import { useWardUsers } from '@/hooks/useUsers'
-import { useSaveWard, useWard } from '@/hooks/useWards'
+import {
+  exportWard,
+  useImportWard,
+  useSaveWard,
+  useWard,
+  WARD_EXPORT_FORMAT,
+  type WardExportFile,
+} from '@/hooks/useWards'
 import { getWardId } from '@/lib/api'
+import { downloadBlob } from '@/lib/districtPdf'
 import { canManageUsers, hasRole } from '@/lib/roles'
 import { cn } from '@/lib/utils'
 import { Route as DistrictRoute } from '@/routes/_protected/district/$id.tsx'
@@ -136,6 +152,14 @@ const WardDashboard = (): React.ReactElement => {
   const [newName, setNewName] = useState('')
   const [pickingLeader, setPickingLeader] = useState(false)
   const [error, setError] = useState('')
+  const importWard = useImportWard()
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [exporting, setExporting] = useState(false)
+  // A parsed export file waiting for the user to confirm the import.
+  const [pendingImport, setPendingImport] = useState<WardExportFile | null>(
+    null,
+  )
+  const [transferStatus, setTransferStatus] = useState('')
 
   const sortedMembers = useMemo(() => [...members].sort(byName), [members])
   const wardLeader = members.find((m) => m.id === ward?.leaderId)
@@ -172,6 +196,59 @@ const WardDashboard = (): React.ReactElement => {
     } catch (err) {
       setError(err instanceof Error ? err.message : failure)
       return false
+    }
+  }
+
+  const handleExport = async () => {
+    setExporting(true)
+    setError('')
+    setTransferStatus('')
+    try {
+      const blob = await exportWard(wardId)
+      const date = new Date().toISOString().slice(0, 10)
+      const name = (ward?.name ?? 'ward').trim().replace(/[^\w-]+/g, '-')
+      downloadBlob(blob, `${name}-export-${date}.json`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Export failed')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  // Reads the chosen file and, if it looks like a ward export, asks for
+  // confirmation before anything is sent.
+  const handleFileChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const chosen = e.target.files?.[0]
+    // Reset so choosing the same file again still fires onChange.
+    e.target.value = ''
+    if (!chosen) return
+    setError('')
+    setTransferStatus('')
+    try {
+      const file = JSON.parse(await chosen.text()) as WardExportFile
+      if (file?.format !== WARD_EXPORT_FORMAT) {
+        throw new Error('not a ward export')
+      }
+      setPendingImport(file)
+    } catch {
+      setError(`"${chosen.name}" is not a ward export file.`)
+    }
+  }
+
+  const confirmImport = async () => {
+    if (!pendingImport) return
+    try {
+      const result = await importWard.mutateAsync({
+        wardId,
+        file: pendingImport,
+      })
+      setTransferStatus(
+        `Imported: ${result.membersCreated} members added, ${result.membersUpdated} updated; ${result.districtsCreated} districts added, ${result.districtsUpdated} updated.`,
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Import failed')
+    } finally {
+      setPendingImport(null)
     }
   }
 
@@ -241,7 +318,80 @@ const WardDashboard = (): React.ReactElement => {
           </div>
         )}
         {error && <p className="mt-1 text-sm text-destructive">{error}</p>}
+        {canManage && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={exporting}
+              onClick={handleExport}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {exporting ? 'Exporting...' : 'Export Ward (JSON)'}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={importWard.isPending}
+              onClick={() => fileInput.current?.click()}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Import Ward (JSON)
+            </Button>
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              aria-label="Ward export file"
+              onChange={handleFileChosen}
+            />
+            {transferStatus && (
+              <span className="text-sm" data-testid="ward-transfer-status">
+                {transferStatus}
+              </span>
+            )}
+          </div>
+        )}
       </div>
+
+      <Dialog
+        open={pendingImport != null}
+        onOpenChange={(open) => !open && setPendingImport(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import into {ward?.name ?? 'this ward'}?</DialogTitle>
+            <DialogDescription>
+              The file
+              {pendingImport?.ward?.name
+                ? ` (exported from "${pendingImport.ward.name}")`
+                : ''}{' '}
+              has {pendingImport?.members?.length ?? 0} members and{' '}
+              {pendingImport?.districts?.length ?? 0} districts. Members and
+              districts with the same name will be updated to match the file,
+              including which district each member is in; the rest will be
+              added. Nothing is deleted, and the ward keeps its name.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setPendingImport(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={confirmImport}
+              disabled={importWard.isPending}
+            >
+              {importWard.isPending ? 'Importing...' : 'Import'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Stat label="Members" value={members.length}>

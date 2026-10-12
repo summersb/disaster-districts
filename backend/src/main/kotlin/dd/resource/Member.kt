@@ -16,6 +16,27 @@ data class MemberRequest(
     val notes: String? = null,
 )
 
+// Checks the things the members table would otherwise reject with an opaque
+// SQL error (NOT NULL / varchar length), so an import can tell the user which
+// member is wrong and why. Returns null when the member is fine.
+fun memberValidationError(member: MemberRequest): String? {
+    if (member.familyName.isBlank() && member.name.isBlank()) return "Name is required"
+    if (member.formattedAddress == null) return "Address is required"
+    val limits = listOf(
+        Triple("Family name", member.familyName, 255),
+        Triple("Name", member.name, 255),
+        Triple("Address", member.formattedAddress, 255),
+        Triple("Address line 1", member.address1, 255),
+        Triple("Address line 2", member.address2, 255),
+        Triple("City", member.city, 255),
+        Triple("State", member.state, 20),
+        Triple("Postal code", member.postalCode, 20),
+        Triple("Phone", member.phone, 20),
+    )
+    return limits.firstOrNull { (_, value, max) -> (value?.length ?: 0) > max }
+        ?.let { (label, _, max) -> "$label is longer than $max characters" }
+}
+
 data class DistrictRefDto(
     val id: Long?,
     val name: String?,

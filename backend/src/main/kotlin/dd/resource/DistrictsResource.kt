@@ -75,7 +75,9 @@ class DistrictsResource(
         if (district.name == null) {
             return@call Response.status(Status.BAD_REQUEST).build()
         }
-        val districtExists = districtRepository.findByName(district.name)
+        // Names only need to be unique within the ward - two wards can both
+        // have a "District 1".
+        val districtExists = districtRepository.findByWardAndName(wardId, district.name)
         if (districtExists != null) {
             return@call Response.status(Status.CONFLICT).build()
         }
