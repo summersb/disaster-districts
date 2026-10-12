@@ -11,7 +11,7 @@ services:
     networks:
       - dd
     ports:
-      - "5432:5432" 
+      - "127.0.0.1:5432:5432"
 
   nginx:
     image: nginx:alpine
@@ -36,7 +36,7 @@ services:
     environment:
       VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
     ports:
-      - "5173:5173"
+      - "127.0.0.1:5173:5173"
     depends_on:
       - backend
     networks:
@@ -60,7 +60,7 @@ services:
       - ./backend:/app
       - ~/.m2:/home/ubuntu/.m2
     ports:
-      - "9090:8080"
+      - "127.0.0.1:9090:8080"
     depends_on:
       - db
     networks:

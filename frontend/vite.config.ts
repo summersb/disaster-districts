@@ -24,6 +24,10 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['pdfjs-dist'],
   },
+  server: {
+    host: true,
+    allowedHosts: true,
+  },
   build: {
     rollupOptions: {
       output: {
