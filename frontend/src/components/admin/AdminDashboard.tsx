@@ -64,9 +64,7 @@ const AdminDashboard = (): React.ReactElement => {
           />
         ) : (
           !wardsLoading && (
-            <p className="text-sm text-muted-foreground">
-              No wards available.
-            </p>
+            <p className="text-sm text-muted-foreground">No wards available.</p>
           )
         )}
       </div>

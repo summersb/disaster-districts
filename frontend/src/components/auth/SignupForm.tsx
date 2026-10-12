@@ -85,9 +85,11 @@ export function SignupForm() {
       }
       navigate({ to: '/join-ward' }).catch((error) => console.error(error))
       return
-    } catch (err: any) {
+    } catch (err) {
       console.error('Signup failed', err)
-      form.setError('email', { message: err.message || 'Signup failed' })
+      form.setError('email', {
+        message: (err instanceof Error && err.message) || 'Signup failed',
+      })
     }
   }
 

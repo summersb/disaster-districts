@@ -1,13 +1,15 @@
-import { useEffect } from 'react'
 import type React from 'react'
-import { getWardId } from '@/lib/api'
+import { useEffect } from 'react'
 import { useDistrict } from '@/hooks/useDistricts'
+import { getWardId } from '@/lib/api'
 
 type PrintDistrictProps = {
   districtId: number
 }
 
-const PrintDistrict = ({ districtId }: PrintDistrictProps): React.ReactElement => {
+const PrintDistrict = ({
+  districtId,
+}: PrintDistrictProps): React.ReactElement => {
   const wardId = getWardId()
   const { data: district } = useDistrict(wardId, districtId)
 
@@ -21,9 +23,15 @@ const PrintDistrict = ({ districtId }: PrintDistrictProps): React.ReactElement =
       <div className="grid grid-cols-2 gap-4">
         {district?.members?.map((member) => (
           <div key={member.id} className="border p-2">
-            <p><strong>{member.familyName}</strong>, {member.name}</p>
+            <p>
+              <strong>{member.familyName}</strong>, {member.name}
+            </p>
             {member.address1 && <p>{member.address1}</p>}
-            {member.city && <p>{member.city}, {member.state} {member.postalCode}</p>}
+            {member.city && (
+              <p>
+                {member.city}, {member.state} {member.postalCode}
+              </p>
+            )}
           </div>
         ))}
       </div>

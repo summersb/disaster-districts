@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
 import type React from 'react'
 import { useEffect, useState } from 'react'
-import { FormProvider, useForm } from 'react-hook-form'
+import { FormProvider, type Resolver, useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { useMembers, useSaveMember } from '@/hooks/useMembers'
 import { getWardId } from '@/lib/api'
@@ -24,7 +24,7 @@ const EditMember = ({ memberId }: EditMemberProps): React.ReactElement => {
   const member = members?.find((m) => m.id === memberId)
 
   const form = useForm<MemberDto>({
-    resolver: zodResolver(MemberSchema) as unknown as any,
+    resolver: zodResolver(MemberSchema) as unknown as Resolver<MemberDto>,
     defaultValues: member || {},
   })
 

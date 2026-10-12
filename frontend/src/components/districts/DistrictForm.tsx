@@ -91,8 +91,8 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
 
   // Only pass a center when we actually have coordinates; otherwise leave it
   // undefined so OSMMapWithMarkers falls back to the ward members' average.
-  const resolvedLat = lat ?? (currentDistrict as any)?.lat ?? leader?.lat
-  const resolvedLng = lng ?? (currentDistrict as any)?.lng ?? leader?.lng
+  const resolvedLat = lat ?? currentDistrict?.lat ?? leader?.lat
+  const resolvedLng = lng ?? currentDistrict?.lng ?? leader?.lng
   const resolvedCenter =
     resolvedLat != null && resolvedLng != null
       ? { lat: resolvedLat, lng: resolvedLng }
@@ -103,12 +103,12 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
   const mapDistricts = (districts ?? []).map((d) => {
     if (d.id !== districtId) return d
     return {
-      ...(d as any),
-      lat: lat ?? (d as any).lat,
-      lng: lng ?? (d as any).lng,
+      ...d,
+      lat: lat ?? d.lat,
+      lng: lng ?? d.lng,
       color,
-      leaderId: leader?.id ?? (d as any).leaderId ?? null,
-      assistantId: assistant?.id ?? (d as any).assistantId ?? null,
+      leaderId: leader?.id ?? d.leaderId ?? null,
+      assistantId: assistant?.id ?? d.assistantId ?? null,
     }
   })
 
@@ -123,9 +123,7 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
     if (readOnly) return
     // Leaders/assistants of any district are locked; ignore clicks on them.
     const isLeaderOrAssistant = (districts ?? []).some(
-      (d) =>
-        (d as any).leaderId === member.id ||
-        (d as any).assistantId === member.id,
+      (d) => d.leaderId === member.id || d.assistantId === member.id,
     )
     if (isLeaderOrAssistant) return
     const existingIdx = districtMembers.findIndex((m) => m.id === member.id)
@@ -408,8 +406,11 @@ const DistrictForm = ({ districtId, readOnly = false }: DistrictFormProps) => {
           <ul>
             {districtMembers
               ?.sort((m1, m2) => m1?.familyName?.localeCompare(m2?.familyName))
-              .map((field, idx: number) => (
-                <li className="odd:bg-slate-700 even:bg-slate-900 " key={idx}>
+              .map((field) => (
+                <li
+                  className="odd:bg-slate-700 even:bg-slate-900 "
+                  key={field.id}
+                >
                   <MemberDisplayName member={field as MemberDto} />
                 </li>
               ))}

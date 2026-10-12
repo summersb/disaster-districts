@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
 import type React from 'react'
 import { useState } from 'react'
-import { FormProvider, useForm } from 'react-hook-form'
+import { FormProvider, type Resolver, useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { useAddMember } from '@/hooks/useMembers'
 import { getWardId } from '@/lib/api'
@@ -18,7 +18,7 @@ const AddMember = (): React.ReactElement => {
   const [error, setError] = useState('')
 
   const form = useForm<MemberDto>({
-    resolver: zodResolver(MemberSchema) as unknown as any,
+    resolver: zodResolver(MemberSchema) as unknown as Resolver<MemberDto>,
     defaultValues: { id: 0 },
   })
 

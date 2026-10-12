@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type React from 'react'
 import { useEffect, useState } from 'react'
-import { type SubmitHandler, useForm } from 'react-hook-form'
+import { type Resolver, type SubmitHandler, useForm } from 'react-hook-form'
 import SaveButton from '@/components/styled/SaveButton.tsx'
 import { Form } from '@/components/ui/form'
 import { useDistrict } from '@/hooks/useDistricts'
@@ -25,9 +25,7 @@ const EditDistrict = ({
   const wardId = getWardId()
 
   const form = useForm<DistrictDto>({
-    resolver: zodResolver(DistrictSchema) as unknown as
-      | import('react-hook-form').Resolver<DistrictDto, any>
-      | undefined,
+    resolver: zodResolver(DistrictSchema) as unknown as Resolver<DistrictDto>,
     defaultValues: {
       id: 0,
       name: '',
@@ -41,7 +39,7 @@ const EditDistrict = ({
   useEffect(() => {
     if (data && members) {
       // convert db district shape to form District shape
-      const db = data as any
+      const db = data
       // The map and the ColorPicker key off color *names* that match SVG
       // filenames in /public/images (e.g. Blue.svg). Legacy rows may have a
       // hex value stored — normalize those to a sensible default so the
@@ -105,10 +103,10 @@ const EditDistrict = ({
         body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error(`Save failed: ${res.status}`)
-    } catch (err: any) {
+    } catch (err) {
       form.setError('name', {
         type: 'custom',
-        message: err.message,
+        message: err instanceof Error ? err.message : String(err),
       })
     } finally {
       setSaving(false)

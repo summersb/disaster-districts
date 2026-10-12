@@ -58,8 +58,8 @@ const ColorPicker = React.forwardRef<HTMLButtonElement, ColorPickerProps>(
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {colors.map((color, index) => (
-            <SelectItem key={index} value={color.name}>
+          {colors.map((color) => (
+            <SelectItem key={color.name} value={color.name}>
               <span className="flex items-center gap-2">
                 <span
                   className="h-4 w-4 rounded border"

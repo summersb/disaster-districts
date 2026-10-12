@@ -111,12 +111,11 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
     member: MemberDto,
   ): { role: 'leader' | 'assistant' | 'member'; color?: string } => {
     const leaderDistrict = props.districts?.find(
-      (d) => (d as any).leaderId === member.id || d.leader?.id === member.id,
+      (d) => d.leaderId === member.id || d.leader?.id === member.id,
     )
     if (leaderDistrict) return { role: 'leader', color: leaderDistrict.color }
     const assistantDistrict = props.districts?.find(
-      (d) =>
-        (d as any).assistantId === member.id || d.assistant?.id === member.id,
+      (d) => d.assistantId === member.id || d.assistant?.id === member.id,
     )
     if (assistantDistrict)
       return { role: 'assistant', color: assistantDistrict.color }
@@ -144,8 +143,8 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
     return (
       props.districts?.some(
         (d) =>
-          (d as any).leaderId === member.id ||
-          (d as any).assistantId === member.id ||
+          d.leaderId === member.id ||
+          d.assistantId === member.id ||
           d.leader?.id === member.id ||
           d.assistant?.id === member.id,
       ) ?? false

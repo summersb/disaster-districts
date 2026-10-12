@@ -1,9 +1,26 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.13/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.11/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
     "useIgnoreFile": false
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!dist",
+      "!public",
+      "!coverage",
+      "!playwright-report",
+      "!test-results",
+      "!monocart-report",
+      "!src/routeTree.gen.ts"
+    ]
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
   },
   "formatter": {
     "enabled": true,
@@ -21,7 +38,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "correctness": {
         "useExhaustiveDependencies": "warn",
         "noUnusedVariables": "warn",
@@ -42,13 +59,5 @@
         "useButtonType": "warn"
       }
     }
-  },
-  "overrides": [
-    {
-      "includes": ["dist", "src/routeTree.gen.ts", "node_modules", "public"],
-      "linter": {
-        "enabled": false
-      }
-    }
-  ]
+  }
 }
