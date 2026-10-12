@@ -188,9 +188,11 @@ const UploadPdf = ({ setMembers }: UploadPdfProps): React.ReactElement => {
               id="pdfFileInput"
               accept=".pdf"
               onChange={onChange}
-              className="mb-4 p-2 border rounded-md bg-gray-700 text-white"
+              className="mb-4 mr-4 p-2 border rounded-md bg-gray-700 text-white cursor-pointer file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-blue-500 file:px-4 file:py-2 file:font-semibold file:text-white file:shadow-md hover:file:bg-blue-600"
             />
-            <StyledButton onClick={onSubmit}>IMPORT PDF</StyledButton>
+            <StyledButton onClick={onSubmit} disabled={!pdfFile}>
+              {pdfFile ? 'IMPORT PDF' : 'Choose a PDF file first'}
+            </StyledButton>
           </form>
         </Card>
         <div className="w-1/2 p-4">
