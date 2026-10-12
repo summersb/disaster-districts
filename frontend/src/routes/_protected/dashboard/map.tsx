@@ -15,6 +15,10 @@ import { useSaveWard, useWard } from '@/hooks/useWards'
 import { getWardId } from '@/lib/api'
 import type { MemberDto } from '@/type'
 
+// Outline buttons are translucent in dark mode, which leaves their label
+// unreadable when they float over the map tiles - give them a solid fill.
+const solidOutline = 'bg-background dark:bg-background dark:hover:bg-accent'
+
 export const Route = createFileRoute('/_protected/dashboard/map')({
   component: RouteComponent,
 })
@@ -120,12 +124,13 @@ function RouteComponent() {
   }
 
   return (
-    <div className="h-screen relative">
+    <div className="h-full relative">
       <div className="absolute z-[1000] top-2 left-2 flex flex-col items-start gap-2">
         <div className="flex gap-2">
           <Button
             size="sm"
             variant={fixingPins ? 'default' : 'outline'}
+            className={fixingPins ? undefined : solidOutline}
             onClick={toggleFixingPins}
           >
             {fixingPins ? 'Done Fixing Pins' : 'Fix a Pin'}
@@ -133,6 +138,7 @@ function RouteComponent() {
           <Button
             size="sm"
             variant={pickingWardCenter ? 'default' : 'outline'}
+            className={pickingWardCenter ? undefined : solidOutline}
             onClick={toggleWardCenterPicker}
           >
             <Crosshair className="h-4 w-4 mr-1" />
