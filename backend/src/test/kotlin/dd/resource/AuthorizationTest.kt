@@ -158,4 +158,84 @@ class AuthorizationTest {
             .`when`().put("/users/$memberId")
             .then().statusCode(403)
     }
+
+    @Test
+    fun `a ward admin can add a user who has no ward, but only to their own ward`() {
+        val wardId = createWard()
+        val otherWardId = createWard()
+        val (_, adminEmail) = createWardAdmin(wardId)
+        val newcomer = createUser()
+
+        // Not into someone else's ward...
+        asUser(adminEmail)
+            .contentType(ContentType.JSON)
+            .body("""{"wardId": $otherWardId}""")
+            .`when`().put("/users/$newcomer")
+            .then().statusCode(403)
+
+        // ...but into their own.
+        asUser(adminEmail)
+            .contentType(ContentType.JSON)
+            .body("""{"wardId": $wardId}""")
+            .`when`().put("/users/$newcomer")
+            .then().statusCode(200)
+            .body("wardId", equalTo(wardId))
+            .body("roles", equalTo(listOf("user")))
+
+        asUser(adminEmail)
+            .`when`().get("/wards/$wardId/users")
+            .then().statusCode(200)
+            .body("id", org.hamcrest.Matchers.hasItem(newcomer))
+    }
+
+    @Test
+    fun `a ward admin cannot take a user from another ward or touch a system admin`() {
+        val wardId = createWard()
+        val otherWardId = createWard()
+        val (_, adminEmail) = createWardAdmin(wardId)
+        val (otherWardUser, _) = createWardAdmin(otherWardId)
+        val systemAdminId = asAdmin()
+            .`when`().get("/users")
+            .then().statusCode(200)
+            .extract().jsonPath().getInt("find { it.email == 'admin@example.com' }.id")
+
+        asUser(adminEmail)
+            .contentType(ContentType.JSON)
+            .body("""{"wardId": $wardId}""")
+            .`when`().put("/users/$otherWardUser")
+            .then().statusCode(403)
+
+        // The system admin has no ward either, but is not up for grabs.
+        asUser(adminEmail)
+            .contentType(ContentType.JSON)
+            .body("""{"wardId": $wardId}""")
+            .`when`().put("/users/$systemAdminId")
+            .then().statusCode(403)
+        asAdmin()
+            .`when`().get("/users/$systemAdminId")
+            .then().statusCode(200)
+            .body("roles", equalTo(listOf("admin")))
+    }
+
+    @Test
+    fun `only real roles can be stored - the retired district_admin is dropped`() {
+        val wardId = createWard()
+        val userId = createUser()
+        asAdmin().contentType(ContentType.JSON).body("""{"roles": ["user"], "wardId": $wardId}""")
+            .`when`().put("/users/$userId").then().statusCode(200)
+
+        asAdmin()
+            .contentType(ContentType.JSON)
+            .body("""{"roles": ["district_admin"]}""")
+            .`when`().put("/users/$userId")
+            .then().statusCode(200)
+            .body("roles", equalTo(listOf("user")))
+
+        asAdmin()
+            .contentType(ContentType.JSON)
+            .body("""{"roles": ["ward_admin", "district_admin", "made_up"]}""")
+            .`when`().put("/users/$userId")
+            .then().statusCode(200)
+            .body("roles", equalTo(listOf("ward_admin")))
+    }
 }

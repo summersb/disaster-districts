@@ -1,8 +1,22 @@
 import type { ColumnDef } from '@tanstack/react-table'
+import { ChevronsUpDown } from 'lucide-react'
 import type React from 'react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 import { DataTable } from '@/components/ui/data-table'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -10,9 +24,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import useUser from '@/context/useUser.tsx'
+import { useMembers } from '@/hooks/useMembers'
 import { useUpdateUser, useUsers, useWardUsers } from '@/hooks/useUsers'
 import { ALL_ROLES, isAdmin as checkIsAdmin, ROLE_LABELS } from '@/lib/roles'
-import type { UserDto } from '@/type'
+import type { MemberDto, UserDto } from '@/type'
+
+const memberName = (member: MemberDto) => `${member.familyName}, ${member.name}`
 
 type Props = {
   wardId: number
@@ -35,31 +53,75 @@ const WardUsersPanel = ({
   const [addUserId, setAddUserId] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editRoles, setEditRoles] = useState<string[]>([])
+  // The member record chosen for the user being edited (0 = none).
+  const [editMemberId, setEditMemberId] = useState(0)
+  const [pickingMember, setPickingMember] = useState(false)
+  const { data: members = [] } = useMembers(wardId)
+  const sortedMembers = useMemo(
+    () =>
+      [...members].sort((a, b) => memberName(a).localeCompare(memberName(b))),
+    [members],
+  )
+  const memberById = (id?: number | null) =>
+    id ? members.find((m) => m.id === id) : undefined
 
-  const unassigned = allUsers.filter((u) => !u.wardId || u.wardId !== wardId)
+  const { user: currentUser } = useUser()
+  const [addError, setAddError] = useState('')
+
+  // Who can be added. A system admin can move anyone here; a ward admin can
+  // only bring in accounts that aren't in a ward yet (and never a system
+  // admin) - the same limits the server applies.
+  const unassigned = checkIsAdmin(currentUser.roles)
+    ? allUsers.filter((u) => !u.wardId || u.wardId !== wardId)
+    : allUsers.filter((u) => !u.wardId && !checkIsAdmin(u.roles))
 
   const startEdit = (user: UserDto) => {
     setEditingId(user.id)
     setEditRoles([...user.roles])
+    setEditMemberId(user.memberId ?? 0)
   }
 
   const cancelEdit = () => {
     setEditingId(null)
     setEditRoles([])
+    setPickingMember(false)
   }
 
   const saveEdit = (user: UserDto) => {
     const unmanaged = user.roles.filter((r) => !grantableRoles.includes(r))
     const managed = editRoles.filter((r) => grantableRoles.includes(r))
     const merged = [...new Set([...unmanaged, ...managed])]
-    updateUser.mutate({ id: user.id, roles: merged.length ? merged : ['user'] })
+    updateUser.mutate({
+      id: user.id,
+      roles: merged.length ? merged : ['user'],
+      // Only sent when it changed; 0 removes the link.
+      memberId:
+        editMemberId !== (user.memberId ?? 0) ? editMemberId : undefined,
+    })
     cancelEdit()
   }
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!addUserId) return
-    updateUser.mutate({ id: Number(addUserId), wardId })
-    setAddUserId('')
+    setAddError('')
+    try {
+      const res = await updateUser.mutateAsync({
+        id: Number(addUserId),
+        wardId,
+      })
+      if (!res.ok) {
+        throw new Error(
+          res.status === 403
+            ? "You aren't allowed to add that user to this ward."
+            : `Could not add the user (${res.status}).`,
+        )
+      }
+      setAddUserId('')
+    } catch (err) {
+      setAddError(
+        err instanceof Error ? err.message : 'Could not add the user.',
+      )
+    }
   }
 
   const handleRemove = (user: UserDto) => {
@@ -112,6 +174,76 @@ const WardUsersPanel = ({
       },
     },
     {
+      // Linking a login to the person's member record is what lets being a
+      // district's leader or assistant count for that user.
+      id: 'member',
+      header: 'Member Record',
+      accessorFn: (user) => {
+        const member = memberById(user.memberId)
+        return member ? memberName(member) : ''
+      },
+      cell: ({ row }) => {
+        const user = row.original
+        if (editingId !== user.id) {
+          const member = memberById(user.memberId)
+          return member ? (
+            memberName(member)
+          ) : (
+            <span className="text-muted-foreground">Not linked</span>
+          )
+        }
+        const chosen = memberById(editMemberId)
+        return (
+          <div className="flex items-center gap-1">
+            <Popover open={pickingMember} onOpenChange={setPickingMember}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-label="Choose member record"
+                >
+                  {chosen ? memberName(chosen) : 'Choose member'}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0" side="bottom" align="start">
+                <Command>
+                  <CommandInput placeholder="Search members" />
+                  <CommandEmpty>No results found.</CommandEmpty>
+                  <CommandList>
+                    <CommandGroup>
+                      {sortedMembers.map((member) => (
+                        <CommandItem
+                          key={member.id}
+                          value={String(member.id)}
+                          keywords={[member.familyName, member.name]}
+                          onSelect={() => {
+                            setEditMemberId(member.id)
+                            setPickingMember(false)
+                          }}
+                        >
+                          {memberName(member)}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {chosen && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setEditMemberId(0)}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        )
+      },
+    },
+    {
       id: 'ward',
       header: 'Ward',
       accessorFn: (user) => (checkIsAdmin(user.roles) ? '' : wardName),
@@ -140,7 +272,7 @@ const WardUsersPanel = ({
         return (
           <div className="flex gap-1">
             <Button size="sm" variant="outline" onClick={() => startEdit(user)}>
-              Edit Roles
+              Edit
             </Button>
             <Button
               size="sm"
@@ -184,6 +316,14 @@ const WardUsersPanel = ({
           </Button>
         </div>
       )}
+
+      {canAddUsers && unassigned.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          There are no accounts waiting to be added. Someone who hasn't signed
+          up yet needs to create an account first; it will then appear here.
+        </p>
+      )}
+      {addError && <p className="text-sm text-destructive">{addError}</p>}
 
       {wardUsers.length === 0 ? (
         <p className="text-sm italic text-muted-foreground">

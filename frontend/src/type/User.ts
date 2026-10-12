@@ -22,4 +22,8 @@ export type UserDto = {
   name?: string
   roles: string[]
   wardId?: number
+  // The member record this login is linked to, if any.
+  memberId?: number | null
+  // Districts that member leads or assists (what makes a district leader).
+  leaderDistrictIds?: number[]
 }

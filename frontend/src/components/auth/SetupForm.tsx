@@ -58,6 +58,7 @@ export function SetupForm() {
     email: string
     roles?: string[]
     wardId?: number
+    memberId?: number
   }) => {
     auth.setUser({
       id: json.id,
@@ -65,6 +66,7 @@ export function SetupForm() {
       token: json.token,
       roles: json.roles,
       wardId: json.wardId,
+      memberId: json.memberId,
     })
     setStoredUser({
       id: json.id,
@@ -72,6 +74,7 @@ export function SetupForm() {
       token: json.token,
       roles: json.roles,
       wardId: json.wardId,
+      memberId: json.memberId,
     })
     invalidateSetupCache()
     await navigate({ to: DashboardRoute.to, replace: true })

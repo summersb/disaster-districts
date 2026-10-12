@@ -302,4 +302,51 @@ class WardsResourceTest {
             .`when`().delete("/wards/$wardId")
             .then().statusCode(204)
     }
+
+    @Test
+    fun `DELETE ward works for a fully set up ward`() {
+        // Everything that can point at something else: a ward leader who is
+        // also a district's leader, an assistant, district members, a user in
+        // the ward linked to a member, and a pending join request.
+        val wardId = createWard("""{"name": "Full Delete Ward ${System.nanoTime()}", "lat": 33.1, "lng": -117.2}""")
+        val leader = createMember(wardId, "Full Leader")
+        val assistant = createMember(wardId, "Full Assistant")
+        val member = createMember(wardId, "Full Member")
+        asAdmin().contentType(ContentType.JSON)
+            .body("""{"name": "Full District", "color": "Red", "leaderId": $leader, "assistantId": $assistant, "memberIds": [$leader, $assistant, $member]}""")
+            .`when`().post("/wards/$wardId/districts").then().statusCode(201)
+        asAdmin().contentType(ContentType.JSON).body("""{"leaderId": $leader}""")
+            .`when`().put("/wards/$wardId").then().statusCode(200)
+
+        val email = "full-delete-${System.nanoTime()}@example.com"
+        val userId = asAdmin().contentType(ContentType.JSON)
+            .body("""{"email": "$email", "password": "password123"}""")
+            .`when`().post("/users").then().statusCode(201)
+            .extract().header("Location").substringAfterLast("/").toInt()
+        asAdmin().contentType(ContentType.JSON).body("""{"roles": ["user"], "wardId": $wardId}""")
+            .`when`().put("/users/$userId").then().statusCode(200)
+        asAdmin().contentType(ContentType.JSON).body("""{"memberId": $leader}""")
+            .`when`().put("/users/$userId").then().statusCode(200)
+
+        val requesterEmail = "full-delete-req-${System.nanoTime()}@example.com"
+        val requesterId = asAdmin().contentType(ContentType.JSON)
+            .body("""{"email": "$requesterEmail", "password": "password123"}""")
+            .`when`().post("/users").then().statusCode(201)
+            .extract().header("Location").substringAfterLast("/").toInt()
+        asUser(requesterEmail).contentType(ContentType.JSON)
+            .body("""{"userId": $requesterId, "wardId": $wardId}""")
+            .`when`().post("/join-requests").then().statusCode(201)
+
+        asAdmin()
+            .`when`().delete("/wards/$wardId")
+            .then().statusCode(204)
+
+        asAdmin().`when`().get("/wards/$wardId").then().statusCode(404)
+        // The user account survives, without a ward or a member link.
+        asAdmin()
+            .`when`().get("/users/$userId")
+            .then().statusCode(200)
+            .body("wardId", org.hamcrest.Matchers.nullValue())
+            .body("memberId", org.hamcrest.Matchers.nullValue())
+    }
 }

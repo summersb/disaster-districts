@@ -3,7 +3,10 @@ package dd.resource
 import at.favre.lib.crypto.bcrypt.BCrypt
 import dd.dao.UserAccountDao
 import dd.dao.UserRoleDao
+import dd.repository.MemberRepository
 import dd.repository.UserAccountRepository
+import dd.security.GRANTABLE_ROLES
+import dd.security.DistrictLeaders
 import dd.repository.WardRepository
 import dd.security.isSystemAdmin
 import dd.security.wardId
@@ -30,6 +33,8 @@ import jakarta.ws.rs.core.UriInfo
 class UsersResource(
     val userAccountRepository: UserAccountRepository,
     val wardRepository: WardRepository,
+    val memberRepository: MemberRepository,
+    val districtLeaders: DistrictLeaders,
     val identity: SecurityIdentity,
     @field:Context val uriInfo: UriInfo,
 ) {
@@ -38,8 +43,10 @@ class UsersResource(
         id = u.id,
         email = u.email,
         name = u.name,
-        roles = u.getRoleList(),
+        roles = districtLeaders.roles(u),
         wardId = u.getWard()?.id,
+        memberId = u.member?.id,
+        leaderDistrictIds = districtLeaders.districtIds(u),
     )
 
     @GET
@@ -87,12 +94,16 @@ class UsersResource(
         val dbUser = userAccountRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
 
         if (!identity.isSystemAdmin()) {
-            // A ward_admin may only manage users already in their own ward,
-            // can't grant system-admin, and can't move someone to a
-            // different ward than their own (that's an admin-only action,
-            // used when creating a brand new ward and assigning it an
-            // admin).
-            if (dbUser.getWard()?.id != identity.wardId()) throw ForbiddenException()
+            // A ward_admin may manage users already in their own ward, and may
+            // bring in someone who isn't in any ward yet. They can't take a
+            // user from another ward, touch a system admin, grant
+            // system-admin, or put anyone in a ward other than their own
+            // (that's an admin-only action, used when creating a brand new
+            // ward and assigning it an admin).
+            if (dbUser.hasRole("admin")) throw ForbiddenException()
+            val currentWardId = dbUser.getWard()?.id
+            val joiningOwnWard = currentWardId == null && update.wardId != null && !update.removeFromWard
+            if (currentWardId != identity.wardId() && !joiningOwnWard) throw ForbiddenException()
             if (update.roles?.contains("admin") == true) throw ForbiddenException()
             if (update.wardId != null && update.wardId != identity.wardId()) throw ForbiddenException()
         }
@@ -100,7 +111,10 @@ class UsersResource(
         update.roles?.let { newRoles ->
             val currentWard = dbUser.getWard()
             dbUser.userRoles.clear()
-            val roles = newRoles.distinct().ifEmpty { listOf("user") }
+            // Only real roles are stored. district_leader in particular is
+            // derived from the member link, and clients send back the role
+            // list they were shown, so it has to be dropped here.
+            val roles = newRoles.distinct().filter { it in GRANTABLE_ROLES }.ifEmpty { listOf("user") }
             roles.forEach { role ->
                 val roleDao = UserRoleDao().apply {
                     this.user = dbUser
@@ -113,6 +127,8 @@ class UsersResource(
 
         when {
             update.removeFromWard -> {
+                // The linked member belongs to the ward being left.
+                dbUser.member = null
                 dbUser.userRoles.clear()
                 val defaultRole = UserRoleDao().apply {
                     this.user = dbUser
@@ -123,6 +139,7 @@ class UsersResource(
             update.wardId != null -> {
                 val ward = wardRepository.findById(update.wardId)
                     ?: return Response.status(Status.NOT_FOUND).build()
+                if (dbUser.member?.ward?.id != ward.id) dbUser.member = null
                 val nonAdminRoles = dbUser.userRoles.filter { it.role != "admin" }
                 if (nonAdminRoles.isEmpty()) {
                     val roleDao = UserRoleDao().apply {
@@ -134,6 +151,18 @@ class UsersResource(
                 } else {
                     nonAdminRoles.forEach { it.ward = ward }
                 }
+            }
+        }
+
+        update.memberId?.let { memberId ->
+            dbUser.member = if (memberId > 0) {
+                // A login can only stand for a member of its own ward.
+                memberRepository.findById(memberId)?.takeIf { it.ward?.id != null && it.ward?.id == dbUser.getWard()?.id }
+                    ?: return Response.status(Status.BAD_REQUEST)
+                        .entity(mapOf("error" to "The member must belong to the user's ward"))
+                        .build()
+            } else {
+                null
             }
         }
 

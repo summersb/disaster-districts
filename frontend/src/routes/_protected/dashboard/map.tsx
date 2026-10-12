@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Crosshair, MapPin, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import DistrictMembersMap from '@/components/districts/DistrictMembersMap'
 import {
   type GeocodeResult,
   geocodeAddress,
@@ -9,6 +10,7 @@ import {
 import MapDisplay from '@/components/OSMMapWithMarkers'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useDistrictLeaderScope } from '@/hooks/useDistrictLeaderScope'
 import { useDistricts } from '@/hooks/useDistricts'
 import { useMembers, useSaveMember } from '@/hooks/useMembers'
 import { useSaveWard, useWard } from '@/hooks/useWards'
@@ -24,6 +26,27 @@ export const Route = createFileRoute('/_protected/dashboard/map')({
 })
 
 function RouteComponent() {
+  // A district leader's map is of their own district(s) only.
+  const { leaderOnly } = useDistrictLeaderScope()
+  return leaderOnly ? <LeaderMap /> : <WardMap />
+}
+
+function LeaderMap() {
+  const { districts, districtIds } = useDistrictLeaderScope()
+  const { data: members = [] } = useMembers(getWardId())
+  return (
+    <div className="h-full">
+      <DistrictMembersMap
+        districts={districts}
+        members={members.filter(
+          (m) => m.district?.id != null && districtIds.has(m.district.id),
+        )}
+      />
+    </div>
+  )
+}
+
+function WardMap() {
   const wardId = getWardId()
   const { data: ward } = useWard(wardId)
   const { data: districts = [] } = useDistricts(wardId)

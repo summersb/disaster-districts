@@ -86,8 +86,20 @@ const CoordinateInput = ({ field, onPair, ...props }: CoordinateInputProps) => {
   )
 }
 
-const MemberForm = () => {
+// How much of the form the current user may change:
+//   all     - everything (ward admins)
+//   contact - address, phone and notes only (the member's district leader)
+//   none    - read-only
+export type MemberFormAccess = 'all' | 'contact' | 'none'
+
+type MemberFormProps = {
+  access?: MemberFormAccess
+}
+
+const MemberForm = ({ access = 'all' }: MemberFormProps) => {
   const { control, setValue } = useFormContext()
+  const canEditIdentity = access === 'all'
+  const canEditContact = access !== 'none'
 
   const setCoordinates = (lat: number, lng: number) => {
     const options = { shouldDirty: true, shouldValidate: true }
@@ -104,7 +116,11 @@ const MemberForm = () => {
           <FormItem>
             <FormLabel>Family Name</FormLabel>
             <FormControl>
-              <Input placeholder="Family name" {...field} />
+              <Input
+                placeholder="Family name"
+                disabled={!canEditIdentity}
+                {...field}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -117,7 +133,11 @@ const MemberForm = () => {
           <FormItem>
             <FormLabel>Name</FormLabel>
             <FormControl>
-              <Input placeholder="Name" {...field} />
+              <Input
+                placeholder="Name"
+                disabled={!canEditIdentity}
+                {...field}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -130,7 +150,11 @@ const MemberForm = () => {
           <FormItem>
             <FormLabel>Phone</FormLabel>
             <FormControl>
-              <Input placeholder="760-555-1212" {...field} />
+              <Input
+                placeholder="760-555-1212"
+                disabled={!canEditContact}
+                {...field}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -143,7 +167,11 @@ const MemberForm = () => {
           <FormItem>
             <FormLabel>Address</FormLabel>
             <FormControl>
-              <Input placeholder="123 Street" {...field} />
+              <Input
+                placeholder="123 Street"
+                disabled={!canEditContact}
+                {...field}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -156,7 +184,11 @@ const MemberForm = () => {
           <FormItem>
             <FormLabel>Address2</FormLabel>
             <FormControl>
-              <Input placeholder="Apt 23" {...field} />
+              <Input
+                placeholder="Apt 23"
+                disabled={!canEditContact}
+                {...field}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -169,7 +201,11 @@ const MemberForm = () => {
           <FormItem>
             <FormLabel>City</FormLabel>
             <FormControl>
-              <Input placeholder="Vista" {...field} />
+              <Input
+                placeholder="Vista"
+                disabled={!canEditContact}
+                {...field}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -182,7 +218,7 @@ const MemberForm = () => {
           <FormItem>
             <FormLabel>State</FormLabel>
             <FormControl>
-              <Input placeholder="CA" {...field} />
+              <Input placeholder="CA" disabled={!canEditContact} {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -195,7 +231,11 @@ const MemberForm = () => {
           <FormItem>
             <FormLabel>Zip Code</FormLabel>
             <FormControl>
-              <Input placeholder="92084" {...field} />
+              <Input
+                placeholder="92084"
+                disabled={!canEditContact}
+                {...field}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -210,6 +250,7 @@ const MemberForm = () => {
             <FormControl>
               <CoordinateInput
                 field={field}
+                disabled={!canEditIdentity}
                 placeholder="33.171410"
                 onPair={setCoordinates}
               />
@@ -231,6 +272,7 @@ const MemberForm = () => {
             <FormControl>
               <CoordinateInput
                 field={field}
+                disabled={!canEditIdentity}
                 placeholder="-117.206599"
                 onPair={setCoordinates}
               />
@@ -248,6 +290,7 @@ const MemberForm = () => {
             <FormControl>
               <Textarea
                 placeholder="Additional information"
+                disabled={!canEditContact}
                 rows={5}
                 {...field}
               />

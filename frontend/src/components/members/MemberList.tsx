@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog.tsx'
 import useUser from '@/context/useUser.tsx'
+import { useDistrictLeaderScope } from '@/hooks/useDistrictLeaderScope'
 import { useDeleteMember, useMembers } from '@/hooks/useMembers'
 import { getWardId } from '@/lib/api'
 import { isWardAdmin } from '@/lib/roles'
@@ -25,7 +26,14 @@ import type { MemberDto } from '@/type'
 const MemberList = (): React.ReactElement => {
   const navigate = useNavigate()
   const wardId = getWardId()
-  const { data: members = [] } = useMembers(wardId)
+  const { data: allMembers = [] } = useMembers(wardId)
+  // A district leader's list is just the members of their own district(s).
+  const { leaderOnly, districtIds } = useDistrictLeaderScope()
+  const members = leaderOnly
+    ? allMembers.filter(
+        (m) => m.district?.id != null && districtIds.has(m.district.id),
+      )
+    : allMembers
   const { user } = useUser()
   const canDelete = isWardAdmin(user.roles)
   const deleteMember = useDeleteMember()
@@ -106,26 +114,28 @@ const MemberList = (): React.ReactElement => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Members</h1>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate({ to: MemberLocationsRoute.to })}
-          >
-            <MapPinned className="w-4 h-4 mr-2" />
-            Check Locations
-          </Button>
-          <Button onClick={() => navigate({ to: MemberAddRoute.to })}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Member
-          </Button>
-        </div>
+        {!leaderOnly && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate({ to: MemberLocationsRoute.to })}
+            >
+              <MapPinned className="w-4 h-4 mr-2" />
+              Check Locations
+            </Button>
+            <Button onClick={() => navigate({ to: MemberAddRoute.to })}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Member
+            </Button>
+          </div>
+        )}
       </div>
 
       <DataTable
         columns={columns}
         data={members}
         searchPlaceholder="Search members..."
-        stateKey="members"
+        stateKey={leaderOnly ? 'members-district' : 'members'}
         defaultSort={[{ id: 'name', desc: false }]}
       />
 

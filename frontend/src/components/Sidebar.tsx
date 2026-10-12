@@ -15,6 +15,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import type { User as UserType } from '@/context/UserContext.tsx'
 import useUser from '@/context/useUser.tsx'
+import { useDistrictLeaderScope } from '@/hooks/useDistrictLeaderScope'
+import { useJoinRequests } from '@/hooks/useJoinRequests'
 import { useLocalStorageState } from '@/hooks/useLocalStorageState'
 import { useWard } from '@/hooks/useWards'
 import { canManageUsers, isAdmin } from '@/lib/roles'
@@ -43,6 +45,10 @@ const Sidebar = ({ user }: Props): React.ReactElement => {
   const auth = useUser()
   const [, setUser] = useLocalStorageState<UserType>('user', undefined)
   const { data: ward } = useWard(user.wardId ?? 0)
+  const { leaderOnly } = useDistrictLeaderScope()
+  const { data: pendingRequests = [] } = useJoinRequests(
+    canManageUsers(user.roles),
+  )
 
   const logout = async () => {
     auth.setUser({})
@@ -74,9 +80,21 @@ const Sidebar = ({ user }: Props): React.ReactElement => {
         <div className={row}>
           <Settings />
           <Link to={AdminRoute.to}>Admin</Link>
+          {/* Requests to join the ward are handled on the Admin page. */}
+          {pendingRequests.length > 0 && (
+            <span
+              className="rounded-full bg-blue-600 px-2 text-xs font-semibold"
+              title="People waiting for access"
+              data-testid="pending-requests-badge"
+            >
+              {pendingRequests.length}
+            </span>
+          )}
         </div>
       )}
 
+      {/* The all-wards queue is for system admins; a ward admin sees their
+          own ward's requests on the Admin page. */}
       {isAdmin(user.roles) && (
         <div className={row}>
           <Users />
@@ -84,35 +102,48 @@ const Sidebar = ({ user }: Props): React.ReactElement => {
         </div>
       )}
 
+      {/* A district leader's menu is just their members and map: their
+          district, and printing it, are on the dashboard. */}
+      {leaderOnly ? (
+        <div className={row}>
+          <Users />
+          <Link to={MemberRoute.to}>Members</Link>
+        </div>
+      ) : (
+        <>
+          <div className={row}>
+            <School />
+            <Link to={DistrictRoute.to}>Districts</Link>
+          </div>
+          <div className={row}>
+            <School2 />
+            <Link to={DistrictRouteAdd.to}>Add Districts</Link>
+          </div>
+          <div className={row}>
+            <Rows3 />
+            <Link to={PrintRoute.to}>Print Districts</Link>
+          </div>
+          <div className={row}>
+            <Users />
+            <Link to={MemberRoute.to}>Members</Link>
+          </div>
+          <div className={row}>
+            <User />
+            <Link to={MemberRouteAdd.to}>Add/Update Members</Link>
+          </div>
+          <div className={row}>
+            <HardDriveUpload />
+            <Link to={UploadRoute.to}>Upload Members</Link>
+          </div>
+        </>
+      )}
       <div className={row}>
-        <School />
-        <Link to={DistrictRoute.to}>Districts</Link>
-      </div>
-      <div className={row}>
-        <School2 />
-        <Link to={DistrictRouteAdd.to}>Add Districts</Link>
-      </div>
-      <div className={row}>
-        <Rows3 />
-        <Link to={PrintRoute.to}>Print Districts</Link>
-      </div>
-      <div className={row}>
-        <Users />
-        <Link to={MemberRoute.to}>Members</Link>
-      </div>
-      <div className={row}>
-        <User />
-        <Link to={MemberRouteAdd.to}>Add/Update Members</Link>
-      </div>
-      <div className={row}>
-        <HardDriveUpload />
-        <Link to={UploadRoute.to}>Upload Members</Link>
-      </div>
-      <div className={cn(row, 'grow')}>
         <MapIcon />
         <Link to={DashboardMapRoute.to}>Map</Link>
       </div>
-      <div className={cn(row, 'grow')}>
+      {/* mt-auto pushes Logout and Settings to the bottom, leaving the
+          menu items above together. */}
+      <div className={cn(row, 'mt-auto')}>
         <Button onClick={logout}>Logout</Button>
       </div>
       <div className={row}>

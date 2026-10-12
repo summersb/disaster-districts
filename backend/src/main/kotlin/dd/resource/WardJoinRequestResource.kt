@@ -5,6 +5,7 @@ import dd.dao.WardJoinRequestDao
 import dd.repository.UserAccountRepository
 import dd.repository.WardJoinRequestRepository
 import dd.repository.WardRepository
+import dd.security.GRANTABLE_ROLES
 import dd.security.isSystemAdmin
 import dd.security.requireSelfOrAdmin
 import dd.security.userId
@@ -139,7 +140,7 @@ class WardJoinRequestResource(
             val adminRoles = user.userRoles.filter { it.role == "admin" }
             user.userRoles.clear()
 
-            val newRole = resolve.assignedRole ?: "user"
+            val newRole = resolve.assignedRole?.takeIf { it in GRANTABLE_ROLES } ?: "user"
             val roleDao = UserRoleDao().apply {
                 this.user = user
                 this.role = newRole

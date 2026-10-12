@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import useUser from '@/context/useUser.tsx'
+import { useDistrictLeaderScope } from '@/hooks/useDistrictLeaderScope'
 import { useDistricts } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
 import { useWard } from '@/hooks/useWards'
@@ -22,7 +23,7 @@ import {
   generateDistrictsPdf,
   type WardPacketExtras,
 } from '@/lib/districtPdf'
-import { isAdmin, isDistrictAdmin, isWardAdmin } from '@/lib/roles'
+import { isAdmin, isWardAdmin } from '@/lib/roles'
 
 // Safe to use as a file name on any OS.
 const fileNamePart = (text: string) =>
@@ -41,10 +42,12 @@ const PrintDistricts = (): React.ReactElement => {
   const { data: districts = [] } = useDistricts(wardId)
   const { data: members = [] } = useMembers(wardId)
 
-  // District admins print one district at a time; the whole-ward packet is
-  // for ward admins (and system admins).
+  // Ward admins (and system admins) can print any district or the whole-ward
+  // packet.
   const canPrintAll = isAdmin(user.roles) || isWardAdmin(user.roles)
-  const canPrintOne = canPrintAll || isDistrictAdmin(user.roles)
+  // A district leader prints their own district(s), and sees no others.
+  const { leaderOnly, districtIds } = useDistrictLeaderScope()
+  const canPrintOne = canPrintAll || leaderOnly
 
   // Which download is running ('all' or a district id) and how far along.
   const [busy, setBusy] = useState<number | 'all' | null>(null)
@@ -53,7 +56,10 @@ const PrintDistricts = (): React.ReactElement => {
 
   const reports = useMemo(
     () =>
-      buildDistrictReports(districts, members).sort((a, b) =>
+      buildDistrictReports(
+        leaderOnly ? districts.filter((d) => districtIds.has(d.id)) : districts,
+        members,
+      ).sort((a, b) =>
         (a.district.name ?? '').localeCompare(
           b.district.name ?? '',
           undefined,
@@ -62,7 +68,7 @@ const PrintDistricts = (): React.ReactElement => {
           },
         ),
       ),
-    [districts, members],
+    [districts, members, leaderOnly, districtIds],
   )
 
   // Listed on the closing page of the whole-ward packet.
@@ -107,7 +113,9 @@ const PrintDistricts = (): React.ReactElement => {
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Print Districts</h1>
+        <h1 className="text-2xl font-bold">
+          {leaderOnly ? 'Print District' : 'Print Districts'}
+        </h1>
         {canPrintAll && (
           <Button
             disabled={busy != null || reports.length === 0}
@@ -136,7 +144,7 @@ const PrintDistricts = (): React.ReactElement => {
       </p>
       {!canPrintOne && (
         <p className="text-sm">
-          Only district admins and ward admins can print district lists.
+          Only ward admins and district leaders can print district lists.
         </p>
       )}
       {error && <p className="text-sm text-destructive">{error}</p>}

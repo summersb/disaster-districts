@@ -18,10 +18,13 @@ const fetchMyJoinRequests = async (
   return Array.isArray(json) ? json : []
 }
 
-export const useJoinRequests = () =>
+// Pending requests the caller may act on: every ward's for a system admin,
+// their own ward's for a ward admin (the server does the scoping).
+export const useJoinRequests = (enabled = true) =>
   useQuery<WardJoinRequestDto[]>({
     queryKey: ['joinRequests'],
     queryFn: fetchJoinRequests,
+    enabled,
   })
 
 export const useMyJoinRequests = (userId: number | undefined) =>

@@ -18,6 +18,7 @@ import jakarta.enterprise.context.ApplicationScoped
 @ApplicationScoped
 class UserIdentityAugmentor(
     val userAccountRepository: UserAccountRepository,
+    val districtLeaders: DistrictLeaders,
 ) : SecurityIdentityAugmentor {
 
     override fun augment(identity: SecurityIdentity, context: AuthenticationRequestContext): Uni<SecurityIdentity> {
@@ -28,14 +29,20 @@ class UserIdentityAugmentor(
             // Panache needs an active transaction/persistence context, which
             // isn't established yet this early in the request pipeline -
             // open one just for this lookup.
-            val user: UserAccountDao? = QuarkusTransaction.requiringNew().call<UserAccountDao?> {
+            // The led districts are resolved inside the same transaction,
+            // while the user's lazy member link can still be followed.
+            val found = QuarkusTransaction.requiringNew().call<Pair<UserAccountDao, List<Long>>?> {
                 userAccountRepository.findByEmail(identity.principal.name)
+                    ?.let { it to districtLeaders.districtIds(it) }
             }
-            if (user == null) return@runBlocking identity
+            val (user: UserAccountDao, ledDistrictIds) = found ?: return@runBlocking identity
+            val roles = user.getRoleList().toMutableSet()
+            if (ledDistrictIds.isNotEmpty()) roles += DISTRICT_LEADER_ROLE
             QuarkusSecurityIdentity.builder(identity)
-                .addRoles(user.getRoleList().toSet())
+                .addRoles(roles)
                 .addAttribute("userId", user.id)
                 .addAttribute("wardId", user.getWard()?.id)
+                .addAttribute("leaderDistrictIds", ledDistrictIds.toSet())
                 .build()
         }
     }

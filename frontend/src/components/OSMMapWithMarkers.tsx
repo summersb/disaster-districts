@@ -122,7 +122,8 @@ type MemberPinsProps = {
   getIcon: (member: MemberDto) => L.Icon
   onClick: (member: MemberDto) => void
   showLabel: boolean
-  editable?: boolean
+  // Text added after a member's name in the pin's label, if any.
+  labelHint?: string
 }
 
 // Draws the member pins. Pins that would cover each other at the current zoom
@@ -133,7 +134,7 @@ function MemberPins({
   getIcon,
   onClick,
   showLabel,
-  editable,
+  labelHint,
 }: MemberPinsProps) {
   const map = useMap()
   // Overlap depends on the zoom, so re-place the pins whenever it changes.
@@ -200,7 +201,7 @@ function MemberPins({
               permanent={showLabel}
             >
               <MemberDisplayName member={member} />
-              {editable && ' (click to look up address)'}
+              {labelHint}
             </Tooltip>
           </Marker>
         </Fragment>
@@ -235,6 +236,9 @@ type MapWithMarkersProps = {
   // address lookup).
   editable?: boolean
   onMemberSelected?: (member: MemberDto) => void
+  // Replaces the "(click to look up address)" note that `editable` adds to
+  // each pin's label; pass '' when selecting a member means something else.
+  editableHint?: string
   // With a center, open zoomed to roughly this many miles around it rather
   // than fitting every member, and report how many members that leaves out.
   defaultRadiusMiles?: number
@@ -435,7 +439,11 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
           getIcon={getMemberIcon}
           onClick={markerClicked}
           showLabel={props.showLabel}
-          editable={props.editable}
+          labelHint={
+            props.editable
+              ? (props.editableHint ?? ' (click to look up address)')
+              : undefined
+          }
         />
         {props.districts?.map((d) => {
           // Prefer the district's stored lat/lng. If absent, fall back to the

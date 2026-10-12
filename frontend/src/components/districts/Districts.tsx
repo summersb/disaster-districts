@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog.tsx'
 import useUser from '@/context/useUser.tsx'
+import { useDistrictLeaderScope } from '@/hooks/useDistrictLeaderScope'
 import { useDeleteDistrict, useDistricts } from '@/hooks/useDistricts'
 import { useMembers } from '@/hooks/useMembers'
 import { getWardId } from '@/lib/api'
@@ -39,7 +40,12 @@ const memberName = (member?: MemberDto) =>
 const Districts = (): React.ReactElement => {
   const navigate = useNavigate()
   const wardId = getWardId()
-  const { data: districts = [] } = useDistricts(wardId)
+  const { data: allDistricts = [] } = useDistricts(wardId)
+  // A district leader sees only the district(s) they lead, read-only.
+  const { leaderOnly, districtIds } = useDistrictLeaderScope()
+  const districts = leaderOnly
+    ? allDistricts.filter((d) => districtIds.has(d.id))
+    : allDistricts
   // One members request for the whole page; each row's count and
   // leader/assistant names are looked up from it.
   const { data: members = [] } = useMembers(wardId)
@@ -174,10 +180,12 @@ const Districts = (): React.ReactElement => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Districts</h1>
-        <Button onClick={() => navigate({ to: DistrictAddRoute.to })}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add District
-        </Button>
+        {canSplit && (
+          <Button onClick={() => navigate({ to: DistrictAddRoute.to })}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add District
+          </Button>
+        )}
       </div>
 
       <DataTable

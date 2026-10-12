@@ -9,12 +9,22 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useJoinRequests, useResolveJoinRequest } from '@/hooks/useJoinRequests'
-import { ALL_ROLES, ROLE_LABELS } from '@/lib/roles'
+import { GRANTABLE_ROLES, ROLE_LABELS } from '@/lib/roles'
 
-const GRANTABLE_ROLES = ALL_ROLES.filter((role) => role !== 'admin')
+type ManageRequestsProps = {
+  // Show only requests for this ward (the Admin page's selected ward).
+  // Without it, every request the user may act on is listed.
+  wardId?: number
+}
 
-const ManageRequests = (): React.ReactElement => {
-  const { data: requests = [], isLoading } = useJoinRequests()
+const ManageRequests = ({
+  wardId,
+}: ManageRequestsProps): React.ReactElement => {
+  const { data: allRequests = [], isLoading } = useJoinRequests()
+  const requests =
+    wardId == null
+      ? allRequests
+      : allRequests.filter((request) => request.wardId === wardId)
   const resolveRequest = useResolveJoinRequest()
   const [selectedRoles, setSelectedRoles] = useState<Record<number, string>>({})
 

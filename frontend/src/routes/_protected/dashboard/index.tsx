@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import WardsOverview from '@/components/admin/WardsOverview.tsx'
+import LeaderDashboard from '@/components/districts/LeaderDashboard.tsx'
 import WardDashboard from '@/components/ward/WardDashboard.tsx'
 import useUser from '@/context/useUser.tsx'
+import { useDistrictLeaderScope } from '@/hooks/useDistrictLeaderScope'
 import { getWardId } from '@/lib/api'
 import { isAdmin } from '@/lib/roles'
 import { Route as JoinWardRoute } from '@/routes/_protected/join-ward'
@@ -12,6 +14,7 @@ export const Route = createFileRoute('/_protected/dashboard/')({
 
 function RouteComponent() {
   const { user } = useUser()
+  const { leaderOnly, districts: ledDistricts } = useDistrictLeaderScope()
 
   if (isAdmin(user.roles)) {
     return <WardsOverview />
@@ -20,7 +23,12 @@ function RouteComponent() {
   // The saved session is the source of truth for the ward (it is what every
   // data request uses); the in-memory user can lag behind it.
   if ((user.wardId ?? getWardId()) > 0) {
-    return <WardDashboard />
+    // A district leader's home is their own district, not the whole ward.
+    return leaderOnly ? (
+      <LeaderDashboard districts={ledDistricts} />
+    ) : (
+      <WardDashboard />
+    )
   }
 
   return (

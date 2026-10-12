@@ -8,13 +8,17 @@ import dd.geo.distanceKm
 import dd.geo.stripUnit
 import dd.repository.MemberRepository
 import dd.repository.WardRepository
+import dd.security.isWardManager
+import dd.security.leaderDistrictIds
 import dd.security.requireWardManager
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.security.identity.SecurityIdentity
 import jakarta.persistence.EntityManager
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.DELETE
+import jakarta.ws.rs.ForbiddenException
 import jakarta.ws.rs.GET
+import jakarta.ws.rs.NotAuthorizedException
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Path
@@ -246,27 +250,43 @@ class MembersResource(
         return GeoAddress(freeText = freeText, street = street, postalCode = m.postalCode)
     }
 
+    // Ward managers can change anything about a member. The leader or
+    // assistant of the member's district can also save, but only the contact
+    // details - address, phone and notes; whatever else they send (name,
+    // coordinates) is ignored, and which district the member is in is never
+    // set here at all.
     @PUT
     @Path("/{id}")
     fun updateMember(@PathParam("id") id: Long, member: MemberRequest): Response = QuarkusTransaction.call<Response> {
-        identity.requireWardManager(wardId)
-        val dbMember = memberRepository.findById(id) ?: return@call Response.status(Status.NOT_FOUND).build()
-        val nameConflict = memberRepository.findByWardAndName(wardId, member.familyName, member.name)
-        if (nameConflict != null && nameConflict.id != id) {
-            return@call Response.status(Status.CONFLICT).build()
+        val manager = identity.isWardManager(wardId)
+        val dbMember = memberRepository.findById(id)?.takeIf { manager || it.ward?.id == wardId }
+        if (!manager) {
+            if (identity.isAnonymous) throw NotAuthorizedException("Bearer")
+            val districtId = dbMember?.district?.id
+            if (districtId == null || districtId !in identity.leaderDistrictIds()) throw ForbiddenException()
+        }
+        if (dbMember == null) return@call Response.status(Status.NOT_FOUND).build()
+
+        if (manager) {
+            val nameConflict = memberRepository.findByWardAndName(wardId, member.familyName, member.name)
+            if (nameConflict != null && nameConflict.id != id) {
+                return@call Response.status(Status.CONFLICT).build()
+            }
+            dbMember.apply {
+                familyName = member.familyName
+                name = member.name
+                lat = member.lat
+                lng = member.lng
+            }
         }
         dbMember.apply {
-            familyName = member.familyName
             formattedAddress = member.formattedAddress
-            name = member.name
             address1 = member.address1
             address2 = member.address2
             city = member.city
             state = member.state
             postalCode = member.postalCode
             phone = member.phone
-            lat = member.lat
-            lng = member.lng
             notes = member.notes
         }
         Response.ok(toDto(dbMember)).build()
@@ -287,6 +307,9 @@ class MembersResource(
         // entity rather than with a bulk update, which would leave the ward
         // in this session still pointing at the member being removed.
         member.ward?.let { ward -> if (ward.leader?.id == id) ward.leader = null }
+        // A login linked to this member just loses the link.
+        entityManager.createQuery("update Users u set u.member = null where u.member.id = :id")
+            .setParameter("id", id).executeUpdate()
         memberRepository.delete(member)
         Response.noContent().build()
     }

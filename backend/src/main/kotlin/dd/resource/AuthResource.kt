@@ -6,6 +6,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import dd.dao.UserAccountDao
 import dd.dao.UserRoleDao
 import dd.repository.UserAccountRepository
+import dd.security.DistrictLeaders
 import io.smallrye.jwt.build.Jwt
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.Consumes
@@ -25,7 +26,17 @@ import java.time.temporal.ChronoUnit
 @Path("/auth")
 class AuthResource(
     val userAccountRepository: UserAccountRepository,
+    val districtLeaders: DistrictLeaders,
 ) {
+
+    private fun authResponse(token: String, user: UserAccountDao) = AuthResponse(
+        token = token,
+        id = user.id,
+        email = user.email,
+        roles = districtLeaders.roles(user),
+        wardId = user.getWard()?.id,
+        memberId = user.member?.id,
+    )
 
     private fun verifyPassword(password: String, storedHash: String): Boolean {
         return BCrypt.verifyer().verify(password.toCharArray(), storedHash).verified
@@ -96,7 +107,7 @@ class AuthResource(
         admin.userRoles.add(adminRole)
 
         val token = generateToken(admin.email)
-        return Response.ok(AuthResponse(token, admin.id, admin.email, admin.getRoleList(), admin.getWard()?.id)).build()
+        return Response.ok(authResponse(token, admin)).build()
     }
 
     @POST
@@ -115,7 +126,7 @@ class AuthResource(
         }
 
         val token = generateToken(foundUser.email)
-        return Response.ok(AuthResponse(token, foundUser.id, foundUser.email, foundUser.getRoleList(), foundUser.getWard()?.id)).build()
+        return Response.ok(authResponse(token, foundUser)).build()
     }
 
     @POST
@@ -139,7 +150,7 @@ class AuthResource(
         }
 
         val token = generateToken(user.email)
-        return Response.ok(AuthResponse(token, user.id, user.email, user.getRoleList(), user.getWard()?.id)).build()
+        return Response.ok(authResponse(token, user)).build()
     }
 }
 
@@ -157,6 +168,8 @@ data class AuthResponse(
     val email: String,
     val roles: List<String>,
     val wardId: Long?,
+    // The member record this login is linked to, if any.
+    val memberId: Long? = null,
 )
 
 data class GoogleTokenRequest(

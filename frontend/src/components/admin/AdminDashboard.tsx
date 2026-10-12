@@ -8,11 +8,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import useUser from '@/context/useUser.tsx'
+import { useJoinRequests } from '@/hooks/useJoinRequests'
 import { useWards } from '@/hooks/useWards'
-import { ALL_ROLES, isAdmin } from '@/lib/roles'
+import { GRANTABLE_ROLES, isAdmin } from '@/lib/roles'
+import DistrictLeaderAccess from './DistrictLeaderAccess'
+import ManageRequests from './ManageRequests'
 import WardUsersPanel from './WardUsersPanel'
-
-const GRANTABLE_ROLES = ALL_ROLES.filter((role) => role !== 'admin')
 
 const AdminDashboard = (): React.ReactElement => {
   const { user } = useUser()
@@ -31,6 +32,10 @@ const AdminDashboard = (): React.ReactElement => {
   }, [selectedWardId, wards])
 
   const selectedWard = wards.find((w) => String(w.id) === selectedWardId)
+  const { data: requests = [] } = useJoinRequests()
+  const pendingForWard = requests.filter(
+    (request) => request.wardId === selectedWard?.id,
+  ).length
 
   return (
     <div className="p-6">
@@ -54,6 +59,19 @@ const AdminDashboard = (): React.ReactElement => {
             ))}
           </SelectContent>
         </Select>
+
+        {selectedWard && (
+          // People who signed up and asked to join this ward. Approving one
+          // adds the account to the ward's users below.
+          <section className="space-y-2" data-testid="ward-access-requests">
+            <h2 className="text-lg font-semibold">
+              Access Requests ({pendingForWard})
+            </h2>
+            <ManageRequests wardId={selectedWard.id} />
+          </section>
+        )}
+
+        {selectedWard && <DistrictLeaderAccess wardId={selectedWard.id ?? 0} />}
 
         {selectedWard ? (
           <WardUsersPanel

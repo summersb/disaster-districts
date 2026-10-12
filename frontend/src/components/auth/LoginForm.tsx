@@ -46,6 +46,7 @@ export function LoginForm() {
     email: string
     roles?: string[]
     wardId?: number
+    memberId?: number
   }) => {
     auth.setUser({
       id: json.id,
@@ -53,6 +54,7 @@ export function LoginForm() {
       token: json.token,
       roles: json.roles,
       wardId: json.wardId,
+      memberId: json.memberId,
     })
     setUser({
       id: json.id,
@@ -60,6 +62,7 @@ export function LoginForm() {
       token: json.token,
       roles: json.roles,
       wardId: json.wardId,
+      memberId: json.memberId,
     })
     const from = search.from || DashboardRoute.to
     await navigate({ to: from, replace: true })

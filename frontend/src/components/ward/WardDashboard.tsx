@@ -179,7 +179,6 @@ const WardDashboard = (): React.ReactElement => {
     [districts],
   )
   const wardAdmins = users.filter((u) => hasRole(u.roles, 'ward_admin'))
-  const districtAdmins = users.filter((u) => hasRole(u.roles, 'district_admin'))
 
   const save = async (
     changes: { name?: string; leaderId?: number },
@@ -407,7 +406,7 @@ const WardDashboard = (): React.ReactElement => {
         <Stat label="Not in a district" value={unassigned.length} />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Ward Leader</CardTitle>
@@ -478,27 +477,14 @@ const WardDashboard = (): React.ReactElement => {
         </Card>
 
         {canManage && (
-          <>
-            <Card>
-              <CardHeader>
-                <CardTitle>Ward Admins ({wardAdmins.length})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <UserList users={wardAdmins} empty="No ward admins yet." />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>District Admins ({districtAdmins.length})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <UserList
-                  users={districtAdmins}
-                  empty="No district admins yet."
-                />
-              </CardContent>
-            </Card>
-          </>
+          <Card>
+            <CardHeader>
+              <CardTitle>Ward Admins ({wardAdmins.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <UserList users={wardAdmins} empty="No ward admins yet." />
+            </CardContent>
+          </Card>
         )}
       </div>
 

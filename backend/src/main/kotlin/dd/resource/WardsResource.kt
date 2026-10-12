@@ -6,6 +6,7 @@ import dd.repository.DistrictRepository
 import dd.repository.MemberRepository
 import dd.repository.UserAccountRepository
 import dd.repository.WardRepository
+import dd.security.DistrictLeaders
 import dd.security.requireWard
 import dd.security.requireWardManager
 import io.quarkus.security.Authenticated
@@ -42,6 +43,7 @@ class WardsResource(
     val identity: SecurityIdentity,
     val geocoder: Geocoder,
     val wardTransfer: WardTransferService,
+    val districtLeaders: DistrictLeaders,
     @field:Context val uriInfo: UriInfo,
 ) {
 
@@ -120,30 +122,26 @@ class WardsResource(
     @RolesAllowed("admin")
     @Transactional
     fun deleteWard(@PathParam("id") id: Long): Response {
-        val ward = wardRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
-        // Detach/remove everything scoped to this ward before removing it -
-        // members reference districts, and districts/user roles/join
-        // requests all reference the ward, so the FKs would otherwise block
-        // the delete.
-        entityManager.createQuery("delete from WardJoinRequest r where r.ward.id = :id")
-            .setParameter("id", id).executeUpdate()
-        // The ward's leader is one of the members about to be bulk-deleted
-        // below. Drop the reference, and detach the loaded member so the
-        // session isn't left holding a member of a ward that no longer exists.
-        ward.leader?.let { leader ->
-            ward.leader = null
-            entityManager.flush()
-            entityManager.detach(leader)
-        }
-        entityManager.createQuery("update Member m set m.district = null where m.ward.id = :id")
-            .setParameter("id", id).executeUpdate()
-        entityManager.createQuery("delete from District d where d.ward.id = :id")
-            .setParameter("id", id).executeUpdate()
-        entityManager.createQuery("delete from Member m where m.ward.id = :id")
-            .setParameter("id", id).executeUpdate()
-        entityManager.createQuery("delete from UserRole r where r.ward.id = :id")
-            .setParameter("id", id).executeUpdate()
-        wardRepository.delete(ward)
+        wardRepository.findById(id) ?: return Response.status(Status.NOT_FOUND).build()
+        // Everything below is done with bulk statements, in an order that
+        // satisfies the foreign keys. Loading the ward above also pulled in
+        // its leader, that member's district and so on; clear them out of
+        // the session first, or Hibernate would try to flush those entities
+        // at commit while they still point at rows deleted underneath them.
+        entityManager.clear()
+        val run = { jpql: String -> entityManager.createQuery(jpql).setParameter("id", id).executeUpdate() }
+
+        run("delete from WardJoinRequest r where r.ward.id = :id")
+        // The ward's leader, and each district's leader and assistant, are
+        // members about to be deleted.
+        run("update Ward w set w.leader = null where w.id = :id")
+        run("update Member m set m.district = null where m.ward.id = :id")
+        run("delete from District d where d.ward.id = :id")
+        // Logins linked to this ward's members lose the link with them.
+        run("update Users u set u.member = null where u.member.id in (select m.id from Member m where m.ward.id = :id)")
+        run("delete from Member m where m.ward.id = :id")
+        run("delete from UserRole r where r.ward.id = :id")
+        run("delete from Ward w where w.id = :id")
         return Response.noContent().build()
     }
 
@@ -203,7 +201,15 @@ class WardsResource(
     fun getWardUsers(@PathParam("wardId") wardId: Long): Response {
         identity.requireWard(wardId)
         val users = userAccountRepository.findByWardId(wardId).map { u ->
-            UserDto(id = u.id, email = u.email, name = u.name, roles = u.getRoleList(), wardId = u.getWard()?.id)
+            UserDto(
+                id = u.id,
+                email = u.email,
+                name = u.name,
+                roles = districtLeaders.roles(u),
+                wardId = u.getWard()?.id,
+                memberId = u.member?.id,
+                leaderDistrictIds = districtLeaders.districtIds(u),
+            )
         }
         return Response.ok(users).build()
     }

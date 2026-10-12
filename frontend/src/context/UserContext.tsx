@@ -6,6 +6,8 @@ export type User = {
   email?: string
   avatarUrl?: string
   wardId?: number
+  // The member record this login is linked to, if a ward admin set one.
+  memberId?: number
   token?: string
   roles?: string[]
 }

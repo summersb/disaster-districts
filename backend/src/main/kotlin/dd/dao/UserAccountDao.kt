@@ -8,6 +8,8 @@ import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
@@ -28,6 +30,11 @@ open class UserAccountDao : PanacheEntityBase {
 
     @Column(name = "password_hash", length = 255)
     var passwordHash: String? = null
+
+    // The member record for this same person, if a ward admin has linked one.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id")
+    var member: MemberDao? = null
 
     @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.EAGER)
     var userRoles: MutableList<UserRoleDao> = mutableListOf()

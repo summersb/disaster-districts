@@ -4,12 +4,15 @@ import type React from 'react'
 import { useEffect, useState } from 'react'
 import { FormProvider, type Resolver, useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
+import useUser from '@/context/useUser.tsx'
+import { useDistricts } from '@/hooks/useDistricts'
 import { useMembers, useSaveMember } from '@/hooks/useMembers'
 import { getWardId } from '@/lib/api'
+import { canManageUsers } from '@/lib/roles'
 import { Route as MemberRoute } from '@/routes/_protected/member/index'
 import type { MemberDto } from '@/type'
 import { MemberSchema } from '@/type'
-import MemberForm from './MemberForm'
+import MemberForm, { type MemberFormAccess } from './MemberForm'
 
 type EditMemberProps = {
   memberId: number
@@ -22,6 +25,25 @@ const EditMember = ({ memberId }: EditMemberProps): React.ReactElement => {
   const saveMember = useSaveMember()
   const [error, setError] = useState('')
   const member = members?.find((m) => m.id === memberId)
+  const { user } = useUser()
+  const { data: districts = [] } = useDistricts(wardId)
+
+  // Ward admins edit everything. The leader or assistant of the member's
+  // district can change the contact details only; everyone else just reads.
+  // (The server enforces the same rules - this only shapes the form.)
+  const leadsMembersDistrict =
+    user.memberId != null &&
+    member?.district?.id != null &&
+    districts.some(
+      (d) =>
+        d.id === member.district?.id &&
+        (d.leaderId === user.memberId || d.assistantId === user.memberId),
+    )
+  const access: MemberFormAccess = canManageUsers(user.roles)
+    ? 'all'
+    : leadsMembersDistrict
+      ? 'contact'
+      : 'none'
 
   const form = useForm<MemberDto>({
     resolver: zodResolver(MemberSchema) as unknown as Resolver<MemberDto>,
@@ -66,10 +88,24 @@ const EditMember = ({ memberId }: EditMemberProps): React.ReactElement => {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Edit Member</h1>
+      <h1 className="text-2xl font-bold mb-6">
+        {access === 'none' ? 'Member' : 'Edit Member'}
+      </h1>
       <FormProvider {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <MemberForm />
+          {access === 'contact' && (
+            <p className="text-sm text-muted-foreground">
+              As this member's district leader you can update their address,
+              phone and notes.
+            </p>
+          )}
+          {access === 'none' && (
+            <p className="text-sm text-muted-foreground">
+              Only ward admins, or the leader of this member's district, can
+              change these details.
+            </p>
+          )}
+          <MemberForm access={access} />
           {error && <p className="text-sm text-destructive">{error}</p>}
           <div className="flex justify-end gap-2">
             <Button
@@ -80,9 +116,11 @@ const EditMember = ({ memberId }: EditMemberProps): React.ReactElement => {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={saveMember.isPending || !isDirty}>
-              {saveMember.isPending ? 'Saving...' : 'Save'}
-            </Button>
+            {access !== 'none' && (
+              <Button type="submit" disabled={saveMember.isPending || !isDirty}>
+                {saveMember.isPending ? 'Saving...' : 'Save'}
+              </Button>
+            )}
           </div>
         </form>
       </FormProvider>

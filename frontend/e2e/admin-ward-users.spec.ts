@@ -40,7 +40,7 @@ test('admin can pick a ward, add a user, change their role, and remove them', as
   await expect(row.getByRole('cell', { name: 'Member' })).toBeVisible()
 
   // Change their role.
-  await row.getByRole('button', { name: 'Edit Roles' }).click()
+  await row.getByRole('button', { name: 'Edit', exact: true }).click()
   await row.getByLabel('Member').uncheck()
   await row.getByLabel('Ward Admin').check()
   await row.getByRole('button', { name: 'Save' }).click()

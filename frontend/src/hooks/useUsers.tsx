@@ -34,15 +34,18 @@ export const useUpdateUser = () => {
       roles,
       wardId,
       removeFromWard,
+      memberId,
     }: {
       id: number
       roles?: string[]
       wardId?: number
       removeFromWard?: boolean
+      // Links the login to a member record; 0 removes the link.
+      memberId?: number
     }) =>
       authFetch(`/api/users/${id}`, {
         method: 'PUT',
-        body: JSON.stringify({ roles, wardId, removeFromWard }),
+        body: JSON.stringify({ roles, wardId, removeFromWard, memberId }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
