@@ -186,18 +186,18 @@ const WardsOverview = (): React.ReactElement => {
           <DialogFooter>
             <Button
               type="button"
+              variant="ghost"
+              onClick={() => setDeletingWard(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
               variant="destructive"
               onClick={handleDeleteWard}
               disabled={deleteWard.isPending}
             >
               {deleteWard.isPending ? 'Deleting...' : 'Delete'}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setDeletingWard(null)}
-            >
-              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>

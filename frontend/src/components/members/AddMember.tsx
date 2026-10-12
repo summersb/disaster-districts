@@ -53,9 +53,19 @@ const AddMember = (): React.ReactElement => {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <MemberForm />
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" disabled={addMember.isPending}>
-            {addMember.isPending ? 'Saving...' : 'Save'}
-          </Button>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={addMember.isPending}
+              onClick={() => navigate({ to: MemberRoute.to })}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={addMember.isPending}>
+              {addMember.isPending ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
         </form>
       </FormProvider>
     </div>

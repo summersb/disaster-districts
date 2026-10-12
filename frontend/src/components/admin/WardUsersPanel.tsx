@@ -127,11 +127,11 @@ const WardUsersPanel = ({
         if (editingId === user.id) {
           return (
             <div className="flex gap-2">
+              <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                Cancel
+              </Button>
               <Button size="sm" onClick={() => saveEdit(user)}>
                 Save
-              </Button>
-              <Button size="sm" variant="outline" onClick={cancelEdit}>
-                Cancel
               </Button>
             </div>
           )

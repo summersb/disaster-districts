@@ -77,18 +77,18 @@ export default function DistrictCard(props: DistrictProps) {
           <DialogFooter>
             <Button
               type="button"
+              variant="ghost"
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
               variant="destructive"
               onClick={doDelete}
               disabled={deleteDistrict.isPending}
             >
               {deleteDistrict.isPending ? 'Deleting...' : 'Delete'}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,4 +1,4 @@
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Edit2, Plus, Trash2 } from 'lucide-react'
 import type React from 'react'
@@ -36,11 +36,25 @@ const MemberList = (): React.ReactElement => {
     setDeletingMember(null)
   }
 
+  const displayName = (member: MemberDto) =>
+    `${member.familyName}, ${member.name}`
+
   const columns: ColumnDef<MemberDto>[] = [
     {
       id: 'name',
       header: 'Name',
-      accessorFn: (member) => `${member.familyName}, ${member.name}`,
+      accessorFn: displayName,
+      // The name is the row's primary way in to the edit page; the pencil in
+      // the Actions column does the same thing.
+      cell: ({ row }) => (
+        <Link
+          to={MemberEditRoute.to}
+          params={{ id: String(row.original.id) }}
+          className="font-medium underline-offset-4 hover:underline"
+        >
+          {displayName(row.original)}
+        </Link>
+      ),
     },
     { accessorKey: 'address1', header: 'Address' },
     { accessorKey: 'city', header: 'City' },
@@ -55,10 +69,12 @@ const MemberList = (): React.ReactElement => {
       enableGlobalFilter: false,
       enableSorting: false,
       cell: ({ row }) => (
-        <div className="flex justify-center gap-1">
+        <div className="flex justify-center gap-3">
           <Button
             size="sm"
             variant="ghost"
+            aria-label={`Edit ${displayName(row.original)}`}
+            title="Edit"
             onClick={() =>
               navigate({
                 to: MemberEditRoute.to,
@@ -72,6 +88,9 @@ const MemberList = (): React.ReactElement => {
             <Button
               size="sm"
               variant="ghost"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              aria-label={`Delete ${displayName(row.original)}`}
+              title="Delete"
               onClick={() => setDeletingMember(row.original)}
             >
               <Trash2 className="w-4 h-4" />
@@ -114,18 +133,18 @@ const MemberList = (): React.ReactElement => {
           <DialogFooter>
             <Button
               type="button"
+              variant="ghost"
+              onClick={() => setDeletingMember(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
               variant="destructive"
               onClick={handleDelete}
               disabled={deleteMember.isPending}
             >
               {deleteMember.isPending ? 'Deleting...' : 'Delete'}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setDeletingMember(null)}
-            >
-              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>

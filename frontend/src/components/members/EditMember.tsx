@@ -66,9 +66,19 @@ const EditMember = ({ memberId }: EditMemberProps): React.ReactElement => {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <MemberForm />
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" disabled={saveMember.isPending}>
-            {saveMember.isPending ? 'Saving...' : 'Save'}
-          </Button>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={saveMember.isPending}
+              onClick={() => navigate({ to: MemberRoute.to })}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saveMember.isPending}>
+              {saveMember.isPending ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
         </form>
       </FormProvider>
     </div>

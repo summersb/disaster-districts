@@ -28,7 +28,10 @@ test('edit member navigates from the list, loads existing data, and saves', asyn
 
   await page.goto('/member')
   await page.getByPlaceholder('Search members...').fill(memberName)
-  await page.locator('tr', { hasText: memberName }).getByRole('button').click()
+  await page
+    .locator('tr', { hasText: memberName })
+    .getByRole('button', { name: /^Edit / })
+    .click()
 
   // Clicking Edit must actually navigate to the member's edit page, not
   // silently do nothing (the "Edit" button previously pointed at the list

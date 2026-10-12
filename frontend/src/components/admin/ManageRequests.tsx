@@ -68,6 +68,16 @@ const ManageRequests = (): React.ReactElement => {
             </Select>
             <Button
               size="sm"
+              variant="destructive"
+              disabled={resolveRequest.isPending}
+              onClick={() =>
+                resolveRequest.mutate({ id: request.id, approve: false })
+              }
+            >
+              Reject
+            </Button>
+            <Button
+              size="sm"
               disabled={resolveRequest.isPending}
               onClick={() =>
                 resolveRequest.mutate({
@@ -78,16 +88,6 @@ const ManageRequests = (): React.ReactElement => {
               }
             >
               Approve
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              disabled={resolveRequest.isPending}
-              onClick={() =>
-                resolveRequest.mutate({ id: request.id, approve: false })
-              }
-            >
-              Reject
             </Button>
           </div>
         </div>
