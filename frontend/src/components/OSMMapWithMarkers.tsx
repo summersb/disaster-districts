@@ -1,8 +1,10 @@
 import type React from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  CircleMarker,
   MapContainer,
   Marker,
+  Polyline,
   TileLayer,
   Tooltip,
   useMap,
@@ -12,7 +14,7 @@ import 'leaflet/dist/leaflet.css'
 import { Link, useNavigate } from '@tanstack/react-router'
 import L from 'leaflet'
 import MemberDisplayName from '@/components/MemberDisplayName.tsx'
-import { deClutter } from '@/components/mapUtils.ts'
+import { type PlacedPin, spreadOverlappingPins } from '@/components/mapUtils.ts'
 import { UNASSIGNED_COLOR } from '@/lib/districtColors'
 import { cn } from '@/lib/utils'
 import { Route as DistrictRoute } from '@/routes/_protected/district/$id.tsx'
@@ -109,6 +111,102 @@ function DefaultRadiusView({
     },
   })
   return null
+}
+
+// Overlapping pins are only moved apart from this zoom level in (roughly a
+// neighbourhood-sized view).
+const MIN_SPREAD_ZOOM = 14
+
+type MemberPinsProps = {
+  members: MemberDto[]
+  getIcon: (member: MemberDto) => L.Icon
+  onClick: (member: MemberDto) => void
+  showLabel: boolean
+  editable?: boolean
+}
+
+// Draws the member pins. Pins that would cover each other at the current zoom
+// are fanned out so each can be clicked, with a line (and a dot) marking where
+// the member actually is.
+function MemberPins({
+  members,
+  getIcon,
+  onClick,
+  showLabel,
+  editable,
+}: MemberPinsProps) {
+  const map = useMap()
+  // Overlap depends on the zoom, so re-place the pins whenever it changes.
+  const [zoom, setZoom] = useState(map.getZoom())
+  useMapEvents({
+    zoomend() {
+      setZoom(map.getZoom())
+    },
+  })
+
+  const pins = useMemo<PlacedPin[]>(() => {
+    // Zoomed out to the whole ward, pins overlap by the hundred and moving
+    // them apart would only add clutter - show them where they are.
+    if (zoom < MIN_SPREAD_ZOOM) {
+      return members.flatMap((member) =>
+        member.lat != null && member.lng != null
+          ? [{ member, lat: member.lat, lng: member.lng }]
+          : [],
+      )
+    }
+    return spreadOverlappingPins(
+      members,
+      (point) => map.project([point.lat, point.lng], zoom),
+      (pixel) => map.unproject([pixel.x, pixel.y], zoom),
+    )
+  }, [members, map, zoom])
+
+  return (
+    <>
+      {pins.map(({ member, lat, lng, actual }) => (
+        <Fragment key={member.id}>
+          {actual && (
+            <>
+              <Polyline
+                positions={[
+                  [actual.lat, actual.lng],
+                  [lat, lng],
+                ]}
+                pathOptions={{ color: '#1f2937', weight: 1.5 }}
+                interactive={false}
+              />
+              <CircleMarker
+                center={[actual.lat, actual.lng]}
+                radius={3}
+                pathOptions={{
+                  color: '#1f2937',
+                  weight: 1,
+                  fillColor: '#ffffff',
+                  fillOpacity: 1,
+                }}
+                interactive={false}
+              />
+            </>
+          )}
+          <Marker
+            position={[lat, lng]}
+            eventHandlers={{ click: () => onClick(member) }}
+            icon={getIcon(member)}
+          >
+            <Tooltip
+              direction="right"
+              offset={[0, 20]}
+              opacity={showLabel ? 0.5 : 1}
+              permanent={showLabel}
+            >
+              <MemberDisplayName member={member} />
+              {editable && ' (click to look up address)'}
+            </Tooltip>
+          </Marker>
+        </Fragment>
+      ))}
+    </>
+  )
 }
 
 function ClickHandler({
@@ -329,24 +427,13 @@ const OSMMapWithMarkers = (props: MapWithMarkersProps): React.ReactElement => {
           />
         )}
         {props.onMapClick && <ClickHandler onClick={props.onMapClick} />}
-        {deClutter(props.members)?.map((member: MemberDto) => (
-          <Marker
-            key={member.id}
-            position={[member.lat ?? 0, member.lng ?? 0]}
-            eventHandlers={{ click: () => markerClicked(member) }}
-            icon={getMemberIcon(member)}
-          >
-            <Tooltip
-              direction="right"
-              offset={[0, 20]}
-              opacity={props.showLabel ? 0.5 : 1}
-              permanent={props.showLabel}
-            >
-              <MemberDisplayName member={member} />
-              {props.editable && ' (click to look up address)'}
-            </Tooltip>
-          </Marker>
-        ))}
+        <MemberPins
+          members={props.members}
+          getIcon={getMemberIcon}
+          onClick={markerClicked}
+          showLabel={props.showLabel}
+          editable={props.editable}
+        />
         {props.districts?.map((d) => {
           // Prefer the district's stored lat/lng. If absent, fall back to the
           // average position of the district's own members.
