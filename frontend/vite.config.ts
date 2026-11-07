@@ -27,6 +27,16 @@ export default defineConfig({
   server: {
     host: true,
     allowedHosts: true,
+    // Lets the dev server on :5173 be used directly, matching nginx's
+    // /api/* -> backend route. In Docker the backend is reachable as
+    // "backend"; outside Docker set VITE_API_PROXY (e.g. http://localhost:9090).
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_PROXY ?? 'http://backend:8080',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/api/, ''),
+      },
+    },
   },
   build: {
     rollupOptions: {

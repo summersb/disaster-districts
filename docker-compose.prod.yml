@@ -37,6 +37,8 @@ services:
       DATABASE_HOST: db
       # Optional contact address sent with OpenStreetMap (Nominatim) lookups.
       GEOCODER_CONTACT_EMAIL: ${GEOCODER_CONTACT_EMAIL:-}
+      # Google sign-in tokens must be issued for this client id.
+      VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
     volumes:
       # The key pair that signs login tokens; generated on first start.
       - jwt-keys:/keys

@@ -17,18 +17,24 @@ import jakarta.ws.rs.Path
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
+import org.eclipse.microprofile.config.inject.ConfigProperty
 import java.net.URI
+import java.net.URLEncoder
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.Optional
 
 @Path("/auth")
 class AuthResource(
     val userAccountRepository: UserAccountRepository,
     val userViews: UserViews,
     val identity: SecurityIdentity,
+    @ConfigProperty(name = "dd.google.client-id")
+    val googleClientId: Optional<String>,
 ) {
 
     private fun authResponse(token: String?, user: UserAccountDao): AuthResponse {
@@ -69,17 +75,28 @@ class AuthResource(
             .sign()
     }
 
+    /**
+     * Checks a Google ID token and returns its verified email, or null.
+     * The token must have been issued for this app's client id (`aud`);
+     * otherwise a token minted for any other site could be replayed here.
+     * With no client id configured, Google sign-in is refused outright.
+     */
     private fun verifyGoogleToken(credential: String): String? {
-        val client = HttpClient.newHttpClient()
+        val clientId = googleClientId.orElse("").trim()
+        if (clientId.isEmpty()) return null
+        val encoded = URLEncoder.encode(credential, StandardCharsets.UTF_8)
         val req = HttpRequest.newBuilder()
-            .uri(URI.create("https://oauth2.googleapis.com/tokeninfo?id_token=$credential"))
+            .uri(URI.create("https://oauth2.googleapis.com/tokeninfo?id_token=$encoded"))
             .GET()
             .build()
-        val resp = client.send(req, HttpResponse.BodyHandlers.ofString())
+        val resp = HttpClient.newHttpClient().send(req, HttpResponse.BodyHandlers.ofString())
         if (resp.statusCode() != 200) return null
-        val tokenInfo = jacksonObjectMapper().readValue<Map<String, String>>(resp.body())
-        if (tokenInfo["email_verified"] != "true") return null
-        return tokenInfo["email"]
+        val tokenInfo = jacksonObjectMapper().readValue<Map<String, Any?>>(resp.body())
+        if (tokenInfo["aud"]?.toString() != clientId) return null
+        val issuer = tokenInfo["iss"]?.toString()
+        if (issuer != "accounts.google.com" && issuer != "https://accounts.google.com") return null
+        if (tokenInfo["email_verified"]?.toString() != "true") return null
+        return tokenInfo["email"]?.toString()
     }
 
     @GET
