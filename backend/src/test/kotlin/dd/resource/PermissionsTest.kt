@@ -419,6 +419,23 @@ class PermissionsTest {
             .body("roles", hasItem("admin"))
     }
 
+    // The System Admin page toggles system admin by sending the account's
+    // roles in its first ward back alongside it, so their ward standing stays.
+    @Test
+    fun `granting and revoking system admin with the ward roles sent back keeps the ward role`() {
+        val a = fx.wardA
+        val target = fx.user().first
+        system().send("PUT", "/users/$target", """{"roles": ["ward_admin"], "wardId": $a}""").statusCode(200)
+
+        system().send("PUT", "/users/$target", """{"roles": ["admin", "ward_admin"]}""").statusCode(200)
+            .body("roles", hasItem("admin"))
+            .body("wards.find { it.id == $a }.roles", equalTo(listOf("admin", "ward_admin")))
+
+        system().send("PUT", "/users/$target", """{"roles": ["ward_admin"]}""").statusCode(200)
+            .body("roles", not(hasItem("admin")))
+            .body("wards.find { it.id == $a }.roles", equalTo(listOf("ward_admin")))
+    }
+
     @Test
     fun `a system admin can also be made a ward's admin, and keeps the system role`() {
         val a = fx.wardA

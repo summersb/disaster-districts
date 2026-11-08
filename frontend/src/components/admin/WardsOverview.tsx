@@ -180,7 +180,7 @@ const WardsOverview = (): React.ReactElement => {
   }
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6" data-testid="wards-overview">
       <h2 className="text-xl font-semibold">Wards</h2>
 
       <Card className="p-4">
