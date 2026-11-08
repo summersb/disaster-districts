@@ -1,6 +1,6 @@
-# Production image for the site: the frontend built to static files and
-# served by Caddy, which also terminates HTTPS and forwards /api to the
-# backend. No Vite dev server is involved.
+# Production image for the site (dd-web): the frontend built to static files
+# served by Caddy over plain HTTP, which also forwards /api to the backend.
+# HTTPS is the edge proxy's job (~/projects/edge-proxy). No Vite dev server.
 #
 # The build context is the repository root (it needs deploy/Caddyfile too):
 #

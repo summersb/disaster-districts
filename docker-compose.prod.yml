@@ -1,16 +1,20 @@
-# Production stack: a packaged backend, the frontend built to static files,
-# and Caddy in front serving HTTPS. Only ports 80 and 443 are published; the
-# database and the backend are reachable only from inside this stack.
+# Production stack for one droplet, run from images built elsewhere and either
+# pushed to a registry or copied over SSH. Nothing here publishes ports to the
+# internet: the shared edge proxy (~/projects/edge-proxy) terminates HTTPS for
+# dd.lazys.net and forwards to the "web" service over the "edge" network.
 #
-#   cp .env.production.example .env.production      # then fill it in
-#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
-#
+# deploy/deploy.sh builds the images, ships them, copies this file to
+# /opt/dd/docker-compose.yml on the droplet and starts it there, with
+# BACKEND_IMAGE and WEB_IMAGE set in /opt/dd/.env.
 # See README.md, "Production deployment".
 
 services:
   db:
     image: postgres:17
     restart: unless-stopped
+    # Sized for a 1 GB droplet shared with other apps: a small buffer cache and
+    # few connections (the backend's pool is the only client).
+    command: postgres -c shared_buffers=64MB -c max_connections=20
     environment:
       POSTGRES_USER: ${DATABASE_USER:?set DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
@@ -26,9 +30,7 @@ services:
       - internal
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.prod
+    image: ${BACKEND_IMAGE:?set BACKEND_IMAGE (deploy/deploy.sh sets it)}
     restart: unless-stopped
     environment:
       DATABASE_USER: ${DATABASE_USER}
@@ -39,6 +41,10 @@ services:
       GEOCODER_CONTACT_EMAIL: ${GEOCODER_CONTACT_EMAIL:-}
       # Google sign-in tokens must be issued for this client id.
       VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+      JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=50}
+    # The JVM sizes its heap from this limit (MaxRAMPercentage=50 -> ~192 MB).
+    # Without it the JVM would size itself from the whole droplet's memory.
+    mem_limit: 384m
     volumes:
       # The key pair that signs login tokens; generated on first start.
       - jwt-keys:/keys
@@ -49,33 +55,26 @@ services:
       - internal
 
   web:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile.prod
-      args:
-        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+    image: ${WEB_IMAGE:?set WEB_IMAGE (deploy/deploy.sh sets it)}
     restart: unless-stopped
-    environment:
-      DOMAIN: ${DOMAIN:-localhost}
+    # Plain HTTP only. Published on the droplet's loopback for debugging
+    # (curl http://127.0.0.1:8081/ on the droplet); the public way in is the
+    # edge proxy.
     ports:
-      - "${HTTP_PORT:-80}:80"
-      - "${HTTPS_PORT:-443}:443"
-      - "${HTTPS_PORT:-443}:443/udp"
-    volumes:
-      # Certificates and their private keys - keep these across restarts or
-      # Caddy has to ask Let's Encrypt for new ones every time.
-      - caddy-data:/data
-      - caddy-config:/config
+      - "127.0.0.1:${WEB_DEBUG_PORT:-8081}:80"
     depends_on:
       - backend
     networks:
-      - internal
+      internal:
+      edge:
+        aliases:
+          - dd-web
 
 volumes:
   db-data:
   jwt-keys:
-  caddy-data:
-  caddy-config:
 
 networks:
   internal:
+  edge:
+    external: true

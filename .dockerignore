@@ -1,0 +1,12 @@
+# Build context for frontend/Dockerfile.prod is the repository root; keep it
+# small and keep secrets out of it.
+.git
+.env
+.env.*
+**/node_modules
+frontend/dist
+frontend/test-results
+frontend/playwright-report
+frontend/coverage
+frontend/monocart-report
+backend/target

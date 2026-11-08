@@ -141,100 +141,130 @@ Playwright tests run against a persistent, shared database rather than a
 fresh one per test, so they run single-worker/non-parallel and clean up
 after themselves (see `frontend/e2e/`).
 
-## Building for deployment
-
-The `docker-compose.yml` in this repo runs both the backend and frontend in
-**dev mode** (`quarkus:dev` and `vite dev`, with source bind-mounted for live
-reload) and Nginx proxies straight to those dev servers — it is meant for
-local development, not production.
-
-To produce production artifacts using the tooling already in this repo:
-
-- **Backend**: `./mvnw package` builds a runnable JAR at
-  `backend/target/quarkus-app/quarkus-run.jar` (run with
-  `java -jar target/quarkus-app/quarkus-run.jar`). A container image can be
-  built directly via the bundled `quarkus-container-image-docker` extension:
-  `./mvnw package -Dquarkus.container-image.build=true`. A native executable
-  is also available via `./mvnw package -Dnative` (see `backend/README.md`
-  for details and container-build options if GraalVM isn't installed
-  locally).
-- **Frontend**: `yarn build` produces static assets in `frontend/dist/`,
-  meant to be served directly (e.g. by Nginx) rather than through the Vite
-  dev server.
-
-Turning this into an actual production deployment would additionally
-require: an Nginx config that serves `frontend/dist/` as static files
-instead of proxying to the Vite dev server, externally supplied
-`DATABASE_*` credentials pointing at a real Postgres instance, and a
-production JWT keystore (the bundled `jwt-keystore.p12` is an in-memory dev
-key and is not suitable for production, per Quarkus's own startup warning).
-
 ## Production deployment
 
-Development (`docker compose up`) runs dev servers with live reload. For a
-real server use `docker-compose.prod.yml`, which runs:
+`docker compose up` runs dev servers with live reload and is for local
+development only. Production runs on a DigitalOcean droplet from images built on your machine
+(the droplet never builds), behind a shared HTTPS proxy that also serves other
+apps on other subdomains.
 
-| Service   | What it is                                                                 |
-|-----------|-----------------------------------------------------------------------------|
-| `web`     | Caddy serving the built frontend over HTTPS and forwarding `/api` to the backend. The only service with published ports (80 and 443). |
-| `backend` | The packaged Quarkus app on a JRE (`backend/Dockerfile.prod`).              |
-| `db`      | PostgreSQL, reachable only from inside the stack.                           |
+```
+                         droplet
+ https://dd.lazys.net    ┌──────────────────────────────────────────────────┐
+ https://x.lazys.net ──► │ /opt/edge   caddy (:80, :443, Cloudflare origin) │
+                         │               │ "edge" docker network            │
+                         │     ┌─────────┴──────────┐                       │
+                         │ /opt/dd: dd-web        other apps' containers    │
+                         │   (frontend + /api) ─► backend ─► db             │
+                         └──────────────────────────────────────────────────┘
+```
 
-### First deployment
+| Piece | Where | What it is |
+|---|---|---|
+| Edge proxy | separate project, `~/projects/edge-proxy` → `/opt/edge` | One Caddy for the whole droplet. Owns ports 80/443, terminates HTTPS, routes by hostname. Its `sites/dd.caddy` sends `dd.lazys.net` to `dd-web`. |
+| `web` (`dd-web`) | `docker-compose.prod.yml` → `/opt/dd` | Caddy serving the built frontend over plain HTTP and forwarding `/api` to the backend (`frontend/Dockerfile.prod`, `deploy/Caddyfile`). |
+| `backend` (`dd-backend`) | same | The packaged Quarkus app on a JRE (`backend/Dockerfile.prod`). |
+| `db` | same | PostgreSQL 17, reachable only inside the stack. |
 
-1. Point the domain's DNS at the server and open ports 80 and 443 (only).
-2. On the server, in a checkout of this repository:
+`docker-compose.build.yml` holds the image build settings; it is only used on
+the machine that builds and pushes.
+
+### One-time setup
+
+1. **Droplet.** Create an Ubuntu droplet with Docker (the "Docker" marketplace
+   image is simplest); 2 GB of memory is a comfortable minimum for Java +
+   PostgreSQL. Add your SSH key. Allow only ports 22, 80 and 443 (a
+   DigitalOcean cloud firewall; Docker's published ports bypass `ufw`).
+2. **DNS and certificate.** In Cloudflare, add an A record for `dd` pointing
+   at the droplet's IP with **Proxied** (orange cloud) on; SSL/TLS mode is
+   "Full (strict)" for the whole lazys.net zone. The edge proxy serves it
+   with a Cloudflare Origin certificate in `/opt/edge/certs/dd/` on the
+   droplet; see "Certificates" in `~/projects/edge-proxy/README.md`.
+3. **Settings.** Locally:
 
    ```bash
    cp .env.production.example .env.production
-   # edit .env.production: DOMAIN and a long random DATABASE_PASSWORD
-   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+   # fill in DEPLOY_HOST, a long random DATABASE_PASSWORD,
+   # and VITE_GOOGLE_CLIENT_ID if Google sign-in is wanted
    ```
 
-3. Open `https://<your domain>` straight away and create the system admin
-   account on the setup page. On an empty database the first visitor gets to
-   do this, so don't leave it waiting.
+   For Google sign-in, add `https://dd.lazys.net` to the OAuth client's
+   **Authorized JavaScript origins** in Google Cloud Console.
+4. **Optional: a registry.** Without one, each deploy copies both images to
+   the droplet over SSH (`docker save | docker load`). A registry sends only
+   the layers that changed. To use DigitalOcean's: `doctl registry create
+   <name>` and `doctl auth init` locally, log the droplet in once with a
+   read-only token (`docker login registry.digitalocean.com -u <token> -p
+   <token>`), and set `DOCR_REGISTRY=registry.digitalocean.com/<name>` in
+   `.env.production`.
 
-Caddy obtains and renews the HTTPS certificate from Let's Encrypt on its own
-and redirects plain HTTP to HTTPS. The database starts empty; nothing loads
-`backend/db/sample_data.sql` in production.
+### Deploying (first time and every update)
+
+From this repository:
+
+```bash
+deploy/deploy.sh
+```
+
+Settings come from the environment or `.env.production`; a value given on the
+command line wins (`DEPLOY_HOST=root@other deploy/deploy.sh`). It:
+
+1. asks for the SSH passphrase once and reuses the connection
+2. builds `linux/amd64` images `dd-backend:<commit>` and `dd-web:<commit>`
+   (uncommitted changes get a `-dirty-<time>` tag)
+3. pushes them to `DOCR_REGISTRY`, or without one copies them over SSH
+4. creates the `edge` network if it is missing, copies the compose file and
+   `.env.production` to `/opt/dd` (as `.env`, readable by root only, with
+   `BACKEND_IMAGE`/`WEB_IMAGE` appended), and runs `docker compose up -d`
+
+Database migrations run when the backend starts. To roll back, redeploy an
+older commit: `git checkout <commit> && deploy/deploy.sh && git checkout main`.
+
+The site is reachable once the edge proxy is deployed too (`./deploy.sh` in
+`~/projects/edge-proxy`); it routes `dd.lazys.net` to this app. Deploy it in
+either order.
+
+After the **first** deployment, open `https://dd.lazys.net` straight away and
+create the system admin account on the setup page — on an empty database the
+first visitor gets to do this.
+
+### Other apps on the droplet
+
+Other subdomains are routed by the edge proxy project; see its README for
+adding a site.
+
+### On the droplet
+
+```bash
+cd /opt/dd
+docker compose ps
+docker compose logs -f backend
+curl -s http://127.0.0.1:8081/api/auth/setup    # the app, bypassing the edge proxy
+```
 
 ### The token signing key
 
 Login tokens are signed with an RSA key pair that is **not** in the
-repository or the image. The backend container generates it the first time it
-starts (`backend/docker/entrypoint.sh`) and keeps it on the `jwt-keys` volume,
-so sessions survive restarts and upgrades. To rotate the key and sign everyone
-out:
+repository or the image. The backend generates it on first start
+(`backend/docker/entrypoint.sh`) and keeps it on the `jwt-keys` volume, so
+sessions survive restarts and upgrades. To rotate it and sign everyone out:
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production stop backend
-docker compose -f docker-compose.prod.yml --env-file .env.production run --rm --entrypoint sh backend -c 'rm -f /keys/*.pem'
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d backend
+cd /opt/dd
+docker compose stop backend
+docker compose run --rm --entrypoint sh backend -c 'rm -f /keys/*.pem'
+docker compose up -d backend
 ```
-
-### Updating
-
-```bash
-git pull
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
-```
-
-Database migrations run automatically when the backend starts.
 
 ### Backups
 
 All data is in the `db-data` volume. Take a dump regularly and copy it off the
-server:
+droplet:
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production exec -T db \
-  sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > backup-$(date +%F).sql
+ssh root@<droplet> 'cd /opt/dd && docker compose exec -T db sh -c "pg_dump -U \$POSTGRES_USER \$POSTGRES_DB"' \
+  > backup-$(date +%F).sql
 ```
 
-### Trying the production build locally
-
-With `DOMAIN=localhost` (and, if 80/443 are taken, `HTTP_PORT`/`HTTPS_PORT`
-set to free ports) the same command runs the stack on your own machine. Caddy
-then uses a certificate from its own local authority, which the browser will
-warn about.
+DigitalOcean droplet backups are a useful extra layer, but a `pg_dump` is the
+one to rely on for restoring the database.

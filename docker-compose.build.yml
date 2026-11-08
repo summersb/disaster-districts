@@ -1,0 +1,27 @@
+# How the production images are built. Used together with
+# docker-compose.prod.yml on a development machine, never on the droplet:
+#
+#   deploy/deploy.sh
+#
+# which runs, in effect:
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.build.yml \
+#     --env-file .env.production build backend web
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+      platforms:
+        - linux/amd64
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.prod
+      platforms:
+        - linux/amd64
+      args:
+        # Baked into the JavaScript; empty hides Google sign-in.
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}

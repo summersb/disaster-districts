@@ -3,7 +3,7 @@
 #
 #   docker build -f backend/Dockerfile.prod backend
 #
-# (docker-compose.prod.yml does this for you.)
+# (deploy/build-push.sh does this for you.)
 
 # --- build ------------------------------------------------------------------
 FROM maven:3.9.14-eclipse-temurin-25 AS build

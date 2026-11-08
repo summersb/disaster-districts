@@ -1,17 +1,19 @@
-# The public face of the app: HTTPS, the built frontend, and /api.
+# The dd-web container: the built frontend and /api, over plain HTTP.
 #
-# DOMAIN is the site's address. With a real domain name whose DNS points at
-# this server, Caddy obtains and renews a Let's Encrypt certificate on its
-# own, and redirects http:// to https://. With "localhost" (the default, for
-# trying the production build on your own machine) it uses a certificate from
-# its own local authority instead, which browsers will warn about.
+# HTTPS is not handled here. The droplet's edge proxy (~/projects/edge-proxy) owns the
+# certificate for dd.lazys.net and forwards requests to this container.
 
-{$DOMAIN:localhost} {
+{
+	servers {
+		# Keep the client address and scheme the edge proxy passes along.
+		trusted_proxies static private_ranges
+	}
+}
+
+:80 {
 	encode gzip zstd
 
 	header {
-		# Only ever reach this site over HTTPS from now on.
-		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
