@@ -166,8 +166,9 @@ apps on other subdomains.
 | `backend` (`dd-backend`) | same | The packaged Quarkus app on a JRE (`backend/Dockerfile.prod`). |
 | `db` | same | PostgreSQL 17, reachable only inside the stack. |
 
-`docker-compose.build.yml` holds the image build settings; it is only used on
-the machine that builds and pushes.
+`deploy/deploy.sh` builds the images on your machine and ships them. The
+droplet holds only `docker-compose.yml` (a copy of `docker-compose.prod.yml`)
+and `.env` in `/opt/dd`.
 
 ### One-time setup
 
@@ -180,23 +181,28 @@ the machine that builds and pushes.
    "Full (strict)" for the whole lazys.net zone. The edge proxy serves it
    with its shared `*.lazys.net` Cloudflare Origin certificate in
    `/opt/edge/certs/`; see "Certificates" in `~/projects/edge-proxy/README.md`.
-3. **Settings.** Locally:
+3. **The droplet's `.env`.** It holds the production settings and secrets and
+   stays on the droplet; deploys never overwrite it.
 
    ```bash
-   cp .env.production.example .env.production
-   # fill in DEPLOY_HOST, a long random DATABASE_PASSWORD,
-   # and VITE_GOOGLE_CLIENT_ID if Google sign-in is wanted
+   ssh root@<droplet-ip> mkdir -p /opt/dd
+   scp .env.example root@<droplet-ip>:/opt/dd/.env
+   ssh root@<droplet-ip> 'chmod 600 /opt/dd/.env && nano /opt/dd/.env'
    ```
 
-   For Google sign-in, add `https://dd.lazys.net` to the OAuth client's
-   **Authorized JavaScript origins** in Google Cloud Console.
-4. **Optional: a registry.** Without one, each deploy copies both images to
-   the droplet over SSH (`docker save | docker load`). A registry sends only
-   the layers that changed. To use DigitalOcean's: `doctl registry create
-   <name>` and `doctl auth init` locally, log the droplet in once with a
-   read-only token (`docker login registry.digitalocean.com -u <token> -p
-   <token>`), and set `DOCR_REGISTRY=registry.digitalocean.com/<name>` in
-   `.env.production`.
+   Set a long random `DATABASE_PASSWORD`, and `VITE_GOOGLE_CLIENT_ID` if
+   Google sign-in is wanted (add `https://dd.lazys.net` to the OAuth client's
+   **Authorized JavaScript origins** in Google Cloud Console). Leave out
+   `BACKEND_IMAGE` and `WEB_IMAGE`; the deploy script sets them.
+4. **Deploy settings.** Add them to this repo's local `.env` on your machine
+   (the same gitignored file the development stack reads):
+
+   ```bash
+   DEPLOY_HOST=root@<droplet-ip>
+   # DEPLOY_DIR=/opt/dd                                   # if not the default
+   # IMAGE_REGISTRY=registry.digitalocean.com/<registry>  # see below
+   VITE_GOOGLE_CLIENT_ID=...   # built into the frontend; same as the droplet's
+   ```
 
 ### Deploying (first time and every update)
 
@@ -206,16 +212,18 @@ From this repository:
 deploy/deploy.sh
 ```
 
-Settings come from the environment or `.env.production`; a value given on the
-command line wins (`DEPLOY_HOST=root@other deploy/deploy.sh`). It:
+A value given on the command line wins over `.env`, for example
+`DEPLOY_HOST=root@<other-ip> deploy/deploy.sh`. It:
 
-1. asks for the SSH passphrase once and reuses the connection
+1. asks for the SSH passphrase once and reuses the connection, and stops if
+   the droplet has no `/opt/dd/.env` yet
 2. builds `linux/amd64` images `dd-backend:<commit>` and `dd-web:<commit>`
    (uncommitted changes get a `-dirty-<time>` tag)
-3. pushes them to `DOCR_REGISTRY`, or without one copies them over SSH
-4. creates the `edge` network if it is missing, copies the compose file and
-   `.env.production` to `/opt/dd` (as `.env`, readable by root only, with
-   `BACKEND_IMAGE`/`WEB_IMAGE` appended), and runs `docker compose up -d`
+3. pushes them to `IMAGE_REGISTRY`, or without one copies them over SSH
+   (`docker save | docker load`)
+4. creates the `edge` network if it is missing, copies the compose file to
+   `/opt/dd`, records the images in the droplet's `.env`, runs
+   `docker compose up -d`, and removes older `dd-*` images
 
 Database migrations run when the backend starts. To roll back, redeploy an
 older commit: `git checkout <commit> && deploy/deploy.sh && git checkout main`.
@@ -223,6 +231,42 @@ older commit: `git checkout <commit> && deploy/deploy.sh && git checkout main`.
 The site is reachable once the edge proxy is deployed too (`./deploy.sh` in
 `~/projects/edge-proxy`); it routes `dd.lazys.net` to this app. Deploy it in
 either order.
+
+#### Using a registry instead
+
+Copying over SSH sends both whole images (a few hundred MB) on every deploy. A
+registry sends only the layers that changed. The images are layered for that:
+the backend's dependency jars (~60 MB) are a layer of their own that is
+byte-identical between builds until `pom.xml` changes, so a code change ships
+about 1.5 MB for the backend and about 1 MB for the frontend. With
+DigitalOcean Container Registry:
+
+```bash
+doctl registry create <registry-name>              # once
+doctl registry login                               # on your machine
+ssh root@<droplet-ip> "doctl registry login || docker login registry.digitalocean.com"   # on the droplet, once
+```
+
+Then add the registry to your local `.env` and deploy as usual:
+
+```bash
+IMAGE_REGISTRY=registry.digitalocean.com/<registry-name>
+```
+
+The images go to `<registry>/dd-backend` and `<registry>/dd-web`. Pushing
+needs a token with registry read and update scopes (the script runs
+`doctl registry login` itself when `doctl` is installed); the droplet only
+pulls, so its token needs read access. On the droplet, `docker login
+registry.digitalocean.com` takes an API token as both username and password.
+Any registry works the same way, such as `ghcr.io/<user>`.
+
+#### Moving from `.env.production` (once)
+
+Earlier deploys read everything from a local `.env.production` and copied it
+over the droplet's `/opt/dd/.env` each time. That droplet file already has the
+production settings and is now kept as it is, so nothing changes there. Move
+`DEPLOY_HOST` (and `DEPLOY_DIR` if set) into your local `.env`, then
+`.env.production` is no longer used and can be deleted.
 
 After the **first** deployment, open `https://dd.lazys.net` straight away and
 create the system admin account on the setup page — on an empty database the

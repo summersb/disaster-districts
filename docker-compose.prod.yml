@@ -3,9 +3,10 @@
 # internet: the shared edge proxy (~/projects/edge-proxy) terminates HTTPS for
 # dd.lazys.net and forwards to the "web" service over the "edge" network.
 #
-# deploy/deploy.sh builds the images, ships them, copies this file to
-# /opt/dd/docker-compose.yml on the droplet and starts it there, with
-# BACKEND_IMAGE and WEB_IMAGE set in /opt/dd/.env.
+# deploy/deploy.sh builds the images, pushes them to IMAGE_REGISTRY (or copies
+# them over SSH), copies this file to /opt/dd/docker-compose.yml on the droplet
+# and starts it there. The droplet's /opt/dd/.env holds the settings (see
+# .env.example); the script adds BACKEND_IMAGE and WEB_IMAGE to it.
 # See README.md, "Production deployment".
 
 services:

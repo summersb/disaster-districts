@@ -3,7 +3,11 @@
 #
 #   docker build -f backend/Dockerfile.prod backend
 #
-# (deploy/build-push.sh does this for you.)
+# (deploy/deploy.sh does this for you.)
+#
+# Layers are ordered from least to most often changed so a deploy only ships
+# what changed: the JRE base, then the dependency jars (~60 MB, change only
+# with pom.xml), then the entrypoint, then the app itself (~1.5 MB).
 
 # --- build ------------------------------------------------------------------
 FROM maven:3.9.14-eclipse-temurin-25 AS build
@@ -20,6 +24,17 @@ COPY src ./src
 RUN --mount=type=cache,target=/root/.m2 \
     mvn -B -q package -DskipTests -Dquarkus.container-image.build=false
 
+# Split the dependency jars (quarkus-app/lib) out so they get their own image
+# layer. The jars are byte-identical copies from the Maven repository; fixed
+# timestamps make the whole layer byte-identical between builds when pom.xml
+# hasn't changed, even without a build cache, so a registry already has it.
+# /deps holds app/lib; the app folder entry is included and stamped too, since
+# Docker records the parent folder in the layer and would otherwise use the
+# copy time.
+RUN mkdir -p /deps/app \
+    && mv target/quarkus-app/lib /deps/app/lib \
+    && find /deps -exec touch -h -d @0 {} +
+
 # --- run --------------------------------------------------------------------
 FROM eclipse-temurin:25-jre
 RUN apt-get update \
@@ -29,9 +44,10 @@ RUN apt-get update \
     && mkdir -p /keys && chown app:app /keys
 
 WORKDIR /app
+# Dependencies (change only with pom.xml), then the entrypoint, then the app.
+COPY --from=build --chown=app:app /deps/ /
+COPY --chown=app:app --chmod=755 docker/entrypoint.sh /app/entrypoint.sh
 COPY --from=build --chown=app:app /build/target/quarkus-app/ ./
-COPY --chown=app:app docker/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
 
 USER app
 ENV JWT_KEY_DIR=/keys \
