@@ -178,8 +178,8 @@ the machine that builds and pushes.
 2. **DNS and certificate.** In Cloudflare, add an A record for `dd` pointing
    at the droplet's IP with **Proxied** (orange cloud) on; SSL/TLS mode is
    "Full (strict)" for the whole lazys.net zone. The edge proxy serves it
-   with a Cloudflare Origin certificate in `/opt/edge/certs/dd/` on the
-   droplet; see "Certificates" in `~/projects/edge-proxy/README.md`.
+   with its shared `*.lazys.net` Cloudflare Origin certificate in
+   `/opt/edge/certs/`; see "Certificates" in `~/projects/edge-proxy/README.md`.
 3. **Settings.** Locally:
 
    ```bash
